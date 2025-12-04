@@ -1,0 +1,507 @@
+"use client"
+
+import { useState, useEffect, useRef, useCallback } from "react"
+import {
+  Table,
+  Row,
+  Col,
+  Statistic,
+  Select,
+  Input,
+  Button,
+  Tag,
+  Space,
+  message,
+  Tooltip,
+  Card
+} from "antd"
+import {
+  ReloadOutlined,
+  DownloadOutlined,
+  SearchOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  QuestionCircleOutlined,
+  SettingOutlined
+} from "@ant-design/icons"
+import { getExporterStatus, getExporterConfig, updateAutoRefresh } from "../../api/exporterMonitor"
+import { getDatasourceList } from "../../api/datasource"
+import { useNavigate } from "react-router-dom"
+
+const { Option } = Select
+
+export const ExporterMonitor = () => {
+  const navigate = useNavigate()
+  const [loading, setLoading] = useState(false)
+  const [summary, setSummary] = useState({
+    totalCount: 0,
+    upCount: 0,
+    downCount: 0,
+    unknownCount: 0,
+    availabilityRate: 0,
+    lastUpdateTime: ""
+  })
+  const [exporters, setExporters] = useState([])
+  const [datasources, setDatasources] = useState([])
+  const [filters, setFilters] = useState({
+    datasourceId: undefined,
+    status: undefined,
+    job: undefined,
+    keyword: ""
+  })
+  // 自动刷新状态，默认为 true
+  const [autoRefresh, setAutoRefresh] = useState(true)
+  const timerRef = useRef(null)
+
+  // 获取自动刷新状态
+  const fetchAutoRefresh = async () => {
+    try {
+      const res = await getExporterConfig()
+      if (res?.data?.monitorConfig) {
+        const autoRefreshValue = res.data.monitorConfig.autoRefresh
+        // 处理布尔值或布尔指针
+        const isAutoRefresh = autoRefreshValue !== undefined && autoRefreshValue !== null
+          ? Boolean(autoRefreshValue)
+          : true
+        setAutoRefresh(isAutoRefresh)
+      }
+    } catch (error) {
+      console.error("获取自动刷新状态失败:", error)
+      // 失败时使用默认值 true
+      setAutoRefresh(true)
+    }
+  }
+
+  // 获取数据源列表
+  const fetchDatasources = async () => {
+    try {
+      const res = await getDatasourceList({ type: "Prometheus" })
+      if (res?.data) {
+        setDatasources(res.data)
+      }
+    } catch (error) {
+      console.error("获取数据源列表失败:", error)
+    }
+  }
+
+  // 获取Exporter状态数据
+  const fetchExporterStatus = useCallback(async () => {
+    try {
+      setLoading(true)
+      const res = await getExporterStatus(filters)
+      if (res?.data) {
+        setSummary(res.data.summary || {})
+        setExporters(res.data.exporters || [])
+      }
+    } catch (error) {
+      console.error("获取Exporter状态失败:", error)
+      message.error("获取Exporter状态失败")
+    } finally {
+      setLoading(false)
+    }
+  }, [filters])
+
+  // 初始化加载
+  useEffect(() => {
+    fetchDatasources()
+    fetchExporterStatus()
+    fetchAutoRefresh()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // 当筛选条件变化时重新获取数据
+  useEffect(() => {
+    fetchExporterStatus()
+  }, [filters.datasourceId, filters.status, filters.job])
+
+  // 自动刷新
+  useEffect(() => {
+    // 清除之前的定时器
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+
+    if (autoRefresh) {
+      // 创建新的定时器
+      timerRef.current = setInterval(() => {
+        fetchExporterStatus()
+      }, 30000) // 30秒刷新一次
+    }
+
+    // 清理函数
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+    }
+  }, [autoRefresh, fetchExporterStatus])
+
+  // 切换自动刷新状态
+  const toggleAutoRefresh = async (e) => {
+    // 阻止事件冒泡和默认行为
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    
+    const newValue = !autoRefresh
+    console.log("切换自动刷新状态:", newValue, "当前状态:", autoRefresh)
+    
+    try {
+      console.log("开始调用 updateAutoRefresh API...")
+      // 调用 API 保存到后端
+      const result = await updateAutoRefresh(newValue)
+      console.log("API 调用成功:", result)
+      
+      // API 调用成功后再更新本地状态
+      setAutoRefresh(newValue)
+      message.success(newValue ? "已开启自动刷新" : "已停止自动刷新")
+    } catch (error) {
+      // 如果保存失败，保持原状态
+      console.error("更新自动刷新状态失败:", error)
+      const errorMessage = error?.response?.data?.error || error?.message || "未知错误"
+      message.error("更新自动刷新状态失败: " + errorMessage)
+    }
+  }
+
+  // 获取唯一的Job列表
+  const getUniqueJobs = () => {
+    const jobs = [...new Set(exporters.map(exp => exp.job))]
+    return jobs.filter(Boolean)
+  }
+
+  // 获取状态标签
+  const getStatusTag = (status) => {
+    switch (status) {
+      case "up":
+        return <Tag icon={<CheckCircleOutlined />} color="success">UP</Tag>
+      case "down":
+        return <Tag icon={<CloseCircleOutlined />} color="error">DOWN</Tag>
+      case "unknown":
+        return <Tag icon={<QuestionCircleOutlined />} color="default">UNKNOWN</Tag>
+      default:
+        return <Tag>{status}</Tag>
+    }
+  }
+
+  // 格式化时间
+  const formatTime = (timeStr) => {
+    if (!timeStr) return "-"
+    return new Date(timeStr).toLocaleString("zh-CN")
+  }
+
+  // 格式化Labels
+  const formatLabels = (labels) => {
+    if (!labels || typeof labels !== "object") return "-"
+    return Object.entries(labels)
+      .filter(([key]) => !key.startsWith("__"))
+      .map(([key, value]) => `${key}=${value}`)
+      .join(", ")
+  }
+
+  // 复制到剪贴板
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => {
+      message.success("已复制到剪贴板")
+    }).catch(() => {
+      message.error("复制失败")
+    })
+  }
+
+  // 导出CSV
+  const exportToCSV = () => {
+    const headers = ["数据源", "Job", "实例名称", "IP:端口", "状态", "最后采集时间", "错误信息"]
+    const rows = exporters.map(exp => [
+      exp.datasourceName || exp.datasourceId,
+      exp.job,
+      exp.instance,
+      exp.instance,
+      exp.status,
+      formatTime(exp.lastScrapeTime),
+      exp.lastError || "-"
+    ])
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+    ].join("\n")
+
+    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" })
+    const link = document.createElement("a")
+    link.href = URL.createObjectURL(blob)
+    link.download = `exporter_status_${Date.now()}.csv`
+    link.click()
+    message.success("导出成功")
+  }
+
+  // 表格列定义
+  const columns = [
+    {
+      title: "数据源",
+      dataIndex: "datasourceName",
+      key: "datasourceName",
+      width: 150,
+      ellipsis: true,
+      render: (text, record) => text || record.datasourceId
+    },
+    {
+      title: "Job",
+      dataIndex: "job",
+      key: "job",
+      width: 150,
+      ellipsis: true
+    },
+    {
+      title: "实例名称",
+      dataIndex: "instance",
+      key: "instance",
+      width: 200,
+      ellipsis: true,
+      render: (text, record) => (
+        <Tooltip title="点击复制">
+          <span
+            style={{ cursor: "pointer", color: "#1890ff" }}
+            onClick={() => copyToClipboard(text)}
+          >
+            {text}
+          </span>
+        </Tooltip>
+      )
+    },
+    {
+      title: "Labels",
+      dataIndex: "labels",
+      key: "labels",
+      width: 250,
+      ellipsis: true,
+      render: formatLabels
+    },
+    {
+      title: "状态",
+      dataIndex: "status",
+      key: "status",
+      width: 100,
+      align: "center",
+      render: getStatusTag
+    },
+    {
+      title: "最后采集时间",
+      dataIndex: "lastScrapeTime",
+      key: "lastScrapeTime",
+      width: 180,
+      render: formatTime
+    },
+    {
+      title: "错误信息",
+      dataIndex: "lastError",
+      key: "lastError",
+      width: 250,
+      ellipsis: true,
+      render: (text) => (
+        text ? (
+          <Tooltip title={text}>
+            <span style={{ color: "#ff4d4f" }}>{text}</span>
+          </Tooltip>
+        ) : "-"
+      )
+    }
+  ]
+
+  return (
+    <div style={{ padding: "24px", backgroundColor: "#f0f2f5", minHeight: "100vh" }}>
+      {/* 顶部统计卡片 */}
+      <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
+        <Col xs={24} sm={12} md={6}>
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              border: "1px solid #e8e8e8",
+              borderRadius: "12px",
+              padding: "24px",
+              height: "100%",
+            }}
+          >
+            <div style={{ marginBottom: "20px" }}>
+              <span style={{ color: "#8c8c8c", fontSize: "14px" }}>总数</span>
+            </div>
+            <Statistic
+              value={summary.totalCount}
+              valueStyle={{ fontSize: "32px", fontWeight: "600", color: "#000000" }}
+            />
+          </div>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              border: "1px solid #e8e8e8",
+              borderRadius: "12px",
+              padding: "24px",
+              height: "100%",
+            }}
+          >
+            <div style={{ marginBottom: "20px" }}>
+              <span style={{ color: "#8c8c8c", fontSize: "14px" }}>UP</span>
+            </div>
+            <Statistic
+              value={summary.upCount}
+              valueStyle={{ fontSize: "32px", fontWeight: "600", color: "#52c41a" }}
+            />
+          </div>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              border: "1px solid #e8e8e8",
+              borderRadius: "12px",
+              padding: "24px",
+              height: "100%",
+            }}
+          >
+            <div style={{ marginBottom: "20px" }}>
+              <span style={{ color: "#8c8c8c", fontSize: "14px" }}>DOWN</span>
+            </div>
+            <Statistic
+              value={summary.downCount}
+              valueStyle={{ fontSize: "32px", fontWeight: "600", color: "#ff4d4f" }}
+            />
+          </div>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              border: "1px solid #e8e8e8",
+              borderRadius: "12px",
+              padding: "24px",
+              height: "100%",
+            }}
+          >
+            <div style={{ marginBottom: "20px" }}>
+              <span style={{ color: "#8c8c8c", fontSize: "14px" }}>可用率</span>
+            </div>
+            <Statistic
+              value={summary.availabilityRate}
+              suffix="%"
+              precision={2}
+              valueStyle={{ fontSize: "32px", fontWeight: "600", color: summary.availabilityRate >= 95 ? "#52c41a" : "#faad14" }}
+            />
+          </div>
+        </Col>
+      </Row>
+
+      {/* 筛选与搜索栏 */}
+      <Card style={{ marginBottom: "16px" }}>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={6}>
+            <Select
+              style={{ width: "100%" }}
+              placeholder="选择数据源"
+              allowClear
+              value={filters.datasourceId}
+              onChange={(value) => setFilters({ ...filters, datasourceId: value })}
+            >
+              {datasources.map((ds) => (
+                <Option key={ds.id} value={ds.id}>
+                  {ds.name}
+                </Option>
+              ))}
+            </Select>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Select
+              style={{ width: "100%" }}
+              placeholder="选择状态"
+              allowClear
+              value={filters.status}
+              onChange={(value) => setFilters({ ...filters, status: value })}
+            >
+              <Option value="up">UP</Option>
+              <Option value="down">DOWN</Option>
+              <Option value="unknown">UNKNOWN</Option>
+            </Select>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Select
+              style={{ width: "100%" }}
+              placeholder="选择Job"
+              allowClear
+              value={filters.job}
+              onChange={(value) => setFilters({ ...filters, job: value })}
+            >
+              {getUniqueJobs().map((job) => (
+                <Option key={job} value={job}>
+                  {job}
+                </Option>
+              ))}
+            </Select>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Input
+              placeholder="搜索 IP/实例名称/标签..."
+              prefix={<SearchOutlined />}
+              value={filters.keyword}
+              onChange={(e) => setFilters({ ...filters, keyword: e.target.value })}
+              onPressEnter={fetchExporterStatus}
+            />
+          </Col>
+        </Row>
+        <Row style={{ marginTop: "16px" }}>
+          <Col>
+            <Space>
+              <Button
+                type="primary"
+                icon={<ReloadOutlined />}
+                onClick={fetchExporterStatus}
+                loading={loading}
+              >
+                刷新
+              </Button>
+              <Button
+                icon={<DownloadOutlined />}
+                onClick={exportToCSV}
+                disabled={exporters.length === 0}
+              >
+                导出
+              </Button>
+              <Button
+                icon={<SettingOutlined />}
+                onClick={() => navigate("/exporterMonitor/config")}
+              >
+                配置
+              </Button>
+              <Button
+                type={autoRefresh ? "primary" : "default"}
+                onClick={toggleAutoRefresh}
+                style={{ cursor: "pointer" }}
+              >
+                {autoRefresh ? "停止自动刷新" : "开启自动刷新"}
+              </Button>
+            </Space>
+          </Col>
+        </Row>
+      </Card>
+
+      {/* Exporter列表表格 */}
+      <Card>
+        <Table
+          columns={columns}
+          dataSource={exporters}
+          loading={loading}
+          rowKey={(record) => `${record.datasourceId}_${record.instance}`}
+          pagination={{
+            total: exporters.length,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 条记录`,
+            pageSizeOptions: ["10", "20", "50", "100"]
+          }}
+          scroll={{ x: 1200 }}
+        />
+      </Card>
+    </div>
+  )
+}

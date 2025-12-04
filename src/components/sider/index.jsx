@@ -11,7 +11,11 @@ import {
     FileDoneOutlined,
     SettingOutlined,
     ExceptionOutlined,
-    ApiOutlined, TeamOutlined, DownOutlined, LogoutOutlined
+    ApiOutlined,
+    TeamOutlined,
+    DownOutlined,
+    LogoutOutlined,
+    HeartOutlined
 } from '@ant-design/icons';
 import {Link, useNavigate} from 'react-router-dom';
 import {Menu, Layout, Typography, Dropdown, Space, message, Spin, theme, Popover, Avatar, Divider} from 'antd';
@@ -56,6 +60,7 @@ const adminMenuItems = [
         ]
     },
     { key: '6', path: '/datasource', icon: <PieChartOutlined />, label: '数据源' },
+    { key: '13', path: '/exporterMonitor', icon: <HeartOutlined />, label: 'Exporter 巡检' },
     { key: '8', path: '/folders', icon: <DashboardOutlined />, label: '仪表盘' },
     {
         key: '5',
@@ -112,6 +117,7 @@ const userMenuItems = [
         ]
     },
     { key: '6', path: '/datasource', icon: <PieChartOutlined />, label: '数据源' },
+    { key: '13', path: '/exporterMonitor', icon: <HeartOutlined />, label: 'Exporter 巡检' },
     { key: '8', path: '/folders', icon: <DashboardOutlined />, label: '仪表盘' }
 ];
 

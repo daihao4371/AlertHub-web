@@ -31,6 +31,8 @@ import {OnceProbing} from "../pages/probing/once";
 import Profile from "../pages/profile";
 import {FaultCenter} from "../pages/faultCenter";
 import {FaultCenterDetail} from "../pages/faultCenter/detail";
+import {ExporterMonitor} from "../pages/exporterMonitor";
+import {ExporterMonitorConfig} from "../pages/exporterMonitor/config";
 
 // eslint-disable-next-line import/no-anonymous-default-export
 export default [
@@ -165,6 +167,14 @@ export default [
     {
         path: '/faultCenter/detail/:id',
         element: <ComponentsContent name="故障中心详情" c={<FaultCenterDetail />} />
+    },
+    {
+        path: '/exporterMonitor',
+        element: <ComponentsContent name="Exporter 巡检" c={<ExporterMonitor />} />
+    },
+    {
+        path: '/exporterMonitor/config',
+        element: <ComponentsContent name="Exporter 巡检配置" c={<ExporterMonitorConfig />} />
     },
     {
         path: '/*',
