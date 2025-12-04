@@ -89,14 +89,11 @@ async function sendExporterReport(params) {
 // 更新自动刷新状态
 async function updateAutoRefresh(autoRefresh) {
     try {
-        console.log('发送自动刷新状态到后端:', autoRefresh);
-        const res = await http('post', '/api/w8t/exporter/monitor/autoRefresh', { 
-            autoRefresh: Boolean(autoRefresh) 
+        const res = await http('post', '/api/w8t/exporter/monitor/autoRefresh', {
+            autoRefresh: Boolean(autoRefresh)
         });
-        console.log('后端响应:', res);
         return res;
     } catch (error) {
-        console.error('更新自动刷新状态API调用失败:', error);
         HandleApiError(error);
         throw error;
     }

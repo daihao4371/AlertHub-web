@@ -49,28 +49,9 @@ export const ExporterMonitor = () => {
     job: undefined,
     keyword: ""
   })
-  // 自动刷新状态，默认为 true
-  const [autoRefresh, setAutoRefresh] = useState(true)
+  // 自动刷新状态(默认关闭,改为按需手动刷新)
+  const [autoRefresh, setAutoRefresh] = useState(false)
   const timerRef = useRef(null)
-
-  // 获取自动刷新状态
-  const fetchAutoRefresh = async () => {
-    try {
-      const res = await getExporterConfig()
-      if (res?.data?.monitorConfig) {
-        const autoRefreshValue = res.data.monitorConfig.autoRefresh
-        // 处理布尔值或布尔指针
-        const isAutoRefresh = autoRefreshValue !== undefined && autoRefreshValue !== null
-          ? Boolean(autoRefreshValue)
-          : true
-        setAutoRefresh(isAutoRefresh)
-      }
-    } catch (error) {
-      console.error("获取自动刷新状态失败:", error)
-      // 失败时使用默认值 true
-      setAutoRefresh(true)
-    }
-  }
 
   // 获取数据源列表
   const fetchDatasources = async () => {
@@ -81,6 +62,19 @@ export const ExporterMonitor = () => {
       }
     } catch (error) {
       console.error("获取数据源列表失败:", error)
+    }
+  }
+
+  // 获取配置中的自动刷新状态
+  const fetchAutoRefreshStatus = async () => {
+    try {
+      const res = await getExporterConfig()
+      if (res?.data?.monitorConfig) {
+        const autoRefreshValue = res.data.monitorConfig.autoRefresh || false
+        setAutoRefresh(autoRefreshValue)
+      }
+    } catch (error) {
+      console.error("获取自动刷新状态失败:", error)
     }
   }
 
@@ -104,8 +98,8 @@ export const ExporterMonitor = () => {
   // 初始化加载
   useEffect(() => {
     fetchDatasources()
+    fetchAutoRefreshStatus()
     fetchExporterStatus()
-    fetchAutoRefresh()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -139,30 +133,14 @@ export const ExporterMonitor = () => {
   }, [autoRefresh, fetchExporterStatus])
 
   // 切换自动刷新状态
-  const toggleAutoRefresh = async (e) => {
-    // 阻止事件冒泡和默认行为
-    if (e) {
-      e.preventDefault()
-      e.stopPropagation()
-    }
-    
-    const newValue = !autoRefresh
-    console.log("切换自动刷新状态:", newValue, "当前状态:", autoRefresh)
-    
+  const toggleAutoRefresh = async () => {
+    const newState = !autoRefresh
     try {
-      console.log("开始调用 updateAutoRefresh API...")
-      // 调用 API 保存到后端
-      const result = await updateAutoRefresh(newValue)
-      console.log("API 调用成功:", result)
-      
-      // API 调用成功后再更新本地状态
-      setAutoRefresh(newValue)
-      message.success(newValue ? "已开启自动刷新" : "已停止自动刷新")
+      await updateAutoRefresh(newState)
+      setAutoRefresh(newState)
+      message.success(newState ? "已开启自动刷新" : "已停止自动刷新")
     } catch (error) {
-      // 如果保存失败，保持原状态
-      console.error("更新自动刷新状态失败:", error)
-      const errorMessage = error?.response?.data?.error || error?.message || "未知错误"
-      message.error("更新自动刷新状态失败: " + errorMessage)
+      message.error("更新自动刷新状态失败")
     }
   }
 

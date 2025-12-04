@@ -29,6 +29,8 @@ export const ExporterMonitorConfig = () => {
   const [noticeGroups, setNoticeGroups] = useState([])
   const [cronList, setCronList] = useState([])
   const [currentTime, setCurrentTime] = useState(null)
+  const [inspectionTimes, setInspectionTimes] = useState(["09:00", "21:00"])
+  const [currentInspectionTime, setCurrentInspectionTime] = useState(null)
   const [monitorEnabled, setMonitorEnabled] = useState(true)
   const [reportEnabled, setReportEnabled] = useState(false)
 
@@ -80,16 +82,19 @@ export const ExporterMonitorConfig = () => {
         form.setFieldsValue({
           // 监控配置
           enabled: isEnabled,
-          dataSourceIds: monitorConfig?.dataSourceIds || [],
-          refreshInterval: monitorConfig?.refreshInterval || 30,
-          snapshotInterval: monitorConfig?.snapshotInterval || 5,
-          historyRetention: monitorConfig?.historyRetention || 30,
+          datasourceIds: monitorConfig?.datasourceIds || [],
+          historyRetention: monitorConfig?.historyRetention || 90,
 
           // 推送配置
           reportEnabled: isReportEnabled,
           noticeGroups: reportSchedule?.noticeGroups || [],
           reportFormat: reportSchedule?.reportFormat || "simple"
         })
+
+        // 设置巡检时间列表
+        if (monitorConfig?.inspectionTimes) {
+          setInspectionTimes(monitorConfig.inspectionTimes)
+        }
 
         // 设置Cron列表
         if (reportSchedule?.cronExpression) {
@@ -120,6 +125,31 @@ export const ExporterMonitorConfig = () => {
   useEffect(() => {
     console.log("reportEnabled 状态变化:", reportEnabled)
   }, [reportEnabled])
+
+  // 添加巡检时间
+  const addInspectionTime = () => {
+    if (!currentInspectionTime) {
+      message.warning("请选择巡检时间")
+      return
+    }
+
+    const hour = currentInspectionTime.hour()
+    const minute = currentInspectionTime.minute()
+    const timeStr = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`
+
+    if (inspectionTimes.includes(timeStr)) {
+      message.warning("该巡检时间已存在")
+      return
+    }
+
+    setInspectionTimes([...inspectionTimes, timeStr])
+    setCurrentInspectionTime(null)
+  }
+
+  // 删除巡检时间
+  const removeInspectionTime = (time) => {
+    setInspectionTimes(inspectionTimes.filter(t => t !== time))
+  }
 
   // 添加推送时间
   const addCronTime = () => {
@@ -166,10 +196,9 @@ export const ExporterMonitorConfig = () => {
       const config = {
         monitorConfig: {
           enabled: Boolean(values.enabled),
-          dataSourceIds: values.dataSourceIds || [],
-          refreshInterval: Number(values.refreshInterval) || 30,
-          snapshotInterval: Number(values.snapshotInterval) || 5,
-          historyRetention: Number(values.historyRetention) || 30
+          datasourceIds: values.datasourceIds || [],
+          inspectionTimes: inspectionTimes || ["09:00", "21:00"],
+          historyRetention: Number(values.historyRetention) || 90
         },
         reportSchedule: {
           enabled: Boolean(values.reportEnabled),
@@ -212,9 +241,7 @@ export const ExporterMonitorConfig = () => {
           layout="vertical"
           initialValues={{
             enabled: true,
-            refreshInterval: 30,
-            snapshotInterval: 5,
-            historyRetention: 30,
+            historyRetention: 90,
             reportEnabled: false,
             reportFormat: "simple"
           }}
@@ -246,7 +273,7 @@ export const ExporterMonitorConfig = () => {
 
             <Form.Item
               label="监控数据源"
-              name="dataSourceIds"
+              name="datasourceIds"
               rules={[{ required: true, message: "请选择至少一个数据源" }]}
               extra="选择需要监控的 Prometheus 数据源"
             >
@@ -264,30 +291,58 @@ export const ExporterMonitorConfig = () => {
             </Form.Item>
 
             <Form.Item
-              label="刷新间隔 (秒)"
-              name="refreshInterval"
-              rules={[{ required: true, message: "请输入刷新间隔" }]}
-              extra="页面自动刷新的时间间隔,建议 30 秒"
+              label="巡检时间配置"
+              extra="可添加多个巡检时间点,系统将在指定时间自动执行巡检"
             >
-              <InputNumber min={10} max={300} style={{ width: "100%" }} />
-            </Form.Item>
+              <Space direction="vertical" style={{ width: "100%" }}>
+                <Space>
+                  <TimePicker
+                    format="HH:mm"
+                    value={currentInspectionTime}
+                    onChange={setCurrentInspectionTime}
+                    placeholder="选择巡检时间"
+                  />
+                  <Button
+                    type="dashed"
+                    icon={<PlusOutlined />}
+                    onClick={addInspectionTime}
+                  >
+                    添加巡检时间
+                  </Button>
+                </Space>
 
-            <Form.Item
-              label="快照间隔 (分钟)"
-              name="snapshotInterval"
-              rules={[{ required: true, message: "请输入快照间隔" }]}
-              extra="历史记录采样的时间间隔,建议 5 分钟"
-            >
-              <InputNumber min={1} max={60} style={{ width: "100%" }} />
+                {inspectionTimes.length > 0 && (
+                  <List
+                    size="small"
+                    bordered
+                    dataSource={inspectionTimes}
+                    renderItem={(time) => (
+                      <List.Item
+                        actions={[
+                          <Button
+                            key="delete"
+                            type="text"
+                            danger
+                            icon={<DeleteOutlined />}
+                            onClick={() => removeInspectionTime(time)}
+                          />
+                        ]}
+                      >
+                        <Tag color="blue">⏰ 每天 {time}</Tag>
+                      </List.Item>
+                    )}
+                  />
+                )}
+              </Space>
             </Form.Item>
 
             <Form.Item
               label="数据保留 (天)"
               name="historyRetention"
               rules={[{ required: true, message: "请输入数据保留天数" }]}
-              extra="历史数据自动清理的保留天数,建议 30 天"
+              extra="历史数据自动清理的保留天数,建议 90 天"
             >
-              <InputNumber min={7} max={90} style={{ width: "100%" }} />
+              <InputNumber min={7} max={365} style={{ width: "100%" }} />
             </Form.Item>
           </Card>
 
