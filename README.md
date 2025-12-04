@@ -10,6 +10,29 @@ AlertHub 的前端监控面板,基于 React 构建的现代化告警监控系统
 - **状态管理**: React Hooks
 - **路由**: React Router
 
+## 🐳 Docker 镜像
+
+### 官方镜像地址
+- **前端镜像**: `registry.cn-hangzhou.aliyuncs.com/devops-dh/watchalert-web:beta-v1`
+
+### 使用 Docker 运行
+
+```bash
+# 拉取镜像
+docker pull registry.cn-hangzhou.aliyuncs.com/devops-dh/watchalert-web:beta-v1
+
+# 运行容器
+docker run -d \
+  --name watchalert-web \
+  -p 80:80 \
+  -e TZ=Asia/Shanghai \
+  registry.cn-hangzhou.aliyuncs.com/devops-dh/watchalert-web:beta-v1
+```
+
+访问 [http://localhost](http://localhost) 即可查看应用。
+
+> 💡 **提示**: 该镜像已包含编译后的静态文件和 Nginx 配置,开箱即用。
+
 ## 🚀 快速开始
 
 ### 环境要求
