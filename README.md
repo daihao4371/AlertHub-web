@@ -1,70 +1,148 @@
-# Getting Started with Create React App
+# AlertHub Web - 前端项目
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+AlertHub 的前端监控面板,基于 React 构建的现代化告警监控系统界面。
 
-## Available Scripts
+## 📦 技术栈
 
-In the project directory, you can run:
+- **框架**: React 18
+- **构建工具**: Create React App
+- **样式**: Tailwind CSS 4.x
+- **状态管理**: React Hooks
+- **路由**: React Router
 
-### `npm start`
+## 🚀 快速开始
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 环境要求
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- Node.js >= 14.0.0
+- npm >= 6.0.0
 
-### `npm test`
+### 安装依赖
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```bash
+npm install
+```
 
-### `npm run build`
+### 开发运行
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+启动开发服务器:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+npm start
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+访问 [http://localhost:3000](http://localhost:3000) 查看应用。
 
-### `npm run eject`
+开发模式下,修改代码后页面会自动重新加载,同时可以在控制台看到 lint 错误提示。
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### 生产构建
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+构建生产版本:
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```bash
+npm run build
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+构建产物将输出到 `build` 目录,文件已经过压缩优化,并且文件名包含了哈希值,可直接用于生产环境部署。
 
-## Learn More
+### 运行测试
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+启动交互式测试监听模式:
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```bash
+npm test
+```
 
-### Code Splitting
+更多测试信息请参考 [运行测试文档](https://facebook.github.io/create-react-app/docs/running-tests)。
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## 📁 项目结构
 
-### Analyzing the Bundle Size
+```
+web/
+├── public/          # 静态资源
+├── src/
+│   ├── api/        # API 请求封装
+│   ├── components/ # 公共组件
+│   ├── pages/      # 页面组件
+│   ├── img/        # 图片资源
+│   ├── App.js      # 应用主组件
+│   └── index.js    # 应用入口
+├── package.json
+└── README.md
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## 🔧 配置说明
 
-### Making a Progressive Web App
+### 环境变量
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+项目使用 `.env` 文件配置环境变量,主要配置项:
 
-### Advanced Configuration
+- `REACT_APP_API_URL`: 后端 API 地址
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+### Tailwind CSS
 
-### Deployment
+Tailwind 配置文件位于 `tailwind.config.js`,可根据需要自定义主题和插件。
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## 📝 开发指南
 
-### `npm run build` fails to minify
+### 代码规范
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- 使用 ESLint 进行代码检查
+- 遵循 React Hooks 最佳实践
+- 组件命名使用 PascalCase
+- 文件命名使用 camelCase
+
+### Git 提交
+
+提交前端代码:
+
+```bash
+./push-frontend.sh "你的提交信息"
+```
+
+或手动提交:
+
+```bash
+git add .
+git commit -m "feat: 你的功能描述"
+git push origin master
+```
+
+## 📚 更多资源
+
+- [Create React App 文档](https://facebook.github.io/create-react-app/docs/getting-started)
+- [React 官方文档](https://react.dev)
+- [Tailwind CSS 文档](https://tailwindcss.com)
+
+## ⚙️ 高级配置
+
+### 代码分割
+
+参考文档: [代码分割](https://facebook.github.io/create-react-app/docs/code-splitting)
+
+### 包体积分析
+
+参考文档: [分析包体积](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+
+### PWA 配置
+
+参考文档: [渐进式 Web 应用](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+
+### 部署
+
+参考文档: [部署指南](https://facebook.github.io/create-react-app/docs/deployment)
+
+## 🐛 故障排查
+
+### 构建失败
+
+如果 `npm run build` 构建失败,请参考: [构建故障排查](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+## 📄 许可证
+
+本项目基于开源项目改造而来,用于个人学习和使用。
+
+## 🔗 相关仓库
+
+- 后端仓库: [AlertHub](https://github.com/daihao4371/AlertHub)
+- 前端仓库: [AlertHub-web](https://github.com/daihao4371/AlertHub-web)
