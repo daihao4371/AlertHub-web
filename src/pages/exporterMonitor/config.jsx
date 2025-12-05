@@ -13,10 +13,11 @@ import {
   Radio,
   TimePicker,
   List,
-  Tag
+  Tag,
+  Popconfirm
 } from "antd"
-import { PlusOutlined, DeleteOutlined, SaveOutlined } from "@ant-design/icons"
-import { getExporterConfig, updateExporterConfig } from "../../api/exporterMonitor"
+import { PlusOutlined, DeleteOutlined, SaveOutlined, SendOutlined } from "@ant-design/icons"
+import { getExporterConfig, updateExporterConfig, sendExporterReport } from "../../api/exporterMonitor"
 import { getDatasourceList } from "../../api/datasource"
 import { getNoticeList } from "../../api/notice"
 
@@ -221,6 +222,31 @@ export const ExporterMonitorConfig = () => {
     }
   }
 
+  // 手动触发推送
+  const handleManualSend = async () => {
+    try {
+      const values = form.getFieldsValue()
+
+      // 验证必填项
+      if (!values.noticeGroups || values.noticeGroups.length === 0) {
+        message.warning("请先选择通知组")
+        return
+      }
+
+      setLoading(true)
+      await sendExporterReport({
+        noticeGroups: values.noticeGroups,
+        reportFormat: values.reportFormat || "simple"
+      })
+      message.success("报告推送成功")
+    } catch (error) {
+      console.error("推送报告失败:", error)
+      message.error("推送报告失败: " + (error?.message || "未知错误"))
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div style={{ padding: "24px", backgroundColor: "#f0f2f5", minHeight: "100vh" }}>
       <Card
@@ -354,14 +380,7 @@ export const ExporterMonitorConfig = () => {
               valuePropName="checked"
               extra={!monitorEnabled ? "请先启用 Exporter 健康巡检" : ""}
             >
-              <Switch 
-                disabled={!monitorEnabled}
-                onChange={(checked) => {
-                  console.log("启用定时推送开关变化:", checked, "monitorEnabled:", monitorEnabled)
-                  form.setFieldValue('reportEnabled', checked)
-                  setReportEnabled(checked)
-                }}
-              />
+              <Switch disabled={!monitorEnabled} />
             </Form.Item>
 
             <Form.Item 
@@ -421,6 +440,10 @@ export const ExporterMonitorConfig = () => {
               label="通知组"
               name="noticeGroups"
               extra="选择接收巡检报告的通知组"
+              style={{
+                opacity: (!reportEnabled || !monitorEnabled) ? 0.5 : 1,
+                pointerEvents: (!reportEnabled || !monitorEnabled) ? 'none' : 'auto'
+              }}
             >
               <Select
                 mode="multiple"
@@ -441,10 +464,28 @@ export const ExporterMonitorConfig = () => {
               name="reportFormat"
               extra="简洁版仅包含统计数据和 DOWN 列表,详细版包含所有 Exporter 状态"
             >
-              <Radio.Group disabled={!reportEnabled || !monitorEnabled}>
+              <Radio.Group>
                 <Radio value="simple">简洁版 (推荐)</Radio>
                 <Radio value="detailed">详细版</Radio>
               </Radio.Group>
+            </Form.Item>
+
+            <Form.Item label="测试推送" extra="立即发送一次巡检报告到选择的通知组">
+              <Popconfirm
+                title="确认推送报告?"
+                description="将立即生成并推送巡检报告到选择的通知组"
+                onConfirm={handleManualSend}
+                okText="确认"
+                cancelText="取消"
+              >
+                <Button
+                  icon={<SendOutlined />}
+                  disabled={!monitorEnabled}
+                  loading={loading}
+                >
+                  立即推送报告
+                </Button>
+              </Popconfirm>
             </Form.Item>
           </Card>
         </Form>
