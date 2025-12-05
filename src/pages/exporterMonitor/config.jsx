@@ -7,14 +7,14 @@ import {
   Select,
   InputNumber,
   Button,
-  Card,
   message,
   Space,
   Radio,
   TimePicker,
   List,
   Tag,
-  Popconfirm
+  Popconfirm,
+  Divider
 } from "antd"
 import { PlusOutlined, DeleteOutlined, SaveOutlined, SendOutlined } from "@ant-design/icons"
 import { getExporterConfig, updateExporterConfig, sendExporterReport } from "../../api/exporterMonitor"
@@ -25,7 +25,8 @@ const { Option } = Select
 
 export const ExporterMonitorConfig = () => {
   const [form] = Form.useForm()
-  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [sending, setSending] = useState(false)
   const [datasources, setDatasources] = useState([])
   const [noticeGroups, setNoticeGroups] = useState([])
   const [cronList, setCronList] = useState([])
@@ -34,6 +35,7 @@ export const ExporterMonitorConfig = () => {
   const [currentInspectionTime, setCurrentInspectionTime] = useState(null)
   const [monitorEnabled, setMonitorEnabled] = useState(true)
   const [reportEnabled, setReportEnabled] = useState(false)
+  const reportFormatValue = Form.useWatch('reportFormat', form)
 
   // 获取数据源列表
   const fetchDatasources = async () => {
@@ -62,7 +64,6 @@ export const ExporterMonitorConfig = () => {
   // 获取配置
   const fetchConfig = useCallback(async () => {
     try {
-      setLoading(true)
       const res = await getExporterConfig()
       if (res?.data) {
         const { monitorConfig, reportSchedule } = res.data
@@ -105,8 +106,6 @@ export const ExporterMonitorConfig = () => {
     } catch (error) {
       console.error("获取配置失败:", error)
       message.error("获取配置失败")
-    } finally {
-      setLoading(false)
     }
   }, [form])
 
@@ -116,16 +115,6 @@ export const ExporterMonitorConfig = () => {
     fetchNoticeGroups()
     fetchConfig()
   }, [fetchConfig])
-
-  // 调试：监控状态变化
-  useEffect(() => {
-    console.log("monitorEnabled 状态变化:", monitorEnabled)
-  }, [monitorEnabled])
-
-  // 调试：推送状态变化
-  useEffect(() => {
-    console.log("reportEnabled 状态变化:", reportEnabled)
-  }, [reportEnabled])
 
   // 添加巡检时间
   const addInspectionTime = () => {
@@ -192,7 +181,7 @@ export const ExporterMonitorConfig = () => {
   const handleSave = async () => {
     try {
       const values = await form.validateFields()
-      setLoading(true)
+      setSaving(true)
 
       const config = {
         monitorConfig: {
@@ -209,7 +198,6 @@ export const ExporterMonitorConfig = () => {
         }
       }
 
-      console.log("保存配置:", config)
       await updateExporterConfig(config)
       message.success("配置保存成功")
       // 保存成功后重新获取配置以同步状态
@@ -218,7 +206,7 @@ export const ExporterMonitorConfig = () => {
       console.error("保存配置失败:", error)
       message.error("保存配置失败: " + (error?.message || "未知错误"))
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
 
@@ -233,7 +221,7 @@ export const ExporterMonitorConfig = () => {
         return
       }
 
-      setLoading(true)
+      setSending(true)
       await sendExporterReport({
         noticeGroups: values.noticeGroups,
         reportFormat: values.reportFormat || "simple"
@@ -243,52 +231,55 @@ export const ExporterMonitorConfig = () => {
       console.error("推送报告失败:", error)
       message.error("推送报告失败: " + (error?.message || "未知错误"))
     } finally {
-      setLoading(false)
+      setSending(false)
     }
   }
 
   return (
-    <div style={{ padding: "24px", backgroundColor: "#f0f2f5", minHeight: "100vh" }}>
-      <Card
-        title="Exporter 健康巡检配置"
-        extra={
-          <Button
-            type="primary"
-            icon={<SaveOutlined />}
-            onClick={handleSave}
-            loading={loading}
-          >
-            保存配置
-          </Button>
-        }
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          initialValues={{
-            enabled: true,
-            historyRetention: 90,
-            reportEnabled: false,
-            reportFormat: "simple"
-          }}
-          onValuesChange={(changedValues, allValues) => {
-            // 监听表单值变化
-            if (changedValues.hasOwnProperty('enabled')) {
-              setMonitorEnabled(changedValues.enabled)
-              // 如果关闭监控,同时关闭定时推送
-              if (!changedValues.enabled) {
-                form.setFieldValue('reportEnabled', false)
-                setReportEnabled(false)
-              }
-            }
-            // 监听推送启用状态变化
-            if (changedValues.hasOwnProperty('reportEnabled')) {
-              setReportEnabled(changedValues.reportEnabled)
-            }
+    <>
+      {/* 顶部操作栏 */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+        <Button
+          type="primary"
+          icon={<SaveOutlined />}
+          onClick={handleSave}
+          loading={saving}
+          style={{
+            backgroundColor: '#000000'
           }}
         >
-          {/* 监控配置部分 */}
-          <Card type="inner" title="监控配置" style={{ marginBottom: "24px" }}>
+          保存配置
+        </Button>
+      </div>
+
+      <Form
+        form={form}
+        layout="vertical"
+        initialValues={{
+          enabled: true,
+          historyRetention: 90,
+          reportEnabled: false,
+          reportFormat: "simple"
+        }}
+        onValuesChange={(changedValues, allValues) => {
+          // 监听表单值变化
+          if (changedValues.hasOwnProperty('enabled')) {
+            setMonitorEnabled(changedValues.enabled)
+            // 如果关闭监控,同时关闭定时推送
+            if (!changedValues.enabled) {
+              form.setFieldsValue({ reportEnabled: false })
+              setReportEnabled(false)
+            }
+          }
+          // 监听推送启用状态变化
+          if (changedValues.hasOwnProperty('reportEnabled')) {
+            setReportEnabled(changedValues.reportEnabled)
+          }
+        }}
+      >
+        {/* 监控配置部分 */}
+        <div style={{ marginBottom: '24px' }}>
+          <h3 style={{ marginBottom: '16px', fontSize: '16px', fontWeight: 500 }}>监控配置</h3>
             <Form.Item
               label="启用 Exporter 健康巡检"
               name="enabled"
@@ -327,38 +318,42 @@ export const ExporterMonitorConfig = () => {
                     value={currentInspectionTime}
                     onChange={setCurrentInspectionTime}
                     placeholder="选择巡检时间"
+                    style={{ width: "100%" }}
                   />
                   <Button
                     type="dashed"
                     icon={<PlusOutlined />}
                     onClick={addInspectionTime}
+                    style={{ flexShrink: 0 }}
                   >
                     添加巡检时间
                   </Button>
                 </Space>
 
-                {inspectionTimes.length > 0 && (
-                  <List
-                    size="small"
-                    bordered
-                    dataSource={inspectionTimes}
-                    renderItem={(time) => (
-                      <List.Item
-                        actions={[
-                          <Button
-                            key="delete"
-                            type="text"
-                            danger
-                            icon={<DeleteOutlined />}
-                            onClick={() => removeInspectionTime(time)}
-                          />
-                        ]}
-                      >
-                        <Tag color="blue">⏰ 每天 {time}</Tag>
-                      </List.Item>
-                    )}
-                  />
-                )}
+                <div style={{ minHeight: inspectionTimes.length > 0 ? "auto" : "0px" }}>
+                  {inspectionTimes.length > 0 && (
+                    <List
+                      size="small"
+                      bordered
+                      dataSource={inspectionTimes}
+                      renderItem={(time) => (
+                        <List.Item
+                          actions={[
+                            <Button
+                              key="delete"
+                              type="text"
+                              danger
+                              icon={<DeleteOutlined />}
+                              onClick={() => removeInspectionTime(time)}
+                            />
+                          ]}
+                        >
+                          <Tag color="blue">⏰ 每天 {time}</Tag>
+                        </List.Item>
+                      )}
+                    />
+                  )}
+                </div>
               </Space>
             </Form.Item>
 
@@ -370,15 +365,18 @@ export const ExporterMonitorConfig = () => {
             >
               <InputNumber min={7} max={365} style={{ width: "100%" }} />
             </Form.Item>
-          </Card>
+        </div>
 
-          {/* 定时巡检报告推送配置 */}
-          <Card type="inner" title="定时巡检报告推送">
+        <Divider />
+
+        {/* 定时巡检报告推送配置 */}
+        <div>
+          <h3 style={{ marginBottom: '16px', fontSize: '16px', fontWeight: 500 }}>定时巡检报告推送</h3>
             <Form.Item
               label="启用定时推送"
               name="reportEnabled"
               valuePropName="checked"
-              extra={!monitorEnabled ? "请先启用 Exporter 健康巡检" : ""}
+              extra={<span style={{ minHeight: "22px", display: "block" }}>{!monitorEnabled ? "请先启用 Exporter 健康巡检" : ""}</span>}
             >
               <Switch disabled={!monitorEnabled} />
             </Form.Item>
@@ -386,10 +384,6 @@ export const ExporterMonitorConfig = () => {
             <Form.Item 
               label="推送时间配置" 
               extra="可添加多个推送时间,支持每天定时推送"
-              style={{ 
-                opacity: (!reportEnabled || !monitorEnabled) ? 0.5 : 1,
-                pointerEvents: (!reportEnabled || !monitorEnabled) ? 'none' : 'auto'
-              }}
             >
               <Space direction="vertical" style={{ width: "100%" }}>
                 <Space>
@@ -399,40 +393,44 @@ export const ExporterMonitorConfig = () => {
                     onChange={setCurrentTime}
                     placeholder="选择推送时间"
                     disabled={!reportEnabled || !monitorEnabled}
+                    style={{ width: "100%" }}
                   />
                   <Button
                     type="dashed"
                     icon={<PlusOutlined />}
                     onClick={addCronTime}
                     disabled={!reportEnabled || !monitorEnabled}
+                    style={{ flexShrink: 0 }}
                   >
                     添加推送时间
                   </Button>
                 </Space>
 
-                {cronList.length > 0 && (
-                  <List
-                    size="small"
-                    bordered
-                    dataSource={cronList}
-                    renderItem={(cron) => (
-                      <List.Item
-                        actions={[
-                          <Button
-                            key="delete"
-                            type="text"
-                            danger
-                            icon={<DeleteOutlined />}
-                            onClick={() => removeCronTime(cron)}
-                            disabled={!reportEnabled || !monitorEnabled}
-                          />
-                        ]}
-                      >
-                        <Tag color="blue">⏰ {parseCronToTime(cron)}</Tag>
-                      </List.Item>
-                    )}
-                  />
-                )}
+                <div style={{ minHeight: cronList.length > 0 ? "auto" : "0px" }}>
+                  {cronList.length > 0 && (
+                    <List
+                      size="small"
+                      bordered
+                      dataSource={cronList}
+                      renderItem={(cron) => (
+                        <List.Item
+                          actions={[
+                            <Button
+                              key="delete"
+                              type="text"
+                              danger
+                              icon={<DeleteOutlined />}
+                              onClick={() => removeCronTime(cron)}
+                              disabled={!reportEnabled || !monitorEnabled}
+                            />
+                          ]}
+                        >
+                          <Tag color="blue">⏰ {parseCronToTime(cron)}</Tag>
+                        </List.Item>
+                      )}
+                    />
+                  )}
+                </div>
               </Space>
             </Form.Item>
 
@@ -440,10 +438,6 @@ export const ExporterMonitorConfig = () => {
               label="通知组"
               name="noticeGroups"
               extra="选择接收巡检报告的通知组"
-              style={{
-                opacity: (!reportEnabled || !monitorEnabled) ? 0.5 : 1,
-                pointerEvents: (!reportEnabled || !monitorEnabled) ? 'none' : 'auto'
-              }}
             >
               <Select
                 mode="multiple"
@@ -464,7 +458,11 @@ export const ExporterMonitorConfig = () => {
               name="reportFormat"
               extra="简洁版仅包含统计数据和 DOWN 列表,详细版包含所有 Exporter 状态"
             >
-              <Radio.Group>
+              <Radio.Group
+                value={reportFormatValue}
+                onChange={(e) => form.setFieldsValue({ reportFormat: e.target.value })}
+                disabled={!reportEnabled || !monitorEnabled}
+              >
                 <Radio value="simple">简洁版 (推荐)</Radio>
                 <Radio value="detailed">详细版</Radio>
               </Radio.Group>
@@ -478,18 +476,18 @@ export const ExporterMonitorConfig = () => {
                 okText="确认"
                 cancelText="取消"
               >
-                <Button
-                  icon={<SendOutlined />}
-                  disabled={!monitorEnabled}
-                  loading={loading}
-                >
-                  立即推送报告
-                </Button>
+              <Button
+                icon={<SendOutlined />}
+                disabled={!monitorEnabled}
+                loading={sending}
+                style={{ width: 120, minWidth: 120 }}
+              >
+                立即推送报告
+              </Button>
               </Popconfirm>
             </Form.Item>
-          </Card>
-        </Form>
-      </Card>
-    </div>
+        </div>
+      </Form>
+    </>
   )
 }

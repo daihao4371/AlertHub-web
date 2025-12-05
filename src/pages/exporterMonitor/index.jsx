@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import {
-  Table,
   Row,
   Col,
   Statistic,
@@ -12,8 +11,7 @@ import {
   Tag,
   Space,
   message,
-  Tooltip,
-  Card
+  Tooltip
 } from "antd"
 import {
   ReloadOutlined,
@@ -27,12 +25,15 @@ import {
 import { getExporterStatus, getExporterConfig, updateAutoRefresh } from "../../api/exporterMonitor"
 import { getDatasourceList } from "../../api/datasource"
 import { useNavigate } from "react-router-dom"
+import { copyToClipboard } from "../../utils/copyToClipboard"
+import { HandleShowTotal } from "../../utils/lib"
+import { TableWithPagination } from "../../utils/TableWithPagination"
 
 const { Option } = Select
 
 export const ExporterMonitor = () => {
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(false)
+  const [tableLoading, setTableLoading] = useState(false)
   const [summary, setSummary] = useState({
     totalCount: 0,
     upCount: 0,
@@ -52,6 +53,8 @@ export const ExporterMonitor = () => {
   // 自动刷新状态(默认关闭,改为按需手动刷新)
   const [autoRefresh, setAutoRefresh] = useState(false)
   const timerRef = useRef(null)
+  // 窗口高度，用于计算表格滚动高度
+  const [height, setHeight] = useState(window.innerHeight)
 
   // 获取数据源列表
   const fetchDatasources = async () => {
@@ -81,7 +84,7 @@ export const ExporterMonitor = () => {
   // 获取Exporter状态数据
   const fetchExporterStatus = useCallback(async () => {
     try {
-      setLoading(true)
+      setTableLoading(true)
       const res = await getExporterStatus(filters)
       if (res?.data) {
         setSummary(res.data.summary || {})
@@ -91,9 +94,20 @@ export const ExporterMonitor = () => {
       console.error("获取Exporter状态失败:", error)
       message.error("获取Exporter状态失败")
     } finally {
-      setLoading(false)
+      setTableLoading(false)
     }
   }, [filters])
+
+  // 监听窗口大小变化
+  useEffect(() => {
+    const handleResize = () => {
+      setHeight(window.innerHeight)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [])
 
   // 初始化加载
   useEffect(() => {
@@ -103,10 +117,11 @@ export const ExporterMonitor = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 当筛选条件变化时重新获取数据
+  // 当筛选条件变化时重新获取数据并重置分页
   useEffect(() => {
+    setPagination(prev => ({ ...prev, index: 1 }))
     fetchExporterStatus()
-  }, [filters.datasourceId, filters.status, filters.job])
+  }, [filters.datasourceId, filters.status, filters.job, fetchExporterStatus])
 
   // 自动刷新
   useEffect(() => {
@@ -179,14 +194,6 @@ export const ExporterMonitor = () => {
       .join(", ")
   }
 
-  // 复制到剪贴板
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text).then(() => {
-      message.success("已复制到剪贴板")
-    }).catch(() => {
-      message.error("复制失败")
-    })
-  }
 
   // 导出CSV
   const exportToCSV = () => {
@@ -237,7 +244,7 @@ export const ExporterMonitor = () => {
       key: "instance",
       width: 200,
       ellipsis: true,
-      render: (text, record) => (
+      render: (text) => (
         <Tooltip title="点击复制">
           <span
             style={{ cursor: "pointer", color: "#1890ff" }}
@@ -287,8 +294,41 @@ export const ExporterMonitor = () => {
     }
   ]
 
+  // 分页状态
+  const [pagination, setPagination] = useState({
+    index: 1,
+    size: 10,
+    total: 0,
+  })
+
+  // 更新分页总数，当数据变化时重置到第一页（仅在筛选条件变化时）
+  useEffect(() => {
+    setPagination(prev => ({
+      ...prev,
+      total: exporters.length
+    }))
+  }, [exporters.length])
+
+  // 处理分页变化
+  const handlePageChange = (page, pageSize) => {
+    setPagination({ ...pagination, index: page, size: pageSize })
+  }
+
+  // 处理每页条数变化
+  const handlePageSizeChange = (current, size) => {
+    setPagination({ ...pagination, index: current, size })
+  }
+
+  // 获取当前页数据
+  const getCurrentPageData = () => {
+    const { index, size } = pagination
+    const start = (index - 1) * size
+    const end = start + size
+    return exporters.slice(start, end)
+  }
+
   return (
-    <div style={{ padding: "24px", backgroundColor: "#f0f2f5", minHeight: "100vh" }}>
+    <>
       {/* 顶部统计卡片 */}
       <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
         <Col xs={24} sm={12} md={6}>
@@ -371,115 +411,100 @@ export const ExporterMonitor = () => {
         </Col>
       </Row>
 
-      {/* 筛选与搜索栏 */}
-      <Card style={{ marginBottom: "16px" }}>
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} md={6}>
-            <Select
-              style={{ width: "100%" }}
-              placeholder="选择数据源"
-              allowClear
-              value={filters.datasourceId}
-              onChange={(value) => setFilters({ ...filters, datasourceId: value })}
+      {/* 筛选与操作栏 */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '16px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flex: 1 }}>
+          <Select
+            style={{ width: "180px" }}
+            placeholder="选择数据源"
+            allowClear
+            value={filters.datasourceId}
+            onChange={(value) => setFilters({ ...filters, datasourceId: value })}
+          >
+            {datasources.map((ds) => (
+              <Option key={ds.id} value={ds.id}>
+                {ds.name}
+              </Option>
+            ))}
+          </Select>
+          <Select
+            style={{ width: "120px" }}
+            placeholder="选择状态"
+            allowClear
+            value={filters.status}
+            onChange={(value) => setFilters({ ...filters, status: value })}
+          >
+            <Option value="up">UP</Option>
+            <Option value="down">DOWN</Option>
+            <Option value="unknown">UNKNOWN</Option>
+          </Select>
+          <Select
+            style={{ width: "150px" }}
+            placeholder="选择Job"
+            allowClear
+            value={filters.job}
+            onChange={(value) => setFilters({ ...filters, job: value })}
+          >
+            {getUniqueJobs().map((job) => (
+              <Option key={job} value={job}>
+                {job}
+              </Option>
+            ))}
+          </Select>
+          <Input
+            placeholder="搜索 IP/实例名称/标签..."
+            prefix={<SearchOutlined />}
+            value={filters.keyword}
+            onChange={(e) => setFilters({ ...filters, keyword: e.target.value })}
+            onPressEnter={fetchExporterStatus}
+            style={{ width: "250px" }}
+          />
+        </div>
+        <div>
+          <Space>
+            <Button
+              type="primary"
+              icon={<ReloadOutlined />}
+              onClick={fetchExporterStatus}
+              loading={tableLoading}
             >
-              {datasources.map((ds) => (
-                <Option key={ds.id} value={ds.id}>
-                  {ds.name}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Select
-              style={{ width: "100%" }}
-              placeholder="选择状态"
-              allowClear
-              value={filters.status}
-              onChange={(value) => setFilters({ ...filters, status: value })}
+              刷新
+            </Button>
+            <Button
+              icon={<DownloadOutlined />}
+              onClick={exportToCSV}
+              disabled={exporters.length === 0}
             >
-              <Option value="up">UP</Option>
-              <Option value="down">DOWN</Option>
-              <Option value="unknown">UNKNOWN</Option>
-            </Select>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Select
-              style={{ width: "100%" }}
-              placeholder="选择Job"
-              allowClear
-              value={filters.job}
-              onChange={(value) => setFilters({ ...filters, job: value })}
+              导出
+            </Button>
+            <Button
+              icon={<SettingOutlined />}
+              onClick={() => navigate("/exporterMonitor/config")}
             >
-              {getUniqueJobs().map((job) => (
-                <Option key={job} value={job}>
-                  {job}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Input
-              placeholder="搜索 IP/实例名称/标签..."
-              prefix={<SearchOutlined />}
-              value={filters.keyword}
-              onChange={(e) => setFilters({ ...filters, keyword: e.target.value })}
-              onPressEnter={fetchExporterStatus}
-            />
-          </Col>
-        </Row>
-        <Row style={{ marginTop: "16px" }}>
-          <Col>
-            <Space>
-              <Button
-                type="primary"
-                icon={<ReloadOutlined />}
-                onClick={fetchExporterStatus}
-                loading={loading}
-              >
-                刷新
-              </Button>
-              <Button
-                icon={<DownloadOutlined />}
-                onClick={exportToCSV}
-                disabled={exporters.length === 0}
-              >
-                导出
-              </Button>
-              <Button
-                icon={<SettingOutlined />}
-                onClick={() => navigate("/exporterMonitor/config")}
-              >
-                配置
-              </Button>
-              <Button
-                type={autoRefresh ? "primary" : "default"}
-                onClick={toggleAutoRefresh}
-                style={{ cursor: "pointer" }}
-              >
-                {autoRefresh ? "停止自动刷新" : "开启自动刷新"}
-              </Button>
-            </Space>
-          </Col>
-        </Row>
-      </Card>
+              配置
+            </Button>
+            <Button
+              type={autoRefresh ? "primary" : "default"}
+              onClick={toggleAutoRefresh}
+            >
+              {autoRefresh ? "停止自动刷新" : "开启自动刷新"}
+            </Button>
+          </Space>
+        </div>
+      </div>
 
       {/* Exporter列表表格 */}
-      <Card>
-        <Table
-          columns={columns}
-          dataSource={exporters}
-          loading={loading}
-          rowKey={(record) => `${record.datasourceId}_${record.instance}`}
-          pagination={{
-            total: exporters.length,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条记录`,
-            pageSizeOptions: ["10", "20", "50", "100"]
-          }}
-          scroll={{ x: 1200 }}
-        />
-      </Card>
-    </div>
+      <TableWithPagination
+        columns={columns}
+        dataSource={getCurrentPageData()}
+        pagination={pagination}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+        scrollY={height - 480}
+        rowKey={(record) => `${record.datasourceId}_${record.instance}`}
+        showTotal={HandleShowTotal}
+        loading={tableLoading}
+      />
+    </>
   )
 }
