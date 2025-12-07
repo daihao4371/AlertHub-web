@@ -4,7 +4,6 @@ import { BuildOutlined } from '@ant-design/icons';
 import { EditorView, keymap } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { PromQLExtension } from '@prometheus-io/codemirror-promql';
-import { CustomPrometheusClient } from '../../utils/customPrometheusClient';
 import PromQLBuilder from '../../components/PromQLBuilder';
 import './index.css';
 
@@ -36,42 +35,6 @@ const theme = EditorView.theme({
         backgroundColor: '#f8f8f8',
         borderColor: 'rgba(52, 79, 113, 0.2)',
     },
-    '.cm-tooltip.cm-tooltip-autocomplete': {
-        '& > ul': {
-            maxHeight: '350px',
-            fontFamily: '"DejaVu Sans Mono", monospace',
-            maxWidth: 'unset',
-        },
-        '& > ul > li': {
-            padding: '2px 1em 2px 3px',
-        },
-        '& li:hover': {
-            backgroundColor: '#ddd',
-        },
-        '& > ul > li[aria-selected]': {
-            backgroundColor: '#d6ebff',
-            color: 'unset',
-        },
-        minWidth: '30%',
-    },
-    '.cm-completionDetail': {
-        float: 'right',
-        color: '#999',
-    },
-    '.cm-tooltip.cm-completionInfo': {
-        marginTop: '-11px',
-        padding: '10px',
-        fontFamily: "'Open Sans', 'Lucida Sans Unicode', 'Lucida Grande', sans-serif;",
-        border: 'none',
-        backgroundColor: '#d6ebff',
-        minWidth: '250px',
-        maxWidth: 'min-content',
-    },
-    '.cm-completionMatchedText': {
-        textDecoration: 'none',
-        fontWeight: 'bold',
-        color: '#0066bf',
-    },
     '.cm-line': {
         '&::selection': {
             backgroundColor: '#add6ff',
@@ -96,10 +59,10 @@ export const PromDoc = () => {
 };
 
 /**
- * PrometheusPromQL 组件 - 使用 @prometheus-io/codemirror-promql 实现自动补全
+ * PrometheusPromQL 组件 - 使用 @prometheus-io/codemirror-promql 实现 PromQL 编辑器
  *
  * Props:
- * - datasourceId: 数据源 ID,用于后端 API 调用
+ * - datasourceId: 数据源 ID,用于查询构建器
  * - value: PromQL 查询语句(可以是字符串或返回字符串的函数)
  * - setPromQL: 更新 PromQL 的回调函数
  * - addr: Prometheus 地址(已废弃,保留用于向后兼容)
@@ -132,62 +95,48 @@ export const PrometheusPromQL = (props) => {
             return;
         }
 
-        console.log('[PrometheusPromQL] 初始化编辑器, datasourceId:', props.datasourceId);
-
         // 创建 PromQL Extension 实例
         const promqlExtension = new PromQLExtension();
         promqlExtensionRef.current = promqlExtension;
 
-        // 配置自动补全数据源(必须在 activateCompletion 之前调用)
-        if (props.datasourceId) {
-            console.log('[PrometheusPromQL] 配置自定义客户端, datasourceId:', props.datasourceId);
-            const customClient = new CustomPrometheusClient(props.datasourceId);
-
-            // 使用最新的 API: 直接传递客户端实例
-            promqlExtension.setComplete({ remote: customClient });
-
-            console.log('[PrometheusPromQL] 自动补全配置完成');
-        } else {
-            console.warn('[PrometheusPromQL] 警告: 没有提供 datasourceId, 自动补全将不可用');
-        }
-
-        // 激活自动补全和语法检查(必须在 setComplete 之后调用)
-        promqlExtension.activateCompletion(true);
+        // 激活语法检查
         promqlExtension.activateLinter(true);
 
         // 创建编辑器状态
+        const extensions = [
+            theme,
+            EditorView.lineWrapping,
+            promqlExtension.asExtension(), // 包含语法高亮和语法检查
+            // 监听文档变化
+            EditorView.updateListener.of((update) => {
+                if (update.docChanged) {
+                    const newContent = update.state.doc.toString();
+                    onExpressionChange(newContent);
+                }
+
+                // 失去焦点时更新父组件状态
+                if (update.focusChanged && !update.view.hasFocus) {
+                    const content = update.state.doc.toString();
+                    if (props.setPromQL) {
+                        props.setPromQL(content);
+                    }
+                }
+            }),
+            // 键盘快捷键
+            keymap.of([
+                {
+                    key: "Escape",
+                    run: (v) => {
+                        v.contentDOM.blur();
+                        return false;
+                    },
+                },
+            ]),
+        ];
+        
         const startState = EditorState.create({
             doc: doc || '',
-            extensions: [
-                theme,
-                EditorView.lineWrapping,
-                promqlExtension.asExtension(),
-                // 监听文档变化
-                EditorView.updateListener.of((update) => {
-                    if (update.docChanged) {
-                        const newContent = update.state.doc.toString();
-                        onExpressionChange(newContent);
-                    }
-
-                    // 失去焦点时更新父组件状态
-                    if (update.focusChanged && !update.view.hasFocus) {
-                        const content = update.state.doc.toString();
-                        if (props.setPromQL) {
-                            props.setPromQL(content);
-                        }
-                    }
-                }),
-                // 键盘快捷键
-                keymap.of([
-                    {
-                        key: "Escape",
-                        run: (v) => {
-                            v.contentDOM.blur();
-                            return false;
-                        },
-                    },
-                ]),
-            ],
+            extensions: extensions,
         });
 
         // 创建编辑器视图
@@ -223,19 +172,6 @@ export const PrometheusPromQL = (props) => {
         }
     }, [doc]);
 
-    // 更新数据源配置(当 datasourceId 变化时)
-    useEffect(() => {
-        if (!promqlExtensionRef.current || !props.datasourceId) {
-            return;
-        }
-
-        console.log('[PrometheusPromQL] 数据源变化, 重新配置, datasourceId:', props.datasourceId);
-
-        const customClient = new CustomPrometheusClient(props.datasourceId);
-        promqlExtensionRef.current.setComplete({ remote: customClient });
-
-        console.log('[PrometheusPromQL] 自动补全配置已更新');
-    }, [props.datasourceId]);
 
     // 处理查询构建
     const handleQueryBuild = useCallback((query) => {

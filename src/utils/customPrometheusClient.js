@@ -47,6 +47,9 @@ export class CustomPrometheusClient {
     /**
      * 获取所有标签名称列表
      * 用于 PromQL 编辑器的标签补全功能
+     * 
+     * 当用户在指标选择器 {} 内输入时，会自动调用此方法获取可用的标签名称
+     * 如果提供了 metricName，则只返回该指标相关的标签
      *
      * @param {string} [metricName] - 可选,限定查询范围的指标名称
      * @returns {Promise<string[]>} 标签名称列表
@@ -57,10 +60,28 @@ export class CustomPrometheusClient {
             console.log('[CustomPrometheusClient] labelNames 请求参数: datasourceId=', this.datasourceId, 'metricName=', metricName);
             const response = await getPrometheusLabels(this.datasourceId, metricName);
 
+            // 检查响应是否有效
+            if (!response || !response.data) {
+                console.warn('[CustomPrometheusClient] labelNames: 响应数据无效', response);
+                return [];
+            }
+
+            // 检查是否是错误响应
+            if (response.status !== 200 && response.status !== undefined) {
+                console.warn('[CustomPrometheusClient] labelNames: 响应状态码异常', response.status);
+                return [];
+            }
+
             // 返回数据数组
             const labels = response.data.data || [];
             console.log('[CustomPrometheusClient] labelNames 返回:', labels.length, '个标签');
-            return labels;
+            
+            // 确保返回的是字符串数组
+            if (Array.isArray(labels)) {
+                return labels.map(l => String(l));
+            }
+            
+            return [];
         } catch (error) {
             console.error('[CustomPrometheusClient] 获取标签名称失败:', error);
             return []; // 返回空数组而不是抛出异常,避免中断编辑器
@@ -70,25 +91,51 @@ export class CustomPrometheusClient {
     /**
      * 获取指定标签的所有值列表
      * 用于 PromQL 编辑器的标签值补全功能
+     * 
+     * 当用户在标签选择器中输入 label= 或 label=~ 后，会自动调用此方法获取该标签的所有可能值
+     * 例如：输入 instance= 后，会显示所有 instance 标签的值
      *
      * @param {string} labelName - 标签名称 (如 "job", "instance")
-     * @param {string} [metricName] - 可选,限定查询范围的指标名称
-     * @param {Array} [matchers] - 可选,匹配器列表(暂未使用)
+     * @param {string} [metricName] - 可选,限定查询范围的指标名称（当前后端 API 暂不支持）
+     * @param {Array} [matchers] - 可选,匹配器列表（当前后端 API 暂不支持）
      * @returns {Promise<string[]>} 标签值列表
      */
     async labelValues(labelName, metricName, matchers) {
         console.log('[CustomPrometheusClient] labelValues 被调用, labelName:', labelName, 'metricName:', metricName);
         try {
+            if (!labelName) {
+                console.warn('[CustomPrometheusClient] labelValues: labelName 为空');
+                return [];
+            }
+
             console.log('[CustomPrometheusClient] labelValues 请求参数: datasourceId=', this.datasourceId, 'labelName=', labelName);
             const response = await getPrometheusLabelValues(this.datasourceId, labelName);
+
+            // 检查响应是否有效
+            if (!response || !response.data) {
+                console.warn('[CustomPrometheusClient] labelValues: 响应数据无效', response);
+                return [];
+            }
+
+            // 检查是否是错误响应
+            if (response.status !== 200 && response.status !== undefined) {
+                console.warn('[CustomPrometheusClient] labelValues: 响应状态码异常', response.status);
+                return [];
+            }
 
             // 返回数据数组
             const values = response.data.data || [];
             console.log('[CustomPrometheusClient] labelValues 返回:', values.length, '个值');
-            return values;
+            
+            // 确保返回的是字符串数组
+            if (Array.isArray(values)) {
+                return values.map(v => String(v));
+            }
+            
+            return [];
         } catch (error) {
             console.error(`[CustomPrometheusClient] 获取标签值失败 (labelName=${labelName}):`, error);
-            return []; // 返回空数组而不是抛出异常
+            return []; // 返回空数组而不是抛出异常，避免中断编辑器
         }
     }
 
@@ -97,6 +144,7 @@ export class CustomPrometheusClient {
      * 用于 PromQL 编辑器的指标名称补全功能
      *
      * 注意: 新版本的 @prometheus-io/codemirror-promql 不再接受 prefix 参数
+     * 补全功能会在用户输入时自动调用此方法获取指标列表
      *
      * @returns {Promise<string[]>} 指标名称列表
      */
@@ -105,14 +153,32 @@ export class CustomPrometheusClient {
         try {
             const response = await getPrometheusMetrics(this.datasourceId);
 
+            // 检查响应是否有效
+            if (!response || !response.data) {
+                console.warn('[CustomPrometheusClient] metricNames: 响应数据无效', response);
+                return [];
+            }
+
+            // 检查是否是错误响应
+            if (response.status !== 200 && response.status !== undefined) {
+                console.warn('[CustomPrometheusClient] metricNames: 响应状态码异常', response.status);
+                return [];
+            }
+
             // 返回所有指标
             const metrics = response.data.data || [];
 
             console.log('[CustomPrometheusClient] metricNames 返回:', metrics.length, '个指标');
-            return metrics;
+            
+            // 确保返回的是字符串数组
+            if (Array.isArray(metrics)) {
+                return metrics.map(m => String(m));
+            }
+            
+            return [];
         } catch (error) {
-            console.error('获取指标名称失败:', error);
-            return []; // 返回空数组而不是抛出异常
+            console.error('[CustomPrometheusClient] 获取指标名称失败:', error);
+            return []; // 返回空数组而不是抛出异常，避免中断编辑器
         }
     }
 
