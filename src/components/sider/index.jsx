@@ -49,7 +49,7 @@ const adminMenuItems = [
             { key: '3-3', path: '/noticeRecords', label: '通知记录' }
         ]
     },
-    { key: '4', path: '/dutyManage', icon: <CalendarOutlined />, label: 'assets' },
+    { key: '4', path: '/dutyManage', icon: <CalendarOutlined />, label: '值班中心' },
     {
         key: '11',
         icon: <ApiOutlined />,
