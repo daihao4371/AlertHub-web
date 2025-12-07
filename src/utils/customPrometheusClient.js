@@ -54,17 +54,8 @@ export class CustomPrometheusClient {
     async labelNames(metricName) {
         console.log('[CustomPrometheusClient] labelNames 被调用, metricName:', metricName);
         try {
-            const params = {
-                datasourceId: this.datasourceId
-            };
-
-            // 如果指定了 metricName,添加到参数中
-            if (metricName) {
-                params.metricName = metricName;
-            }
-
-            console.log('[CustomPrometheusClient] labelNames 请求参数:', params);
-            const response = await getPrometheusLabels(params);
+            console.log('[CustomPrometheusClient] labelNames 请求参数: datasourceId=', this.datasourceId, 'metricName=', metricName);
+            const response = await getPrometheusLabels(this.datasourceId, metricName);
 
             // 返回数据数组
             const labels = response.data.data || [];
@@ -88,20 +79,8 @@ export class CustomPrometheusClient {
     async labelValues(labelName, metricName, matchers) {
         console.log('[CustomPrometheusClient] labelValues 被调用, labelName:', labelName, 'metricName:', metricName);
         try {
-            const params = {
-                datasourceId: this.datasourceId,
-                labelName: labelName
-            };
-
-            // 如果指定了 metricName,添加到参数中
-            if (metricName) {
-                params.metricName = metricName;
-            }
-
-            // 注意: matchers 参数当前后端未实现,这里忽略
-
-            console.log('[CustomPrometheusClient] labelValues 请求参数:', params);
-            const response = await getPrometheusLabelValues(params);
+            console.log('[CustomPrometheusClient] labelValues 请求参数: datasourceId=', this.datasourceId, 'labelName=', labelName);
+            const response = await getPrometheusLabelValues(this.datasourceId, labelName);
 
             // 返回数据数组
             const values = response.data.data || [];

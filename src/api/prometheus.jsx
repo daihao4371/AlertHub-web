@@ -15,8 +15,12 @@ async function getPrometheusMetrics(datasourceId) {
 }
 
 // 获取 Prometheus 标签名称列表
-async function getPrometheusLabels(params) {
+async function getPrometheusLabels(datasourceId, metricName) {
     try {
+        const params = { datasourceId };
+        if (metricName) {
+            params.metricName = metricName;
+        }
         const res = await http('get', '/api/w8t/prometheus/labels', params);
         return res;
     } catch (error) {
@@ -26,9 +30,12 @@ async function getPrometheusLabels(params) {
 }
 
 // 获取 Prometheus 标签值列表
-async function getPrometheusLabelValues(params) {
+async function getPrometheusLabelValues(datasourceId, labelName) {
     try {
-        const res = await http('get', '/api/w8t/prometheus/label_values', params);
+        const res = await http('get', '/api/w8t/prometheus/label_values', {
+            datasourceId,
+            labelName
+        });
         return res;
     } catch (error) {
         HandleApiError(error);

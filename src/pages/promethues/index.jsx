@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import { BuildOutlined } from '@ant-design/icons';
 import { EditorView, keymap } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { PromQLExtension } from '@prometheus-io/codemirror-promql';
 import { CustomPrometheusClient } from '../../utils/customPrometheusClient';
-import MetricSelector from '../../components/MetricSelector';
+import PromQLBuilder from '../../components/PromQLBuilder';
 import './index.css';
 
 // PromQL 编辑器主题样式
@@ -109,7 +109,7 @@ export const PrometheusPromQL = (props) => {
     const viewRef = useRef(null);
     const promqlExtensionRef = useRef(null);
     const [doc, setDoc] = useState('');
-    const [metricSelectorVisible, setMetricSelectorVisible] = useState(false);
+    const [builderVisible, setBuilderVisible] = useState(false);
 
     // 处理编辑器内容变化
     const onExpressionChange = useCallback((expression) => {
@@ -237,25 +237,21 @@ export const PrometheusPromQL = (props) => {
         console.log('[PrometheusPromQL] 自动补全配置已更新');
     }, [props.datasourceId]);
 
-    // 处理指标选择
-    const handleMetricSelect = useCallback((metric) => {
-        if (viewRef.current) {
-            const currentDoc = viewRef.current.state.doc.toString();
-            const currentPosition = viewRef.current.state.selection.main.head;
-
-            // 在光标位置插入指标名称
+    // 处理查询构建
+    const handleQueryBuild = useCallback((query) => {
+        if (viewRef.current && query) {
+            // 替换整个内容为构建的查询
             const transaction = viewRef.current.state.update({
-                changes: { from: currentPosition, insert: metric },
-                selection: { anchor: currentPosition + metric.length }
+                changes: { from: 0, to: viewRef.current.state.doc.length, insert: query },
+                selection: { anchor: query.length }
             });
             viewRef.current.dispatch(transaction);
             viewRef.current.focus();
 
             // 更新状态
-            const newContent = currentDoc.substring(0, currentPosition) + metric + currentDoc.substring(currentPosition);
-            setDoc(newContent);
+            setDoc(query);
             if (props.setPromQL) {
-                props.setPromQL(newContent);
+                props.setPromQL(query);
             }
         }
     }, [props.setPromQL]);
@@ -265,20 +261,20 @@ export const PrometheusPromQL = (props) => {
             <div className="promInputContent" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div ref={containerRef} className="cm-expression-input" style={{ flex: 1 }} />
                 <Button
-                    icon={<SearchOutlined />}
-                    onClick={() => setMetricSelectorVisible(true)}
+                    icon={<BuildOutlined />}
+                    onClick={() => setBuilderVisible(true)}
                     disabled={!props.datasourceId}
-                    title="指标浏览器"
+                    title="查询构建器"
                 >
-                    指标
+                    构建器
                 </Button>
             </div>
 
-            <MetricSelector
-                visible={metricSelectorVisible}
-                onClose={() => setMetricSelectorVisible(false)}
+            <PromQLBuilder
+                visible={builderVisible}
+                onClose={() => setBuilderVisible(false)}
                 datasourceId={props.datasourceId}
-                onSelect={handleMetricSelect}
+                onBuild={handleQueryBuild}
             />
         </>
     );
