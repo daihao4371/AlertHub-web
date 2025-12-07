@@ -1,0 +1,36 @@
+.metric-selector {
+    display: flex;
+    flex-direction: column;
+}
+
+.metric-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.metric-count {
+    font-size: 12px;
+    color: #666;
+    padding: 4px 0;
+}
+
+.metric-item {
+    transition: background-color 0.2s;
+    border-radius: 4px;
+}
+
+.metric-item:hover {
+    background-color: #f5f5f5;
+}
+
+.metric-name {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+    font-size: 13px;
+    color: #333;
+}
+
+.metric-item:hover .metric-name {
+    color: #1890ff;
+    font-weight: 500;
+}

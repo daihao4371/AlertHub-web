@@ -1,35 +1,15 @@
-import React, { createContext, useEffect, useRef,useState,useCallback } from "react";
-import {
-    EditorView,
-    highlightSpecialChars,
-    keymap,
-    ViewUpdate,
-} from "@codemirror/view";
-import { EditorState, Prec, Compartment } from "@codemirror/state";
-import { indentOnInput } from "@codemirror/language";
-import { history, historyKeymap } from "@codemirror/history";
-import { defaultKeymap, insertNewlineAndIndent } from "@codemirror/commands";
-import { bracketMatching } from "@codemirror/matchbrackets";
-import { closeBrackets, closeBracketsKeymap } from "@codemirror/closebrackets";
-import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
-import { commentKeymap } from "@codemirror/comment";
-import { lintKeymap } from "@codemirror/lint";
-import { PromQLExtension } from 'codemirror-promql'
-import {
-    autocompletion,
-    completionKeymap,
-} from "@codemirror/autocomplete";
-import { HighlightStyle, tags } from '@codemirror/highlight';
-import './index.css'
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import { Button } from 'antd';
+import { SearchOutlined } from '@ant-design/icons';
+import { EditorView, keymap } from "@codemirror/view";
+import { EditorState } from "@codemirror/state";
+import { PromQLExtension } from '@prometheus-io/codemirror-promql';
+import { CustomPrometheusClient } from '../../utils/customPrometheusClient';
+import MetricSelector from '../../components/MetricSelector';
+import './index.css';
 
-const promqlExtension = new PromQLExtension()
-const dynamicConfigCompartment = new Compartment();
-const enableAutocomplete = true;
-const enableHighlighting = true;
-const enableLinter = true;
-let promQL = "";
-
-export const theme = EditorView.theme({
+// PromQL 编辑器主题样式
+const theme = EditorView.theme({
     '&': {
         '&.cm-focused': {
             outline: 'none',
@@ -45,7 +25,6 @@ export const theme = EditorView.theme({
         fontFamily:
             '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji"',
     },
-
     '.cm-matchingBracket': {
         color: '#000',
         backgroundColor: '#dedede',
@@ -53,12 +32,10 @@ export const theme = EditorView.theme({
         outline: '1px dashed transparent',
     },
     '.cm-nonmatchingBracket': { borderColor: 'red' },
-
     '.cm-tooltip': {
         backgroundColor: '#f8f8f8',
         borderColor: 'rgba(52, 79, 113, 0.2)',
     },
-
     '.cm-tooltip.cm-tooltip-autocomplete': {
         '& > ul': {
             maxHeight: '350px',
@@ -77,13 +54,11 @@ export const theme = EditorView.theme({
         },
         minWidth: '30%',
     },
-
     '.cm-completionDetail': {
         float: 'right',
         color: '#999',
     },
-
-    '.cm-tooltip.cm-tooltip-completionInfo': {
+    '.cm-tooltip.cm-completionInfo': {
         marginTop: '-11px',
         padding: '10px',
         fontFamily: "'Open Sans', 'Lucida Sans Unicode', 'Lucida Grande', sans-serif;",
@@ -92,38 +67,11 @@ export const theme = EditorView.theme({
         minWidth: '250px',
         maxWidth: 'min-content',
     },
-
-    '.cm-completionInfo.cm-completionInfo-right': {
-        '&:before': {
-            content: "' '",
-            height: '0',
-            position: 'absolute',
-            width: '0',
-            left: '-20px',
-            border: '10px solid transparent',
-            borderRightColor: '#d6ebff',
-        },
-        marginLeft: '12px',
-    },
-    '.cm-completionInfo.cm-completionInfo-left': {
-        '&:before': {
-            content: "' '",
-            height: '0',
-            position: 'absolute',
-            width: '0',
-            right: '-20px',
-            border: '10px solid transparent',
-            borderLeftColor: '#d6ebff',
-        },
-        marginRight: '12px',
-    },
-
     '.cm-completionMatchedText': {
         textDecoration: 'none',
         fontWeight: 'bold',
         color: '#0066bf',
     },
-
     '.cm-line': {
         '&::selection': {
             backgroundColor: '#add6ff',
@@ -132,230 +80,206 @@ export const theme = EditorView.theme({
             backgroundColor: '#add6ff',
         },
     },
-
     '.cm-selectionMatch': {
         backgroundColor: '#e6f3ff',
     },
-
     '.cm-diagnostic': {
         '&.cm-diagnostic-error': {
             borderLeft: '3px solid #e65013',
         },
     },
-
-    '.cm-completionIcon': {
-        boxSizing: 'content-box',
-        fontSize: '16px',
-        lineHeight: '1',
-        marginRight: '10px',
-        verticalAlign: 'top',
-        '&:after': { content: "'\\ea88'" },
-        fontFamily: 'codicon',
-        paddingRight: '0',
-        opacity: '1',
-        color: '#007acc',
-    },
-
-    '.cm-completionIcon-function, .cm-completionIcon-method': {
-        '&:after': { content: "'\\ea8c'" },
-        color: '#652d90',
-    },
-    '.cm-completionIcon-class': {
-        '&:after': { content: "'○'" },
-    },
-    '.cm-completionIcon-interface': {
-        '&:after': { content: "'◌'" },
-    },
-    '.cm-completionIcon-variable': {
-        '&:after': { content: "'𝑥'" },
-    },
-    '.cm-completionIcon-constant': {
-        '&:after': { content: "'\\eb5f'" },
-        color: '#007acc',
-    },
-    '.cm-completionIcon-type': {
-        '&:after': { content: "'𝑡'" },
-    },
-    '.cm-completionIcon-enum': {
-        '&:after': { content: "'∪'" },
-    },
-    '.cm-completionIcon-property': {
-        '&:after': { content: "'□'" },
-    },
-    '.cm-completionIcon-keyword': {
-        '&:after': { content: "'\\eb62'" },
-        color: '#616161',
-    },
-    '.cm-completionIcon-namespace': {
-        '&:after': { content: "'▢'" },
-    },
-    '.cm-completionIcon-text': {
-        '&:after': { content: "'\\ea95'" },
-        color: '#ee9d28',
-    },
 });
 
-export const promqlHighlighter = HighlightStyle.define([
-    { tag: tags.name, color: '#000' },
-    { tag: tags.number, color: '#09885a' },
-    { tag: tags.string, color: '#a31515' },
-    { tag: tags.keyword, color: '#008080' },
-    { tag: tags.function(tags.variableName), color: '#008080' },
-    { tag: tags.labelName, color: '#800000' },
-    { tag: tags.operator },
-    { tag: tags.modifier, color: '#008080' },
-    { tag: tags.paren },
-    { tag: tags.squareBracket },
-    { tag: tags.brace },
-    { tag: tags.invalid, color: 'red' },
-    { tag: tags.comment, color: '#888', fontStyle: 'italic' },
-]);
+// 导出 PromDoc 函数(保持兼容性)
+export const PromDoc = () => {
+    return "";
+};
 
-export const PromDoc = () =>{
-
-    return promQL
-}
-
+/**
+ * PrometheusPromQL 组件 - 使用 @prometheus-io/codemirror-promql 实现自动补全
+ *
+ * Props:
+ * - datasourceId: 数据源 ID,用于后端 API 调用
+ * - value: PromQL 查询语句(可以是字符串或返回字符串的函数)
+ * - setPromQL: 更新 PromQL 的回调函数
+ * - addr: Prometheus 地址(已废弃,保留用于向后兼容)
+ */
 export const PrometheusPromQL = (props) => {
     const containerRef = useRef(null);
     const viewRef = useRef(null);
-    const queryHistory: string[] = [];
-    const executeQuery = (args?: any) => {
-        console.info(args);
-    };
+    const promqlExtensionRef = useRef(null);
+    const [doc, setDoc] = useState('');
+    const [metricSelectorVisible, setMetricSelectorVisible] = useState(false);
 
-    const [doc, setDoc] = useState('')
+    // 处理编辑器内容变化
     const onExpressionChange = useCallback((expression) => {
-        if (expression){
-            promQL=expression
+        if (expression !== undefined) {
             setDoc(expression);
         }
     }, []);
 
-
-    useEffect(()=>{
-        if (props.value){
-            setDoc(props.value)
-        }
-
-    },[props.value])
-
-    // 监听编辑器更新事件
-    const updateListener = EditorView.updateListener.of((update: ViewUpdate): void => {
-        // 检查是否为用户输入事件
-        if (update.docChanged) {
-            const newContent = update.state.doc.toString();
-            if (newContent){
-                // console.log("update.state.doc.toString()->", newContent);
-                // 调用传入的回调函数以反映内容变化
-                onExpressionChange(newContent);
-            }
-        }
-
-        if (update.focusChanged){
-            if (update.state.doc.toString()){
-                props.setPromQL(update.state.doc.toString())
-            }
-        }
-
-    });
-
+    // 从 props 初始化文档内容
     useEffect(() => {
-        promqlExtension.activateCompletion(enableAutocomplete);
-        promqlExtension.activateLinter(enableLinter);
-        promqlExtension.setComplete({ remote: { url: props.addr } });
-
-        const dynamicConfig = [
-            enableHighlighting ? promqlHighlighter : [],
-            promqlExtension.asExtension(),
-        ];
-
-        const view = viewRef.current;
-        if (!view) {
-            if (!containerRef.current) {
-                throw new Error("expected CodeMirror container element to exist");
-            }
-
-            const startState = EditorState.create({
-                doc: doc,
-                extensions: [
-                    theme,
-                    highlightSpecialChars(),
-                    history(),
-                    EditorState.allowMultipleSelections.of(true),
-                    indentOnInput(),
-                    bracketMatching(),
-                    closeBrackets(),
-                    autocompletion(),
-                    highlightSelectionMatches(),
-                    EditorView.lineWrapping,
-                    keymap.of([
-                        ...closeBracketsKeymap,
-                        ...defaultKeymap,
-                        ...searchKeymap,
-                        ...historyKeymap,
-                        ...commentKeymap,
-                        ...completionKeymap,
-                        ...lintKeymap,
-                    ]),
-                    dynamicConfigCompartment.of(dynamicConfig),
-                    keymap.of([
-                        {
-                            key: "Escape",
-                            run: (v) => {
-                                v.contentDOM.blur();
-                                return false;
-                            },
-                        },
-                    ]),
-                    Prec.override(
-                        keymap.of([
-                            {
-                                key: "Enter",
-                                run: (v) => {
-                                    executeQuery();
-                                    return true;
-                                },
-                            },
-                            {
-                                key: "Shift-Enter",
-                                run: insertNewlineAndIndent,
-                            },
-                        ])
-                    ),
-                    updateListener,
-                ],
-            });
-
-            viewRef.current = new EditorView({
-                state: startState,
-                parent: containerRef.current,
-            });
-
-            viewRef.current.focus();
-        } else {
-            view.dispatch(
-                view.state.update({
-                    effects: dynamicConfigCompartment.reconfigure(dynamicConfig),
-                })
-            );
-        }
-    }, [ executeQuery, onExpressionChange, queryHistory, props.value]);
-
-    useEffect(() => {
-        if (viewRef.current && props.value !== undefined) {
-            const currentPosition = viewRef.current.state.selection.main.head;
-            const transaction = viewRef.current.state.update({
-                changes: { from: 0, to: viewRef.current.state.doc.length, insert: props.value },
-                selection: { anchor: currentPosition } // 保持光标位置
-            });
-            viewRef.current.dispatch(transaction);
+        const propValue = typeof props.value === 'function' ? props.value() : props.value;
+        if (propValue !== undefined && propValue !== doc) {
+            setDoc(propValue || '');
         }
     }, [props.value]);
 
+    // 初始化编辑器
+    useEffect(() => {
+        if (!containerRef.current || viewRef.current) {
+            return;
+        }
+
+        console.log('[PrometheusPromQL] 初始化编辑器, datasourceId:', props.datasourceId);
+
+        // 创建 PromQL Extension 实例
+        const promqlExtension = new PromQLExtension();
+        promqlExtensionRef.current = promqlExtension;
+
+        // 配置自动补全数据源(必须在 activateCompletion 之前调用)
+        if (props.datasourceId) {
+            console.log('[PrometheusPromQL] 配置自定义客户端, datasourceId:', props.datasourceId);
+            const customClient = new CustomPrometheusClient(props.datasourceId);
+
+            // 使用最新的 API: 直接传递客户端实例
+            promqlExtension.setComplete({ remote: customClient });
+
+            console.log('[PrometheusPromQL] 自动补全配置完成');
+        } else {
+            console.warn('[PrometheusPromQL] 警告: 没有提供 datasourceId, 自动补全将不可用');
+        }
+
+        // 激活自动补全和语法检查(必须在 setComplete 之后调用)
+        promqlExtension.activateCompletion(true);
+        promqlExtension.activateLinter(true);
+
+        // 创建编辑器状态
+        const startState = EditorState.create({
+            doc: doc || '',
+            extensions: [
+                theme,
+                EditorView.lineWrapping,
+                promqlExtension.asExtension(),
+                // 监听文档变化
+                EditorView.updateListener.of((update) => {
+                    if (update.docChanged) {
+                        const newContent = update.state.doc.toString();
+                        onExpressionChange(newContent);
+                    }
+
+                    // 失去焦点时更新父组件状态
+                    if (update.focusChanged && !update.view.hasFocus) {
+                        const content = update.state.doc.toString();
+                        if (props.setPromQL) {
+                            props.setPromQL(content);
+                        }
+                    }
+                }),
+                // 键盘快捷键
+                keymap.of([
+                    {
+                        key: "Escape",
+                        run: (v) => {
+                            v.contentDOM.blur();
+                            return false;
+                        },
+                    },
+                ]),
+            ],
+        });
+
+        // 创建编辑器视图
+        viewRef.current = new EditorView({
+            state: startState,
+            parent: containerRef.current,
+        });
+
+        // 自动聚焦
+        viewRef.current.focus();
+
+        // 清理函数
+        return () => {
+            if (viewRef.current) {
+                viewRef.current.destroy();
+                viewRef.current = null;
+            }
+        };
+    }, []); // 只在组件挂载时执行一次
+
+    // 更新编辑器内容(当 props.value 变化时)
+    useEffect(() => {
+        if (viewRef.current && doc !== undefined) {
+            const currentDoc = viewRef.current.state.doc.toString();
+            if (currentDoc !== doc) {
+                const currentPosition = viewRef.current.state.selection.main.head;
+                const transaction = viewRef.current.state.update({
+                    changes: { from: 0, to: viewRef.current.state.doc.length, insert: doc },
+                    selection: { anchor: Math.min(currentPosition, doc.length) }
+                });
+                viewRef.current.dispatch(transaction);
+            }
+        }
+    }, [doc]);
+
+    // 更新数据源配置(当 datasourceId 变化时)
+    useEffect(() => {
+        if (!promqlExtensionRef.current || !props.datasourceId) {
+            return;
+        }
+
+        console.log('[PrometheusPromQL] 数据源变化, 重新配置, datasourceId:', props.datasourceId);
+
+        const customClient = new CustomPrometheusClient(props.datasourceId);
+        promqlExtensionRef.current.setComplete({ remote: customClient });
+
+        console.log('[PrometheusPromQL] 自动补全配置已更新');
+    }, [props.datasourceId]);
+
+    // 处理指标选择
+    const handleMetricSelect = useCallback((metric) => {
+        if (viewRef.current) {
+            const currentDoc = viewRef.current.state.doc.toString();
+            const currentPosition = viewRef.current.state.selection.main.head;
+
+            // 在光标位置插入指标名称
+            const transaction = viewRef.current.state.update({
+                changes: { from: currentPosition, insert: metric },
+                selection: { anchor: currentPosition + metric.length }
+            });
+            viewRef.current.dispatch(transaction);
+            viewRef.current.focus();
+
+            // 更新状态
+            const newContent = currentDoc.substring(0, currentPosition) + metric + currentDoc.substring(currentPosition);
+            setDoc(newContent);
+            if (props.setPromQL) {
+                props.setPromQL(newContent);
+            }
+        }
+    }, [props.setPromQL]);
+
     return (
-        <div className="promInputContent">
-            <div ref={containerRef} className="cm-expression-input" />
-        </div>
+        <>
+            <div className="promInputContent" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div ref={containerRef} className="cm-expression-input" style={{ flex: 1 }} />
+                <Button
+                    icon={<SearchOutlined />}
+                    onClick={() => setMetricSelectorVisible(true)}
+                    disabled={!props.datasourceId}
+                    title="指标浏览器"
+                >
+                    指标
+                </Button>
+            </div>
+
+            <MetricSelector
+                visible={metricSelectorVisible}
+                onClose={() => setMetricSelectorVisible(false)}
+                datasourceId={props.datasourceId}
+                onSelect={handleMetricSelect}
+            />
+        </>
     );
-}
+};
