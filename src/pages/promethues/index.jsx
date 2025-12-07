@@ -68,26 +68,41 @@ export const PromDoc = () => {
  * - addr: Prometheus 地址(已废弃,保留用于向后兼容)
  */
 export const PrometheusPromQL = (props) => {
+    // 解构 props 以避免 ESLint 警告
+    const { value, setPromQL, datasourceId } = props;
+    
     const containerRef = useRef(null);
     const viewRef = useRef(null);
     const promqlExtensionRef = useRef(null);
     const [doc, setDoc] = useState('');
     const [builderVisible, setBuilderVisible] = useState(false);
 
-    // 处理编辑器内容变化
-    const onExpressionChange = useCallback((expression) => {
+    // 使用 ref 保存回调函数，避免编辑器重新初始化
+    const onExpressionChangeRef = useRef(null);
+    const setPromQLRef = useRef(null);
+
+    // 更新回调函数引用
+    onExpressionChangeRef.current = (expression) => {
         if (expression !== undefined) {
             setDoc(expression);
+        }
+    };
+    setPromQLRef.current = setPromQL;
+
+    // 处理编辑器内容变化
+    const onExpressionChange = useCallback((expression) => {
+        if (onExpressionChangeRef.current) {
+            onExpressionChangeRef.current(expression);
         }
     }, []);
 
     // 从 props 初始化文档内容
     useEffect(() => {
-        const propValue = typeof props.value === 'function' ? props.value() : props.value;
+        const propValue = typeof value === 'function' ? value() : value;
         if (propValue !== undefined && propValue !== doc) {
             setDoc(propValue || '');
         }
-    }, [props.value]);
+    }, [value, doc]);
 
     // 初始化编辑器
     useEffect(() => {
@@ -117,8 +132,8 @@ export const PrometheusPromQL = (props) => {
                 // 失去焦点时更新父组件状态
                 if (update.focusChanged && !update.view.hasFocus) {
                     const content = update.state.doc.toString();
-                    if (props.setPromQL) {
-                        props.setPromQL(content);
+                    if (setPromQLRef.current) {
+                        setPromQLRef.current(content);
                     }
                 }
             }),
@@ -155,7 +170,7 @@ export const PrometheusPromQL = (props) => {
                 viewRef.current = null;
             }
         };
-    }, []); // 只在组件挂载时执行一次
+    }, []); // 编辑器只初始化一次，避免重新创建
 
     // 更新编辑器内容(当 props.value 变化时)
     useEffect(() => {
@@ -186,11 +201,11 @@ export const PrometheusPromQL = (props) => {
 
             // 更新状态
             setDoc(query);
-            if (props.setPromQL) {
-                props.setPromQL(query);
+            if (setPromQL) {
+                setPromQL(query);
             }
         }
-    }, [props.setPromQL]);
+    }, [setPromQL]); // 添加 setPromQL 依赖项
 
     return (
         <>
@@ -199,7 +214,7 @@ export const PrometheusPromQL = (props) => {
                 <Button
                     icon={<BuildOutlined />}
                     onClick={() => setBuilderVisible(true)}
-                    disabled={!props.datasourceId}
+                    disabled={!datasourceId}
                     title="查询构建器"
                 >
                     构建器
@@ -209,7 +224,7 @@ export const PrometheusPromQL = (props) => {
             <PromQLBuilder
                 visible={builderVisible}
                 onClose={() => setBuilderVisible(false)}
-                datasourceId={props.datasourceId}
+                datasourceId={datasourceId}
                 onBuild={handleQueryBuild}
                 initialQuery={viewRef.current ? viewRef.current.state.doc.toString() : doc}
             />
