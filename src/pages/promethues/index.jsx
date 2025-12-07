@@ -275,6 +275,7 @@ export const PrometheusPromQL = (props) => {
                 onClose={() => setBuilderVisible(false)}
                 datasourceId={props.datasourceId}
                 onBuild={handleQueryBuild}
+                initialQuery={viewRef.current ? viewRef.current.state.doc.toString() : doc}
             />
         </>
     );
