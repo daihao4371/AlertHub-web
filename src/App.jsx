@@ -1,5 +1,5 @@
 import React from 'react';
-import { ConfigProvider, theme } from 'antd';
+import { ConfigProvider, App as AntdApp, theme } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { Helmet } from 'react-helmet';
 import routes from './routes';
@@ -19,10 +19,12 @@ export default function App() {
     return (
         <AppContextProvider>
             <ConfigProvider locale={zhCN} theme={{ algorithm: theme.defaultAlgorithm }}>
-                <Helmet>
-                    <title>{title}</title>
-                </Helmet>
-                {element}
+                <AntdApp>
+                    <Helmet>
+                        <title>{title}</title>
+                    </Helmet>
+                    {element}
+                </AntdApp>
             </ConfigProvider>
         </AppContextProvider>
     );

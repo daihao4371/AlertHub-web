@@ -99,11 +99,26 @@ async function updateAutoRefresh(autoRefresh) {
     }
 }
 
+// 手动触发巡检
+async function triggerInspection(datasourceId = '') {
+    try {
+        const res = await http('post', '/api/w8t/exporter/monitor/inspect', {
+            datasourceId
+        });
+        message.success('巡检任务已触发');
+        return res;
+    } catch (error) {
+        HandleApiError(error);
+        return error;
+    }
+}
+
 export {
     getExporterStatus,
     getExporterHistory,
     getExporterConfig,
     updateExporterConfig,
     sendExporterReport,
-    updateAutoRefresh
+    updateAutoRefresh,
+    triggerInspection
 };

@@ -20,9 +20,10 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   QuestionCircleOutlined,
-  SettingOutlined
+  SettingOutlined,
+  SyncOutlined
 } from "@ant-design/icons"
-import { getExporterStatus, getExporterConfig, updateAutoRefresh } from "../../api/exporterMonitor"
+import { getExporterStatus, getExporterConfig, updateAutoRefresh, triggerInspection } from "../../api/exporterMonitor"
 import { getDatasourceList } from "../../api/datasource"
 import { useNavigate } from "react-router-dom"
 import { copyToClipboard } from "../../utils/copyToClipboard"
@@ -156,6 +157,24 @@ export const ExporterMonitor = () => {
       message.success(newState ? "已开启自动刷新" : "已停止自动刷新")
     } catch (error) {
       message.error("更新自动刷新状态失败")
+    }
+  }
+
+  // 手动触发巡检
+  const [inspecting, setInspecting] = useState(false)
+  const handleTriggerInspection = async () => {
+    try {
+      setInspecting(true)
+      // 调用巡检 API (不指定数据源ID,巡检所有数据源)
+      await triggerInspection()
+      // 等待 2 秒后自动刷新数据
+      setTimeout(() => {
+        fetchExporterStatus()
+      }, 2000)
+    } catch (error) {
+      message.error("触发巡检失败")
+    } finally {
+      setInspecting(false)
     }
   }
 
@@ -462,6 +481,15 @@ export const ExporterMonitor = () => {
         </div>
         <div>
           <Space>
+            <Tooltip title="手动触发巡检,实时采集最新状态">
+              <Button
+                icon={<SyncOutlined spin={inspecting} />}
+                onClick={handleTriggerInspection}
+                loading={inspecting}
+              >
+                立即巡检
+              </Button>
+            </Tooltip>
             <Button
               type="primary"
               icon={<ReloadOutlined />}

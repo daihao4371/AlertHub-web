@@ -515,7 +515,8 @@ const RuleTemplateCreateModal = ({ visible, onClose, selectedRow, type, handleLi
                                 <MyFormItemGroup prefix={['prometheusConfig']}>
                                     <MyFormItem name="promQL" label="PromQL" rules={[{required: true}]}>
                                         <PrometheusPromQL
-                                            value={handleGetPromQL}
+                                            datasourceId={selectedDatasourceIds && selectedDatasourceIds.length > 0 ? selectedDatasourceIds[0] : null}
+                                            value={handleGetPromQL()}
                                             setPromQL={setPromQL}
                                         />
                                     </MyFormItem>
