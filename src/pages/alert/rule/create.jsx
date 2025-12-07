@@ -1057,8 +1057,9 @@ export const AlertRule = ({ type }) => {
                                             style={{width: '100%', height: '100%'}}
                                         >
                                             <PrometheusPromQL
+                                                datasourceId={selectedItems && selectedItems.length > 0 ? selectedItems[0] : null}
                                                 addr={metricAddress}
-                                                value={handleGetPromQL}
+                                                value={handleGetPromQL()}
                                                 setPromQL={setPromQL}
                                             />
                                         </MyFormItem>
