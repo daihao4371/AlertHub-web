@@ -3,6 +3,7 @@ import { Modal, Button, Select, Input, Space, Divider, Spin, App } from 'antd';
 import { PlusOutlined, CloseOutlined, ImportOutlined } from '@ant-design/icons';
 import { getPrometheusMetrics, getPrometheusLabels, getPrometheusLabelValues } from '../../api/prometheus';
 import { parsePromQL } from '../../utils/promqlParser';
+import PromQLHighlighter from './PromQLHighlighter';
 import './index.css';
 
 const { Option } = Select;
@@ -710,16 +711,16 @@ const PromQLBuilder = ({ visible, onClose, datasourceId, onBuild, initialQuery }
                         </Button>
                     </div>
                     <div className="promql-preview">
-                        <code>{buildPromQL() || '请先选择指标...'}</code>
+                        <PromQLHighlighter query={buildPromQL()} />
                     </div>
                     {initialQuery && initialQuery.trim() && initialQuery !== buildPromQL() && (
                         <div style={{ marginTop: 12, padding: 8, background: '#fff7e6', borderRadius: 4, border: '1px solid #ffd591' }}>
                             <div style={{ fontSize: 12, color: '#d46b08', fontWeight: 500, marginBottom: 4 }}>
                                 ⚠️ 编辑器中的原始查询（包含构建器不支持的功能）：
                             </div>
-                            <code style={{ display: 'block', marginTop: 4, padding: 4, background: '#fff', borderRadius: 4, fontSize: 11, wordBreak: 'break-all' }}>
-                                {initialQuery}
-                            </code>
+                            <div style={{ display: 'block', marginTop: 4, padding: 4, background: '#fff', borderRadius: 4, fontSize: 11, wordBreak: 'break-all' }}>
+                                <PromQLHighlighter query={initialQuery} />
+                            </div>
                             <div style={{ marginTop: 6, fontSize: 11, color: '#8c8c8c' }}>
                                 说明：构建器当前仅支持单个指标的查询。如果原始查询包含算术运算（+、-、*、/）或多个指标，将只解析第一个指标部分。
                             </div>
