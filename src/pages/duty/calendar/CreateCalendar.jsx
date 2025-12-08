@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Form, Modal, DatePicker, Select, Button, List, Avatar, Space, Drawer, Input, InputNumber, message } from "antd"
+import { useEffect, useState, useCallback } from "react"
+import { Form, Modal, DatePicker, Select, Button, List, Avatar, Space, Drawer, InputNumber, message } from "antd"
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd"
-import { PlusOutlined, DeleteOutlined, MenuOutlined } from "@ant-design/icons"
+import { DeleteOutlined, MenuOutlined } from "@ant-design/icons"
 import { createCalendar, GetCalendarUsers } from "../../../api/duty" // 假设这些路径是正确的
 import Search from "antd/es/input/Search"
 import { v4 as uuidv4 } from "uuid"
@@ -22,18 +22,59 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
     const [searchVisible, setSearchVisible] = useState(false)
     // 新增状态，用于记录当前正在向哪个组添加人员
     const [currentGroupIndexForUserSelection, setCurrentGroupIndexForUserSelection] = useState(null)
-    
-    // 定义值班组的颜色列表
-    const groupColors = [
-        "#E3F2FD", // 浅蓝色
-        "#F3E5F5", // 浅紫色
-        "#E8F5E9", // 浅绿色
-        "#FFF3E0", // 浅橙色
-        "#FCE4EC", // 浅粉色
-        "#F1F8E9", // 浅黄绿色
-        "#E0F2F1", // 浅青色
-        "#FBE9E7", // 浅珊瑚色
-    ]
+
+    const handleGetCalendarUsers = useCallback(async () => {
+        try {
+            const params = {
+                dutyId: dutyId,
+            }
+            const res = await GetCalendarUsers(params)
+
+            // 获取所有用户列表，用于补充电话号码
+            let allUsersMap = new Map()
+            try {
+                const userRes = await getUserList({ joinDuty: "true" })
+                if (userRes.data && Array.isArray(userRes.data)) {
+                    userRes.data.forEach((user) => {
+                        allUsersMap.set(user.userid, user)
+                    })
+                }
+            } catch (err) {
+                console.error("获取用户列表失败:", err)
+            }
+
+            // 假设 res.data 是 [][]DutyUser 结构
+            if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+                const loadedGroups = res.data
+                    .filter((userList) => Array.isArray(userList)) // 确保每个 userList 都是数组
+                    .map((userList) => {
+                        // 补充用户信息：如果 mobile 为空，从用户列表获取 phone
+                        const enrichedUsers = userList.map((dutyUser) => {
+                            const fullUser = allUsersMap.get(dutyUser.userid)
+                            return {
+                                ...dutyUser,
+                                realName: dutyUser.realName || (fullUser ? fullUser.realName : ''),
+                                phone: fullUser ? fullUser.phone : dutyUser.phone || '',
+                                mobile: dutyUser.mobile || (fullUser ? fullUser.phone : '') // 如果 mobile 为空，使用 phone
+                            }
+                        })
+                        
+                        return {
+                            id: uuidv4(), // 为每个加载的组生成唯一ID
+                            users: enrichedUsers, // 使用补充后的用户信息
+                        }
+                    })
+                setSelectedGroups(loadedGroups)
+            } else {
+                // 如果没有返回组数据，则初始化一个空的默认组
+                setSelectedGroups([{ id: uuidv4(), users: [] }])
+            }
+        } catch (error) {
+            console.error(error)
+            // 错误时也回退到初始化一个空的默认组
+            setSelectedGroups([{ id: uuidv4(), name: "值班 1 组", users: [] }])
+        }
+    }, [dutyId])
 
     useEffect(() => {
         if (visible) {
@@ -45,46 +86,7 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
             setDutyPeriod(1)
             setDateType("week")
         }
-    }, [visible])
-
-    const handleGetCalendarUsers = async () => {
-        try {
-            const params = {
-                dutyId: dutyId,
-            }
-            const res = await GetCalendarUsers(params)
-
-            // 假设 res.data 是 [][]DutyUser 结构
-            if (res.data && Array.isArray(res.data) && res.data.length > 0) {
-                const loadedGroups = res.data
-                    .filter((userList) => Array.isArray(userList)) // 确保每个 userList 都是数组
-                    .map((userList, index) => {
-                        // 根据组内第一个用户的userid生成稳定的颜色索引
-                        let colorIndex = index
-                        if (userList.length > 0 && userList[0].userid) {
-                            const firstUserId = userList[0].userid
-                            const hashCode = firstUserId.split('').reduce((acc, char) => {
-                                return acc + char.charCodeAt(0)
-                            }, 0)
-                            colorIndex = hashCode % groupColors.length
-                        }
-                        return {
-                            id: uuidv4(), // 为每个加载的组生成唯一ID
-                            color: groupColors[colorIndex], // 为每个组分配颜色
-                            users: userList, // 此时 userList 已经保证是数组了
-                        }
-                    })
-                setSelectedGroups(loadedGroups)
-            } else {
-                // 如果没有返回组数据，则初始化一个空的默认组
-                setSelectedGroups([{ id: uuidv4(), color: groupColors[0], users: [] }])
-            }
-        } catch (error) {
-            console.error(error)
-            // 错误时也回退到初始化一个空的默认组
-            setSelectedGroups([{ id: uuidv4(), name: "值班 1 组", users: [] }])
-        }
-    }
+    }, [visible, form, handleGetCalendarUsers])
 
     const onChangeDate = (date, dateString) => {
         setSelectedMonth(dateString)
@@ -113,6 +115,9 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
             const options = res.data.map((item) => ({
                 username: item.username,
                 userid: item.userid,
+                realName: item.realName,
+                phone: item.phone,
+                mobile: item.phone // 同时保存 mobile 字段，用于后续映射到 DutyUser
             }))
             setFilteredOptions(options)
         } catch (error) {
@@ -125,7 +130,12 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
             handleSearchDutyUser() // 如果查询为空，重新加载所有用户
             return
         }
-        const filtered = filteredOptions.filter((item) => item.username.toLowerCase().includes(query.toLowerCase()))
+        const filtered = filteredOptions.filter((item) => 
+            (item.realName && item.realName.toLowerCase().includes(query.toLowerCase())) ||
+            (item.username && item.username.toLowerCase().includes(query.toLowerCase())) ||
+            (item.phone && item.phone.includes(query)) ||
+            (item.mobile && item.mobile.includes(query))
+        )
         setFilteredOptions(filtered)
     }
 
@@ -144,8 +154,7 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
     }
 
     const handleAddGroup = () => {
-        const newColor = groupColors[selectedGroups.length % groupColors.length]
-        setSelectedGroups([...selectedGroups, { id: uuidv4(), color: newColor, users: [] }])
+        setSelectedGroups([...selectedGroups, { id: uuidv4(), users: [] }])
     }
 
     const handleDeleteGroup = (groupIndex) => {
@@ -234,15 +243,6 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
                                                     ...providedGroup.draggableProps.style,
                                                 }}
                                             >
-                                                {/* 左侧颜色条 */}
-                                                <div style={{ 
-                                                    position: "absolute",
-                                                    left: 0,
-                                                    top: 0,
-                                                    bottom: 0,
-                                                    width: "6px", 
-                                                    backgroundColor: group.color,
-                                                }} />
                                                 <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: "12px" }}>
                                                   <span {...providedGroup.dragHandleProps} style={{ cursor: "move" }}>
                                                     <MenuOutlined />
@@ -291,10 +291,13 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
                                                                                     <span {...providedUser.dragHandleProps}>
                                                                                       <MenuOutlined />
                                                                                     </span>
-                                                                                    <Avatar style={{ backgroundColor: group.color, color: "#000" }}>
-                                                                                        {user.username[0]}
+                                                                                    <Avatar>
+                                                                                        {(user.realName && user.realName[0]) || user.username[0]}
                                                                                     </Avatar>
-                                                                                    {user.username}
+                                                                                    <div>
+                                                                                        <div>{user.realName || user.username}</div>
+                                                                                        <div style={{fontSize: '12px', color: '#666'}}>{user.mobile || user.phone}</div>
+                                                                                    </div>
                                                                                 </Space>
                                                                                 <Button
                                                                                     type="text"
@@ -334,7 +337,22 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
             }
 
             // 将 selectedGroups 转换为后端期望的 [][]DutyUser 格式
-            const userGroupData = selectedGroups.map((group) => group.users)
+            // 需要将 Member 的 phone 字段映射到 DutyUser 的 mobile 字段
+            const userGroupData = selectedGroups.map((group) => 
+                group.users.map((user) => {
+                    // 优先使用 mobile，如果没有则使用 phone
+                    // 如果都没有，尝试从用户列表获取（这种情况不应该发生，但作为兜底）
+                    const mobile = user.mobile || user.phone || ''
+                    
+                    
+                    return {
+                        userid: user.userid,
+                        username: user.username,
+                        email: user.email || '',
+                        mobile: mobile // 确保 mobile 字段有值，即使为空字符串也要传递
+                    }
+                })
+            )
 
             const calendarData = {
                 dutyId: dutyId,
@@ -434,7 +452,11 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
                     })}
                     renderItem={(item) => (
                         <List.Item onClick={() => handleAddUserToGroup(item)} style={{ cursor: "pointer" }}>
-                            <List.Item.Meta avatar={<Avatar>{item.username[0]}</Avatar>} title={item.username} />
+                            <List.Item.Meta 
+                                avatar={<Avatar>{(item.realName && item.realName[0]) || item.username[0]}</Avatar>} 
+                                title={item.realName || item.username}
+                                description={item.mobile || item.phone}
+                            />
                         </List.Item>
                     )}
                 />

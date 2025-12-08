@@ -1,7 +1,7 @@
 "use client"
 import { updateCalendar } from "../../../api/duty"
 import {Modal, Form, Button, message, Select, Typography} from "antd"
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import {getUserList} from "../../../api/user";
 
 export const UpdateCalendarModal = ({ visible, onClose, time, tenantId, dutyId, date, currentDutyUsers, onSuccess }) => {
@@ -10,15 +10,49 @@ export const UpdateCalendarModal = ({ visible, onClose, time, tenantId, dutyId, 
     const [selectedUsersForUpdate, setSelectedUsersForUpdate] = useState([]) // 存储选中的用户对象 { username, userid }
     const [filteredOptions, setFilteredOptions] = useState([]) // 搜索框可用的用户列表
 
+    // 获取所有可选择的用户列表
+    const handleSearchDutyUser = useCallback(async () => {
+        try {
+            const params = {
+                joinDuty: "true",
+            }
+            const res = await getUserList(params)
+            const options = res.data.map((item) => ({
+                username: item.username,
+                userid: item.userid,
+                realName: item.realName,
+                phone: item.phone,
+                mobile: item.phone // Member 模型使用 phone，映射到 mobile 用于 DutyUser
+            }))
+            setFilteredOptions(options)
+        } catch (error) {
+            console.error(error)
+            message.error("获取用户列表失败")
+        }
+    }, [])
+
+    // 提取当前用户列表的辅助函数（处理多组和单组结构）
+    const getCurrentUsers = useCallback(() => {
+        if (!currentDutyUsers || currentDutyUsers.length === 0) {
+            return []
+        }
+        if (Array.isArray(currentDutyUsers[0])) {
+            // 多组结构：取第一个组
+            return currentDutyUsers[0]
+        }
+        // 单组结构：直接使用
+        return currentDutyUsers
+    }, [currentDutyUsers])
+
+    // 计算当前用户数量的辅助函数
+    const getCurrentUsersCount = useCallback(() => {
+        return getCurrentUsers().length
+    }, [getCurrentUsers])
+
     // Modal 打开时加载数据并初始化表单
     useEffect(() => {
         if (visible && currentDutyUsers) {
-            // currentDutyData.userGroup 预期是 `[][]DutyUser`
-            // 我们假设更新操作是针对该日期第一个（或唯一一个）值班组
-            const currentUsers =
-                currentDutyUsers && currentDutyUsers.length > 0 && Array.isArray(currentDutyUsers[0])
-                    ? currentDutyUsers[0]
-                    : []
+            const currentUsers = getCurrentUsers()
 
             setSelectedUsersForUpdate(currentUsers)
 
@@ -34,52 +68,45 @@ export const UpdateCalendarModal = ({ visible, onClose, time, tenantId, dutyId, 
             setFilteredOptions([])
             form.resetFields() // 清空表单字段
         }
-    }, [visible, currentDutyUsers, form]) // 依赖 visible, currentDutyData 和 form 实例
+    }, [visible, currentDutyUsers, getCurrentUsers, form, handleSearchDutyUser]) // 依赖 visible, currentDutyUsers, getCurrentUsers, form 和 handleSearchDutyUser
 
     // 处理 Select 框选择变化
     const handleSelectChange = (value, options) => {
         // 'value' 是一个包含选中 Option value (这里是 userid) 的数组
         // 'options' 是一个包含选中 Option 对象 (包含 key, value, children, userid 等) 的数组
         const newSelectedUsers = options.map((option) => ({
-            username: option.children, // 假设 username 在 children 中
-            userid: option.key, // 假设 userid 在 key 中
+            username: option.label,
+            userid: option.key,
+            realName: option.realName,
+            mobile: option.mobile || option.phone || '' // 优先使用 mobile，如果没有则使用 phone
         }))
         setSelectedUsersForUpdate(newSelectedUsers)
     }
 
-    // 获取所有可选择的用户列表
-    const handleSearchDutyUser = async () => {
-        try {
-            const params = {
-                joinDuty: "true",
-            }
-            const res = await getUserList(params)
-            const options = res.data.map((item) => ({
-                username: item.username,
-                userid: item.userid,
-            }))
-            setFilteredOptions(options)
-        } catch (error) {
-            console.error(error)
-            message.error("获取用户列表失败")
-        }
-    }
-
     // 提交表单数据到后端
     const handleFormSubmit = async () => {
+        const currentDutyUsersCount = getCurrentUsersCount()
         const currentSelectedCount = selectedUsersForUpdate.length
 
-        if (currentSelectedCount !== currentDutyUsers.length) {
-            message.error("请选择值班人员。")
+        if (currentSelectedCount !== currentDutyUsersCount) {
+            message.error(`请选择 ${currentDutyUsersCount} 名值班人员。`)
             return
         }
 
         // 构建后端数据结构
+        // 确保用户对象包含 mobile 字段（DutyUser 模型要求）
+        const usersForSubmit = selectedUsersForUpdate.map((user) => ({
+            userid: user.userid,
+            username: user.username,
+            email: user.email || '',
+            mobile: user.mobile || user.phone || '' // 优先使用 mobile，如果没有则使用 phone
+        }))
+
         const calendarData = {
             tenantId: tenantId,
             dutyId: dutyId,
             time: date,
-            users: selectedUsersForUpdate,
+            users: usersForSubmit,
             status: "Temporary"
         }
 
@@ -105,7 +132,7 @@ export const UpdateCalendarModal = ({ visible, onClose, time, tenantId, dutyId, 
                 <Form.Item
                     name="dutyUser"
                     // 根据初始人数动态显示提示
-                    label={`值班人员 (当前${currentDutyUsers?.length ? currentDutyUsers?.length : 0}人，请更新为${currentDutyUsers?.length ? currentDutyUsers?.length : 0}人)`}
+                    label={`值班人员 (当前${getCurrentUsersCount()}人，请更新为${getCurrentUsersCount()}人)`}
                     rules={[
                         {
                             required: true,
@@ -131,8 +158,15 @@ export const UpdateCalendarModal = ({ visible, onClose, time, tenantId, dutyId, 
                          value={selectedUsersForUpdate.map((user) => user.userid)}
                     >
                         {filteredOptions.map((item) => (
-                             <Option key={item.userid} value={item.userid} disabled={selectedUsersForUpdate?.length === currentDutyUsers?.length}>
-                                {item.username}
+                             <Option 
+                                key={item.userid} 
+                                value={item.userid} 
+                                disabled={selectedUsersForUpdate.length === getCurrentUsersCount()}
+                                realName={item.realName} 
+                                mobile={item.mobile} 
+                                phone={item.phone}
+                            >
+                                {item.realName || item.username}({item.mobile || item.phone || '无电话'})
                             </Option>
                         ))}
                     </Select>
