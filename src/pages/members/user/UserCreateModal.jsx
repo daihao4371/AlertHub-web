@@ -30,6 +30,7 @@ const UserCreateModal = ({ visible, onClose, selectedRow, type, handleList }) =>
                 setSpaceValue(selectedRow.username) // 初始化禁用空格输入框的值
                 form.setFieldsValue({
                     username: selectedRow.username,
+                    realName: selectedRow.realName,
                     phone: selectedRow.phone,
                     email: selectedRow.email,
                     joinDuty: joinDutyStatus,
@@ -132,6 +133,15 @@ const UserCreateModal = ({ visible, onClose, selectedRow, type, handleList }) =>
                         onKeyPress={handleKeyPress}
                         disabled={type === "update"}
                     />
+                </MyFormItem>
+
+                <MyFormItem
+                    name="realName"
+                    label="真实姓名"
+                    style={{ flex: 1 }}
+                    rules={[{ required: true, message: "请输入真实姓名！" }]}
+                >
+                    <Input placeholder="请输入真实姓名" />
                 </MyFormItem>
 
                 {type === "create" && (

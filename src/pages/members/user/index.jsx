@@ -50,6 +50,12 @@ export const User = () => {
             ),
         },
         {
+            title: '真实姓名',
+            dataIndex: 'realName',
+            key: 'realName',
+            render: (text) => text || '-',
+        },
+        {
             title: '邮箱',
             dataIndex: 'email',
             key: 'email',
