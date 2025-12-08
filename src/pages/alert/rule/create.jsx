@@ -1049,33 +1049,40 @@ export const AlertRule = ({ type }) => {
                             <span>规则配置</span>
                             <div className="rule-config-container">
                                 <MyFormItemGroup prefix={['prometheusConfig']}>
-                                    <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                                        <MyFormItem
-                                            name="promQL"
-                                            label="PromQL"
-                                            rules={[{required: true}]}
-                                            style={{width: '100%', height: '100%'}}
-                                        >
-                                            <PrometheusPromQL
-                                                datasourceId={selectedItems && selectedItems.length > 0 ? selectedItems[0] : null}
-                                                addr={metricAddress}
-                                                value={handleGetPromQL()}
-                                                setPromQL={setPromQL}
-                                            />
-                                        </MyFormItem>
-                                        <Button
-                                            type="primary"
-                                            style={{backgroundColor: '#000', borderColor: '#000', marginTop: '5px'}}
-                                            onClick={() => {
-                                                if (selectedItems.length === 0) {
-                                                    message.error("请先选择数据源")
-                                                    return
-                                                }
-                                                handleQueryMetrics()
-                                            }}
-                                        >
-                                            数据预览
-                                        </Button>
+                                    <div style={{marginBottom: '24px'}}>
+                                        <div style={{marginBottom: '8px', fontSize: '14px', color: 'rgba(0, 0, 0, 0.85)'}}>
+                                            <span style={{color: '#ff4d4f', marginRight: '4px'}}>*</span>
+                                            PromQL
+                                        </div>
+                                        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                            <MyFormItem
+                                                name="promQL"
+                                                label=""
+                                                rules={[{required: true}]}
+                                                style={{width: '100%', height: '100%', marginBottom: 0, flex: 1}}
+                                                className="promql-form-item"
+                                            >
+                                                <PrometheusPromQL
+                                                    datasourceId={selectedItems && selectedItems.length > 0 ? selectedItems[0] : null}
+                                                    addr={metricAddress}
+                                                    value={handleGetPromQL()}
+                                                    setPromQL={setPromQL}
+                                                />
+                                            </MyFormItem>
+                                            <Button
+                                                type="primary"
+                                                style={{backgroundColor: '#000', borderColor: '#000', color: '#fff', height: '32px', flexShrink: 0}}
+                                                onClick={() => {
+                                                    if (selectedItems.length === 0) {
+                                                        message.error("请先选择数据源")
+                                                        return
+                                                    }
+                                                    handleQueryMetrics()
+                                                }}
+                                            >
+                                                数据预览
+                                            </Button>
+                                        </div>
                                     </div>
 
                                     <MyFormItem name="" label="告警条件" rules={[{required: !exprRule}]}>

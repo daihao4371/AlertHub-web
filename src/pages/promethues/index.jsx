@@ -436,7 +436,9 @@ export const PrometheusPromQL = (props) => {
             <div className="promInputContent" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div ref={containerRef} className="cm-expression-input" style={{ flex: 1 }} />
                 <Button
+                    type="primary"
                     icon={<BuildOutlined />}
+                    style={{backgroundColor: '#000', borderColor: '#000', color: '#fff', height: '32px'}}
                     onClick={() => setBuilderVisible(true)}
                     disabled={!datasourceId}
                     title="查询构建器"

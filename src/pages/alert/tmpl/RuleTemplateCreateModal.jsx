@@ -513,37 +513,51 @@ const RuleTemplateCreateModal = ({ visible, onClose, selectedRow, type, handleLi
                         <>
                             <div className="rule-config-container">
                                 <MyFormItemGroup prefix={['prometheusConfig']}>
-                                    <MyFormItem name="promQL" label="PromQL" rules={[{required: true}]}>
-                                        <PrometheusPromQL
-                                            datasourceId={selectedDatasourceIds && selectedDatasourceIds.length > 0 ? selectedDatasourceIds[0] : null}
-                                            value={handleGetPromQL()}
-                                            setPromQL={setPromQL}
-                                        />
-                                    </MyFormItem>
+                                    <div style={{marginBottom: '24px'}}>
+                                        <div style={{marginBottom: '8px', fontSize: '14px', color: 'rgba(0, 0, 0, 0.85)'}}>
+                                            <span style={{color: '#ff4d4f', marginRight: '4px'}}>*</span>
+                                            PromQL
+                                        </div>
+                                        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                                            <MyFormItem
+                                                name="promQL"
+                                                label=""
+                                                rules={[{required: true}]}
+                                                style={{width: '100%', height: '100%', marginBottom: 0, flex: 1}}
+                                                className="promql-form-item"
+                                            >
+                                                <PrometheusPromQL
+                                                    datasourceId={selectedDatasourceIds && selectedDatasourceIds.length > 0 ? selectedDatasourceIds[0] : null}
+                                                    value={handleGetPromQL()}
+                                                    setPromQL={setPromQL}
+                                                />
+                                            </MyFormItem>
+                                        </div>
+                                    </div>
 
                                     {/* 数据源选择和预览按钮 */}
-                                    <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ marginBottom: '5px', fontSize: '14px', color: '#666' }}>
-                                                选择数据源 (用于数据预览)
-                                            </div>
+                                    <div style={{ marginBottom: '20px' }}>
+                                        <div style={{ marginBottom: '8px', fontSize: '14px', color: 'rgba(0, 0, 0, 0.85)' }}>
+                                            选择数据源 (用于数据预览)
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                                             <Select
                                                 mode="multiple"
-                                                style={{ width: '100%' }}
+                                                style={{ width: '100%', flex: 1 }}
                                                 placeholder="请选择数据源"
                                                 value={selectedDatasourceIds}
                                                 onChange={setSelectedDatasourceIds}
                                                 options={datasourceOptions}
                                             />
+                                            <Button
+                                                type="primary"
+                                                icon={<EyeOutlined />}
+                                                onClick={handleOpenPreview}
+                                                style={{ backgroundColor: '#000', borderColor: '#000', color: '#fff', height: '32px', flexShrink: 0 }}
+                                            >
+                                                数据预览
+                                            </Button>
                                         </div>
-                                        <Button
-                                            type="primary"
-                                            icon={<EyeOutlined />}
-                                            onClick={handleOpenPreview}
-                                            style={{ marginTop: '20px' }}
-                                        >
-                                            数据预览
-                                        </Button>
                                     </div>
 
                                     <MyFormItem name="" label="* 告警条件" rules={[{required: !exprRule}]}>
