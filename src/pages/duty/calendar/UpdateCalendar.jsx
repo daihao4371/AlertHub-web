@@ -1,16 +1,15 @@
 "use client"
 import { updateCalendar } from "../../../api/duty"
 import {Modal, Form, Button, message, Select, Typography} from "antd"
-import React, { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {getUserList} from "../../../api/user";
 
 export const UpdateCalendarModal = ({ visible, onClose, time, tenantId, dutyId, date, currentDutyUsers, onSuccess }) => {
     const { Option } = Select
-    const [form] = Form.useForm() // 使用 Ant Design 的 form hook 来设置表单值
-    const [selectedUsersForUpdate, setSelectedUsersForUpdate] = useState([]) // 存储选中的用户对象 { username, userid }
-    const [filteredOptions, setFilteredOptions] = useState([]) // 搜索框可用的用户列表
+    const [form] = Form.useForm()
+    const [selectedUsersForUpdate, setSelectedUsersForUpdate] = useState([])
+    const [filteredOptions, setFilteredOptions] = useState([])
 
-    // 获取所有可选择的用户列表
     const handleSearchDutyUser = useCallback(async () => {
         try {
             const params = {
@@ -22,7 +21,7 @@ export const UpdateCalendarModal = ({ visible, onClose, time, tenantId, dutyId, 
                 userid: item.userid,
                 realName: item.realName,
                 phone: item.phone,
-                mobile: item.phone // Member 模型使用 phone，映射到 mobile 用于 DutyUser
+                mobile: item.phone
             }))
             setFilteredOptions(options)
         } catch (error) {
@@ -31,59 +30,46 @@ export const UpdateCalendarModal = ({ visible, onClose, time, tenantId, dutyId, 
         }
     }, [])
 
-    // 提取当前用户列表的辅助函数（处理多组和单组结构）
     const getCurrentUsers = useCallback(() => {
         if (!currentDutyUsers || currentDutyUsers.length === 0) {
             return []
         }
         if (Array.isArray(currentDutyUsers[0])) {
-            // 多组结构：取第一个组
             return currentDutyUsers[0]
         }
-        // 单组结构：直接使用
         return currentDutyUsers
     }, [currentDutyUsers])
 
-    // 计算当前用户数量的辅助函数
     const getCurrentUsersCount = useCallback(() => {
         return getCurrentUsers().length
     }, [getCurrentUsers])
 
-    // Modal 打开时加载数据并初始化表单
     useEffect(() => {
         if (visible && currentDutyUsers) {
             const currentUsers = getCurrentUsers()
 
             setSelectedUsersForUpdate(currentUsers)
-
-            // 为 Ant Design 的 Select 组件设置初始值
-            // Select 在 multiple 模式下期望一个键数组作为值
             form.setFieldsValue({
-                dutyUser: currentUsers.map((user) => user.userid), // 将用户对象映射为 userid 数组
+                dutyUser: currentUsers.map((user) => user.userid),
             })
-            handleSearchDutyUser() // 模态框打开时获取所有用户列表
+            handleSearchDutyUser()
         } else if (!visible) {
-            // 模态框关闭时重置状态
             setSelectedUsersForUpdate([])
             setFilteredOptions([])
-            form.resetFields() // 清空表单字段
+            form.resetFields()
         }
-    }, [visible, currentDutyUsers, getCurrentUsers, form, handleSearchDutyUser]) // 依赖 visible, currentDutyUsers, getCurrentUsers, form 和 handleSearchDutyUser
+    }, [visible, currentDutyUsers, getCurrentUsers, form, handleSearchDutyUser])
 
-    // 处理 Select 框选择变化
     const handleSelectChange = (value, options) => {
-        // 'value' 是一个包含选中 Option value (这里是 userid) 的数组
-        // 'options' 是一个包含选中 Option 对象 (包含 key, value, children, userid 等) 的数组
         const newSelectedUsers = options.map((option) => ({
             username: option.label,
             userid: option.key,
             realName: option.realName,
-            mobile: option.mobile || option.phone || '' // 优先使用 mobile，如果没有则使用 phone
+            mobile: option.mobile || option.phone || ''
         }))
         setSelectedUsersForUpdate(newSelectedUsers)
     }
 
-    // 提交表单数据到后端
     const handleFormSubmit = async () => {
         const currentDutyUsersCount = getCurrentUsersCount()
         const currentSelectedCount = selectedUsersForUpdate.length
@@ -93,13 +79,11 @@ export const UpdateCalendarModal = ({ visible, onClose, time, tenantId, dutyId, 
             return
         }
 
-        // 构建后端数据结构
-        // 确保用户对象包含 mobile 字段（DutyUser 模型要求）
         const usersForSubmit = selectedUsersForUpdate.map((user) => ({
             userid: user.userid,
             username: user.username,
             email: user.email || '',
-            mobile: user.mobile || user.phone || '' // 优先使用 mobile，如果没有则使用 phone
+            mobile: user.mobile || user.phone || ''
         }))
 
         const calendarData = {
@@ -127,18 +111,14 @@ export const UpdateCalendarModal = ({ visible, onClose, time, tenantId, dutyId, 
         <Modal visible={visible} onCancel={onClose} footer={null} style={{ marginTop: "20vh" }}>
             <div>调整值班人员, 当前值班日期: {time}</div>
             <Form form={form} layout="vertical">
-                {" "}
-                {/* 关联表单实例 */}
                 <Form.Item
                     name="dutyUser"
-                    // 根据初始人数动态显示提示
                     label={`值班人员 (当前${getCurrentUsersCount()}人，请更新为${getCurrentUsersCount()}人)`}
                     rules={[
                         {
                             required: true,
                             message: "请选择值班人员",
                         },
-                        // 其他校验逻辑已在 handleFormSubmit 中处理
                     ]}
                     style={{ marginTop: "20px" }}
                 >
@@ -177,7 +157,7 @@ export const UpdateCalendarModal = ({ visible, onClose, time, tenantId, dutyId, 
                     onClick={handleFormSubmit}
                     style={{
                         backgroundColor: "#000000",
-                        width: "100%", // 按钮宽度占满
+                        width: "100%",
                     }}
                 >
                     提交
