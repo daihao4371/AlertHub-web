@@ -56,7 +56,7 @@ export const TenantDetail = ()=>{
         {
             key: '4',
             label: '负责人',
-            children: tenantInfo.manager,
+            children: tenantInfo.managerRealName || tenantInfo.manager || '未知用户',
         },
         {
             key: '5',
