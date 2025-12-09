@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react"
 import { Form, Modal, DatePicker, Select, Button, List, Avatar, Space, Drawer, InputNumber, message } from "antd"
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd"
 import { DeleteOutlined, MenuOutlined } from "@ant-design/icons"
-import { createCalendar, GetCalendarUsers } from "../../../api/duty" // 假设这些路径是正确的
+import { createCalendar, GetCalendarUsers } from "../../../api/duty"
 import Search from "antd/es/input/Search"
 import { v4 as uuidv4 } from "uuid"
 import dayjs from "dayjs"
@@ -16,11 +16,9 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
     const [selectedMonth, setSelectedMonth] = useState(dayjs().format("YYYY-MM"))
     const [dutyPeriod, setDutyPeriod] = useState(1)
     const [filteredOptions, setFilteredOptions] = useState([])
-    const [dateType, setDateType] = useState("day")
-    // 更改为 selectedGroups，存储多个值班组
+    const [dateType, setDateType] = useState("week")
     const [selectedGroups, setSelectedGroups] = useState([])
     const [searchVisible, setSearchVisible] = useState(false)
-    // 新增状态，用于记录当前正在向哪个组添加人员
     const [currentGroupIndexForUserSelection, setCurrentGroupIndexForUserSelection] = useState(null)
 
     const handleGetCalendarUsers = useCallback(async () => {
@@ -43,36 +41,33 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
                 console.error("获取用户列表失败:", err)
             }
 
-            // 假设 res.data 是 [][]DutyUser 结构
             if (res.data && Array.isArray(res.data) && res.data.length > 0) {
                 const loadedGroups = res.data
                     .filter((userList) => Array.isArray(userList)) // 确保每个 userList 都是数组
                     .map((userList) => {
                         // 补充用户信息：如果 mobile 为空，从用户列表获取 phone
-                        const enrichedUsers = userList.map((dutyUser) => {
+                            const enrichedUsers = userList.map((dutyUser) => {
                             const fullUser = allUsersMap.get(dutyUser.userid)
                             return {
                                 ...dutyUser,
                                 realName: dutyUser.realName || (fullUser ? fullUser.realName : ''),
                                 phone: fullUser ? fullUser.phone : dutyUser.phone || '',
-                                mobile: dutyUser.mobile || (fullUser ? fullUser.phone : '') // 如果 mobile 为空，使用 phone
+                                mobile: dutyUser.mobile || (fullUser ? fullUser.phone : '')
                             }
                         })
                         
                         return {
-                            id: uuidv4(), // 为每个加载的组生成唯一ID
-                            users: enrichedUsers, // 使用补充后的用户信息
+                            id: uuidv4(),
+                            users: enrichedUsers,
                         }
                     })
                 setSelectedGroups(loadedGroups)
             } else {
-                // 如果没有返回组数据，则初始化一个空的默认组
                 setSelectedGroups([{ id: uuidv4(), users: [] }])
             }
         } catch (error) {
             console.error(error)
-            // 错误时也回退到初始化一个空的默认组
-            setSelectedGroups([{ id: uuidv4(), name: "值班 1 组", users: [] }])
+            setSelectedGroups([{ id: uuidv4(), users: [] }])
         }
     }, [dutyId])
 
@@ -84,7 +79,6 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
             })
             handleGetCalendarUsers()
             setDutyPeriod(1)
-            setDateType("week")
         }
     }, [visible, form, handleGetCalendarUsers])
 
@@ -96,9 +90,9 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
         setDutyPeriod(value || 1)
     }
 
-    const handleFormSubmit = async (data) => {
+    const handleFormSubmit = async (calendarData) => {
         try {
-            await createCalendar(data)
+            await createCalendar(calendarData)
         } catch (error) {
             console.error(error)
         }
@@ -117,7 +111,7 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
                 userid: item.userid,
                 realName: item.realName,
                 phone: item.phone,
-                mobile: item.phone // 同时保存 mobile 字段，用于后续映射到 DutyUser
+                mobile: item.phone
             }))
             setFilteredOptions(options)
         } catch (error) {
@@ -143,14 +137,13 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
         if (currentGroupIndexForUserSelection !== null) {
             const newGroups = [...selectedGroups]
             const currentGroup = newGroups[currentGroupIndexForUserSelection]
-            // 检查用户是否已存在于当前组中
             if (!currentGroup.users.some((u) => u.userid === user.userid)) {
                 currentGroup.users.push(user)
                 setSelectedGroups(newGroups)
             }
         }
         setSearchVisible(false)
-        setCurrentGroupIndexForUserSelection(null) // 添加完成后重置索引
+        setCurrentGroupIndexForUserSelection(null)
     }
 
     const handleAddGroup = () => {
@@ -222,7 +215,6 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
                 </Button>
                 <DragDropContext onDragEnd={handleDragEnd}>
                     <Droppable droppableId="all-groups" type="groups">
-                        {/* 外层 Droppable 用于组排序 */}
                         {(provided) => (
                             <div {...provided.droppableProps} ref={provided.innerRef}>
                                 {selectedGroups.map((group, groupIndex) => (
@@ -259,16 +251,15 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
                                                     type="dashed"
                                                     onClick={() => {
                                                         handleSearchDutyUser()
-                                                        setCurrentGroupIndexForUserSelection(groupIndex) // 设置当前要添加人员的组索引
+                                                        setCurrentGroupIndexForUserSelection(groupIndex)
                                                         setSearchVisible(true)
                                                     }}
                                                     style={{ marginBottom: 12, width: "100%" }}
-                                                    disabled={group.users.length >= 2} // 当成员数达到2时禁用按钮
+                                                    disabled={group.users.length >= 2}
                                                 >
                                                     + 添加组内人员
                                                 </Button>
                                                 <Droppable droppableId={group.id} type="users">
-                                                    {/* 内层 Droppable 用于组内人员排序 */}
                                                     {(providedUsers) => (
                                                         <div {...providedUsers.droppableProps} ref={providedUsers.innerRef}>
                                                             {group.users.map((user, userIndex) => (
@@ -329,27 +320,20 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
 
     const generateCalendar = () => {
         if (selectedMonth && dutyPeriod && selectedGroups.length > 0) {
-            // 校验每个组是否至少有一个用户
             const allGroupsHaveUsers = selectedGroups.every((group) => group.users.length > 0)
             if (!allGroupsHaveUsers) {
                 message.error("每个值班组至少需要一名值班人员")
                 return
             }
 
-            // 将 selectedGroups 转换为后端期望的 [][]DutyUser 格式
-            // 需要将 Member 的 phone 字段映射到 DutyUser 的 mobile 字段
             const userGroupData = selectedGroups.map((group) => 
                 group.users.map((user) => {
-                    // 优先使用 mobile，如果没有则使用 phone
-                    // 如果都没有，尝试从用户列表获取（这种情况不应该发生，但作为兜底）
                     const mobile = user.mobile || user.phone || ''
-                    
-                    
                     return {
                         userid: user.userid,
                         username: user.username,
                         email: user.email || '',
-                        mobile: mobile // 确保 mobile 字段有值，即使为空字符串也要传递
+                        mobile: mobile
                     }
                 })
             )
@@ -372,7 +356,6 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
     return (
         <Drawer title="发布日程" open={visible} onClose={onClose} size="large">
             <Form form={form} layout="vertical">
-                {/* 添加 form prop */}
                 <Form.Item
                     name="year-month"
                     label="选择月份"
@@ -396,7 +379,7 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
                             message: "请输入持续天数/周数",
                         },
                     ]}
-                    initialValue={1} // 设置初始值
+                    initialValue={1}
                 >
                     <InputNumber
                         style={{ width: "100%" }}
@@ -411,7 +394,7 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
                         }
                     />
                 </Form.Item>
-                <DutyUserGroupList /> {/* 使用新的组件 */}
+                <DutyUserGroupList />
             </Form>
             <div style={{ display: "flex", justifyContent: "flex-end", padding: "16px 0" }}>
                 <Button
@@ -429,7 +412,7 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
                 open={searchVisible}
                 onCancel={() => {
                     setSearchVisible(false)
-                    setCurrentGroupIndexForUserSelection(null) // 取消时重置组索引
+                    setCurrentGroupIndexForUserSelection(null)
                 }}
                 footer={null}
                 styles={{ body: { maxHeight: "calc(100vh - 300px)", overflowY: "auto" } }}
@@ -437,18 +420,17 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
                 <Search
                     placeholder="搜索值班人员"
                     onSearch={onSearchDutyUser}
-                    onChange={(e) => onSearchDutyUser(e.target.value)} // 允许实时搜索
+                    onChange={(e) => onSearchDutyUser(e.target.value)}
                     style={{ marginBottom: 16 }}
                 />
                 <List
                     dataSource={filteredOptions.filter((option) => {
-                        // 过滤掉已在当前编辑组中的用户
                         if (currentGroupIndexForUserSelection !== null) {
                             return !selectedGroups[currentGroupIndexForUserSelection].users.some(
                                 (user) => user.userid === option.userid,
                             )
                         }
-                        return true // 如果没有指定组，则不进行过滤
+                        return true
                     })}
                     renderItem={(item) => (
                         <List.Item onClick={() => handleAddUserToGroup(item)} style={{ cursor: "pointer" }}>
@@ -457,6 +439,7 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
                                 title={item.realName || item.username}
                                 description={item.mobile || item.phone}
                             />
+
                         </List.Item>
                     )}
                 />

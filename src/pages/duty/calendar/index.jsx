@@ -12,15 +12,52 @@ import {getUserList} from "../../../api/user";
 
 export const fetchDutyData = async (dutyId, year, month) => {
     try {
-        const params = {
+        // Get data for current month and adjacent months to handle cross-month dates
+        const currentMonthParams = {
             dutyId: dutyId,
             ...(year &&
-                month && {
+                month !== undefined && {
                     time: year+"-"+(month + 1),
                 }),
         }
-        const res = await searchCalendar(params)
-        return res.data
+        
+        // Also fetch previous and next month data
+        const prevMonth = month === 0 ? 11 : month - 1
+        const prevYear = month === 0 ? year - 1 : year
+        const nextMonth = month === 11 ? 0 : month + 1
+        const nextYear = month === 11 ? year + 1 : year
+        
+        const prevMonthParams = {
+            dutyId: dutyId,
+            time: prevYear+"-"+(prevMonth + 1),
+        }
+        
+        const nextMonthParams = {
+            dutyId: dutyId,
+            time: nextYear+"-"+(nextMonth + 1),
+        }
+        
+        // Fetch all three months data in parallel
+        const [currentRes, prevRes, nextRes] = await Promise.allSettled([
+            searchCalendar(currentMonthParams),
+            searchCalendar(prevMonthParams),
+            searchCalendar(nextMonthParams)
+        ])
+        
+        // Combine results
+        let allData = []
+        
+        if (currentRes.status === 'fulfilled' && currentRes.value?.data) {
+            allData = [...allData, ...currentRes.value.data]
+        }
+        if (prevRes.status === 'fulfilled' && prevRes.value?.data) {
+            allData = [...allData, ...prevRes.value.data]
+        }
+        if (nextRes.status === 'fulfilled' && nextRes.value?.data) {
+            allData = [...allData, ...nextRes.value.data]
+        }
+        
+        return allData
     } catch (error) {
         console.error(error)
         message.error("获取日程数据失败")
@@ -224,92 +261,133 @@ export const CalendarApp = ({ tenantId }) => {
         const today = new Date()
         const isToday =
             value.year() === today.getFullYear() && value.month() === today.getMonth() && value.date() === today.getDate()
+        
+        // Check if this date is in the current displayed month
+        const isCurrentMonth = value.month() === currentMonth
 
         const matchingDutyData = findMatchingDutyData(value)
 
         const hasData = !!matchingDutyData
-        const dayOfWeek = value.day()
-        const weekday = ["日", "一", "二", "三", "四", "五", "六"][dayOfWeek]
 
         return (
             <div
                 onDoubleClick={() => handleDoubleClick(value)}
                 className={`
-                    relative cursor-pointer p-2 min-h-[80px]
+                    flex flex-col cursor-pointer p-2
                     ${isToday
-                    ? "bg-blue-100 border-2 border-blue-400"
+                    ? "bg-blue-50 border border-blue-200"
                     : hasData
                         ? "bg-white border border-gray-200 hover:border-gray-300"
-                        : "bg-white border border-gray-100"}
+                        : isCurrentMonth 
+                            ? "bg-white border border-gray-100"
+                            : "bg-gray-50 border border-gray-100"}
                   `}
                 style={{
-                    borderRadius: '4px'
+                    borderRadius: '4px',
+                    minHeight: '140px',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column'
                 }}
             >
-                {/* 日期显示 */}
-                <div className="mb-1">
-                    <div className={`text-sm font-semibold ${isToday ? "text-blue-600" : "text-gray-900"}`}>
+                {/* 日期显示 - 固定在顶部 */}
+                <div className="flex-shrink-0 mb-2">
+                    <div className={`text-sm font-semibold ${ 
+                        isToday ? "text-blue-600" : 
+                        isCurrentMonth ? "text-gray-900" : 
+                        "text-gray-400"
+                    }`}>
                         {dateFullCellRender(value)}
                     </div>
-                    <div className={`text-xs ${isToday ? "text-blue-500" : "text-gray-500"}`}>
-                        周{weekday}
-                    </div>
-                    </div>
+                </div>
 
-                {/* 值班人员信息 */}
+                {/* 值班人员信息 - 自动扩展区域，有最大高度限制 */}
                 {matchingDutyData && matchingDutyData.users && matchingDutyData.users.length > 0 && (
-                    <div className="mt-2 space-y-1">
-                        {/* 渲染用户信息的辅助函数 */}
-                        {(() => {
-                            const renderUser = (user) => {
-                                const phoneNumber = user.mobile || user.phone || ''
-                                const displayName = user.realName || user.username || ''
-                                return (
-                                    <div
-                                        key={user.userid}
-                                        className={`text-xs ${isToday ? "text-blue-700" : "text-gray-700"}`}
-                                    >
-                                        {phoneNumber ? `${displayName}(${phoneNumber})` : displayName}
-                                    </div>
-                                )
-                            }
-                            
-                            // 检查是否为多组结构（二维数组）：判断第一个元素是否为数组
-                            if (Array.isArray(matchingDutyData.users[0])) {
-                                // 多组结构：[][]DutyUser
-                                return matchingDutyData.users.map((userGroup, groupIndex) => {
-                                    if (Array.isArray(userGroup) && userGroup.length > 0) {
-                                        return (
-                                            <div key={groupIndex} className="space-y-0.5">
-                                                {userGroup.map(renderUser)}
-                                            </div>
-                                        )
-                                    }
-                                    return null
-                                })
-                            } else {
-                                // 单组结构：[]DutyUser
-                                return matchingDutyData.users.map(renderUser)
-                            }
-                        })()}
+                    <div 
+                        className="flex-1 min-h-0"
+                        style={{
+                            overflow: 'hidden',
+                            display: 'flex',
+                            flexDirection: 'column'
+                        }}
+                    >
+                        <div className="space-y-1" style={{ overflowY: 'auto', flex: 1 }}>
+                            {/* 渲染用户信息的辅助函数 */}
+                            {(() => {
+                                const renderUser = (user) => {
+                                    const phoneNumber = user.mobile || user.phone || ''
+                                    const displayName = user.realName || user.username || ''
+                                    return (
+                                        <div
+                                            key={user.userid}
+                                            className={`text-xs leading-relaxed ${
+                                                isToday ? "text-blue-700" : 
+                                                isCurrentMonth ? "text-gray-700" : 
+                                                "text-gray-500"
+                                            }`}
+                                            style={{
+                                                wordBreak: 'break-word',
+                                                lineHeight: '1.4'
+                                            }}
+                                        >
+                                            {phoneNumber ? `${displayName}(${phoneNumber})` : displayName}
+                                        </div>
+                                    )
+                                }
+                                
+                                // 检查是否为多组结构（二维数组）：判断第一个元素是否为数组
+                                if (Array.isArray(matchingDutyData.users[0])) {
+                                    // 多组结构：[][]DutyUser
+                                    return matchingDutyData.users.map((userGroup, groupIndex) => {
+                                        if (Array.isArray(userGroup) && userGroup.length > 0) {
+                                            return (
+                                                <div key={groupIndex} className="space-y-0.5">
+                                                    {userGroup.map(renderUser)}
+                                                </div>
+                                            )
+                                        }
+                                        return null
+                                    })
+                                } else {
+                                    // 单组结构：[]DutyUser
+                                    return matchingDutyData.users.map(renderUser)
+                                }
+                            })()}
+                        </div>
                     </div>
                 )}
 
-                {/* 修改按钮 */}
+                {/* 修改按钮 - 固定在底部，居中显示 */}
                 {hasData && (
-                    <div className="mt-2">
+                    <div 
+                        className="flex-shrink-0 mt-auto flex justify-center"
+                        style={{
+                            minHeight: '28px',
+                            marginTop: '10px',
+                            paddingTop: '6px'
+                        }}
+                    >
                         <button
                             onClick={(e) => {
                                 e.stopPropagation()
                                 handleDoubleClick(value)
                             }}
-                            className={`text-xs ${isToday ? "text-blue-300 hover:text-blue-100" : "text-gray-500 hover:text-gray-700"} hover:underline`}
+                            className={`text-xs transition-all duration-200 rounded ${
+                                isToday 
+                                    ? "text-blue-500 hover:text-blue-600 hover:bg-blue-50" 
+                                    : isCurrentMonth 
+                                        ? "text-gray-500 hover:text-gray-700 hover:bg-gray-50" 
+                                        : "text-gray-400 hover:text-gray-500 hover:bg-gray-50"
+                            }`}
                             style={{
-                                background: 'none',
+                                background: 'transparent',
                                 border: 'none',
-                                padding: 0,
+                                padding: '4px 8px',
                                 cursor: 'pointer',
-                                fontSize: '12px'
+                                fontSize: '12px',
+                                lineHeight: '1.4',
+                                fontWeight: '400',
+                                letterSpacing: '0.3px'
                             }}
                         >
                             修改
@@ -323,25 +401,19 @@ export const CalendarApp = ({ tenantId }) => {
     const handleDoubleClick = (date) => {
         const matchingData = findMatchingDutyData(date)
         
-        if (!matchingData) {
+        if (!matchingData || !matchingData.users || matchingData.users.length === 0) {
             return
         }
-
-        if (!matchingData || !matchingData.users || matchingData.users.length === 0) {
-            return // If no matching data or no duty groups, do nothing
-        }
-        setSelectedDayDutyUsers(matchingData.users) // Store the full matching data for the modal
-
-        const m = date.month()
-        const month = m + 1
+        
+        setSelectedDayDutyUsers(matchingData.users)
+        const month = date.month() + 1
         const year = date.year()
-
         setSelectedDate(`${year}-${month}-${date.date()}`)
         setModalVisible(true)
     }
 
     const dateFullCellRender = (date) => {
-        const month = date.month() + 1 // month() 返回 0-11，需要 +1
+        const month = date.month() + 1
         const day = date.date()
         return `${month}-${String(day).padStart(2, '0')}`
     }
@@ -354,29 +426,24 @@ export const CalendarApp = ({ tenantId }) => {
         setCurrentMonth(month)
     }
 
-    // 自定义日历头部渲染，显示年月和导航按钮
     const headerRender = ({ value, onChange }) => {
         const year = value.year()
-        const month = value.month() + 1 // month() 返回 0-11，需要 +1 显示为 1-12
+        const month = value.month() + 1
         
-        // 更新月份状态的辅助函数
         const updateMonthState = (newValue) => {
             onChange(newValue)
             setCurrentYear(newValue.year())
             setCurrentMonth(newValue.month())
         }
         
-        // 上个月
         const handlePrevMonth = () => {
             updateMonthState(value.clone().subtract(1, 'month'))
         }
         
-        // 下个月
         const handleNextMonth = () => {
             updateMonthState(value.clone().add(1, 'month'))
         }
         
-        // 今天
         const handleToday = () => {
             const today = new Date()
             updateMonthState(value.clone().year(today.getFullYear()).month(today.getMonth()).date(today.getDate()))
@@ -459,11 +526,87 @@ export const CalendarApp = ({ tenantId }) => {
 
                 {/* Calendar Section */}
                 <div>
+                    <style>
+                        {`
+                        /* Hide the 6th week row in Ant Design Calendar to show only 5 weeks */
+                        .ant-picker-calendar tbody tr:nth-child(6) {
+                            display: none !important;
+                        }
+                        
+                        /* Alternative selectors for different Ant Design versions */
+                        .ant-picker-panel-body tbody tr:nth-child(6) {
+                            display: none !important;
+                        }
+                        
+                        /* For older Ant Design versions */
+                        .ant-fullcalendar tbody tr:nth-child(6) {
+                            display: none !important;
+                        }
+                        
+                        /* Additional selectors to ensure compatibility */
+                        .ant-picker-calendar .ant-picker-panel .ant-picker-date-panel .ant-picker-body tbody tr:nth-child(6) {
+                            display: none !important;
+                        }
+                        
+                        /* Hide default date value display in non-fullscreen calendar */
+                        .ant-picker-calendar .ant-picker-cell-inner .ant-picker-calendar-date-value {
+                            display: none !important;
+                        }
+                        
+                        /* Hide calendar date content that appears alongside custom cellRender */
+                        .ant-picker-calendar .ant-picker-cell-inner .ant-picker-calendar-date {
+                            display: none !important;
+                        }
+                        
+                        /* Hide direct text nodes that are just numbers (default date display) */
+                        .ant-picker-calendar .ant-picker-cell-inner::before {
+                            content: none !important;
+                        }
+                        
+                        /* Ensure calendar displays properly with 5 weeks */
+                        .ant-picker-calendar {
+                            width: 100%;
+                        }
+                        
+                        /* Ensure table structure is maintained */
+                        .ant-picker-calendar .ant-picker-panel .ant-picker-date-panel .ant-picker-body table {
+                            width: 100%;
+                            table-layout: fixed;
+                        }
+                        
+                        /* 确保日历单元格有足够的高度，防止内容重叠 */
+                        .ant-picker-calendar .ant-picker-cell {
+                            height: auto !important;
+                            min-height: 140px !important;
+                            vertical-align: top !important;
+                        }
+                        
+                        .ant-picker-calendar .ant-picker-cell-inner {
+                            height: 100% !important;
+                            min-height: 140px !important;
+                            display: flex !important;
+                            flex-direction: column !important;
+                        }
+                        
+                        /* 确保表格行有足够高度 */
+                        .ant-picker-calendar .ant-picker-panel .ant-picker-date-panel .ant-picker-body tbody tr {
+                            height: auto !important;
+                        }
+                        
+                        .ant-picker-calendar .ant-picker-panel .ant-picker-date-panel .ant-picker-body tbody td {
+                            height: auto !important;
+                            min-height: 140px !important;
+                            vertical-align: top !important;
+                            padding: 4px !important;
+                        }
+                        `}
+                    </style>
                     <Calendar
                         onPanelChange={handlePanelChange}
                         cellRender={dateCellRender}
                         headerRender={headerRender}
                         fullscreen={false}
+                        style={{ width: '100%' }}
                     />
                 </div>
 
@@ -480,13 +623,13 @@ export const CalendarApp = ({ tenantId }) => {
                     onClose={() => {
                         setModalVisible(false)
                         setSelectedDayDutyUsers(null)
-                    }} // Clear on close
+                    }}
                     onSuccess={fetchData}
                     time={selectedDate}
                     tenantId={tenantId}
                     dutyId={id}
                     date={selectedDate}
-                    currentDutyUsers={selectedDayDutyUsers} // Pass the new prop
+                    currentDutyUsers={selectedDayDutyUsers}
                 />
             </Spin>
         </div>

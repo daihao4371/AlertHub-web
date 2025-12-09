@@ -92,8 +92,13 @@ export const CreateDutyModal = ({ visible, onClose, handleList, selectedRow, typ
         onClose()
     }
 
-    const handleSelectChange = (_, value) => {
-        setSelectedItems(value)
+    const handleSelectChange = (value, option) => {
+        const selectedOption = filteredOptions.find(item => item.username === value)
+        setSelectedItems({
+            value: value,
+            userid: selectedOption?.userid || option?.userid,
+            realName: selectedOption?.realName || option?.realName
+        })
     }
 
     const handleSearchDutyUser = async () => {
@@ -104,7 +109,8 @@ export const CreateDutyModal = ({ visible, onClose, handleList, selectedRow, typ
             const res = await getUserList(params)
             const options = res.data.map((item) => ({
                 username: item.username,
-                userid: item.userid
+                userid: item.userid,
+                realName: item.realName
             }))
             setFilteredOptions(options)
         } catch (error) {
@@ -115,9 +121,10 @@ export const CreateDutyModal = ({ visible, onClose, handleList, selectedRow, typ
     const renderOption = (item) => {
         if (!renderedOptions.has(item.username)) {
             renderedOptions.add(item.username);
-            return <Option key={item.username} value={item.username} userid={item.userid}>{item.username}</Option>;
+            const displayName = item.realName || item.username;
+            return <Option key={item.username} value={item.username} userid={item.userid}>{displayName}</Option>;
         }
-        return null; // 如果选项已存在，不渲染
+        return null;
     };
 
     return (
