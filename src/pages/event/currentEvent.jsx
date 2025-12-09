@@ -361,6 +361,7 @@ export const AlertCurrentEvent = (props) => {
             key: "confirmState",
             width: "100px",
             render: (text) => {
+                const displayName = text?.confirmUsernameRealName || text?.confirmUsername || "未认领"
                 return (
                     <Tag
                         style={{
@@ -373,7 +374,7 @@ export const AlertCurrentEvent = (props) => {
                             gap: "4px",
                         }}
                     >
-                        {text.confirmUsername || "未认领"}
+                        {displayName}
                     </Tag>
                 )
             },
@@ -1367,7 +1368,7 @@ export const AlertCurrentEvent = (props) => {
                                                 gap: '4px',
                                             }}
                                         >
-                                            {RenderTruncatedText(selectedEvent?.confirmState?.confirmUsername || '未认领')}
+                                            {RenderTruncatedText(selectedEvent?.confirmState?.confirmUsernameRealName || selectedEvent?.confirmState?.confirmUsername || '未认领')}
                                         </Tag>
                                     ),
                                 },

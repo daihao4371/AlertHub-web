@@ -54,6 +54,10 @@ export const AuditLog = () => {
             dataIndex: "username",
             key: "username",
             width: "auto",
+            render: (text, record) => {
+                const displayName = record?.usernameRealName || text || "未知用户";
+                return <span>{displayName}</span>;
+            },
         },
         {
             title: "来源IP",

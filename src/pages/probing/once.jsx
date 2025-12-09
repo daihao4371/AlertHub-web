@@ -8,7 +8,6 @@ import moment from "moment/moment"
 import {MinusCircleOutlined, PlusOutlined} from "@ant-design/icons";
 
 const { Panel } = Collapse
-const { Title } = Typography
 
 // Context for managing nested form item names
 const MyFormItemContext = React.createContext([])

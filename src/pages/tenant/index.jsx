@@ -61,8 +61,11 @@ export const Tenants = () => {
             title: '负责人',
             dataIndex: 'manager',
             key: 'manager',
-            width: 'auto'
-
+            width: 'auto',
+            render: (text, record) => {
+                const displayName = record?.managerRealName || text || "未知用户";
+                return <span>{displayName}</span>;
+            },
         },
         {
             title: '描述',

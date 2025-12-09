@@ -1,24 +1,12 @@
 import React, { useEffect } from 'react'
-import {Button, Form, Input, Popconfirm} from "antd";
+import {Button, Form, Input} from "antd";
 import { updateTenant } from '../../api/tenant'
-const MyFormItemContext = React.createContext([])
-
-function toArr(str) {
-    return Array.isArray(str) ? str : [str]
-}
-
-// 表单
-const MyFormItem = ({ name, ...props }) => {
-    const prefixPath = React.useContext(MyFormItemContext)
-    const concatName = name !== undefined ? [...prefixPath, ...toArr(name)] : undefined
-    return <Form.Item name={concatName} {...props} />
-}
+import { MyFormItem } from '../../utils/formItem'
 
 export const TenantQuota = ({tenantInfo})=>{
     const [form] = Form.useForm()
 
     useEffect(() => {
-        console.log(tenantInfo)
         if (tenantInfo) {
             form.setFieldsValue({
                 userNumber: Number(tenantInfo.userNumber),
@@ -109,14 +97,7 @@ export const TenantQuota = ({tenantInfo})=>{
                </MyFormItem>
            </div>
 
-            <div id="option" style={{display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
-                <Popconfirm
-                    title="取消后修改的配置将不会保存!"
-                    >
-                    <Button type="dashed">
-                        取消
-                    </Button>
-                </Popconfirm>
+            <div style={{display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
                 <Button
                     type="primary"
                     htmlType="submit"

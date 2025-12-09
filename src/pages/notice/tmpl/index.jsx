@@ -122,7 +122,8 @@ export const NoticeTemplate = () => {
             dataIndex: "updateBy",
             key: "updateBy",
             width: "auto",
-            render: (text) => {
+            render: (text, record) => {
+                const displayName = record?.updateByRealName || text || "未知用户";
                 return <Tag style={{
                                 borderRadius: "12px",
                                 padding: "0 10px",
@@ -133,7 +134,7 @@ export const NoticeTemplate = () => {
                                 gap: "4px",
                             }}
                         >
-                            {text || "未知用户"}
+                            {displayName}
                         </Tag>
             },
         },

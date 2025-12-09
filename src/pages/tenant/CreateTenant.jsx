@@ -1,32 +1,60 @@
-import { Modal, Form, Input, Button, Divider } from 'antd'
-import React, { useEffect } from 'react'
+import { Modal, Form, Input, Button, Divider, Select } from 'antd'
+import React, { useState, useEffect } from 'react'
 import { createTenant, updateTenant } from '../../api/tenant'
-
-const MyFormItemContext = React.createContext([])
-
-function toArr(str) {
-    return Array.isArray(str) ? str : [str]
-}
-
-// 表单
-const MyFormItem = ({ name, ...props }) => {
-    const prefixPath = React.useContext(MyFormItemContext)
-    const concatName = name !== undefined ? [...prefixPath, ...toArr(name)] : undefined
-    return <Form.Item name={concatName} {...props} />
-}
+import { getUserList } from '../../api/user'
+import { MyFormItem } from '../../utils/formItem'
 
 export const CreateTenant = ({ visible, onClose, selectedRow, type, handleList }) => {
     const [form] = Form.useForm()
+    const { Option } = Select
+    const [filteredOptions, setFilteredOptions] = useState([])
+    const [selectedManager, setSelectedManager] = useState(null)
+    const [loading, setLoading] = useState(false)
+
+    // 获取用户列表
+    const handleSearchUsers = async () => {
+        if (loading) return // 防止重复请求
+        try {
+            setLoading(true)
+            const res = await getUserList()
+            if (res && res.data && Array.isArray(res.data)) {
+                const options = res.data.map((item) => ({
+                    username: item.username || item.userName,
+                    userid: item.userid || item.userId,
+                    realName: item.realName || item.real_name || ''
+                }))
+                setFilteredOptions(options)
+            } else {
+                console.warn('用户列表数据格式不正确:', res)
+            }
+        } catch (error) {
+            console.error('获取用户列表失败:', error)
+        } finally {
+            setLoading(false)
+        }
+    }
 
     useEffect(() => {
-        if (selectedRow) {
-            form.setFieldsValue({
-                name: selectedRow.name,
-                manager: selectedRow.manager,
-                description: selectedRow.description,
-            })
+        if (visible) {
+            // 加载用户列表
+            handleSearchUsers()
+            
+            if (selectedRow) {
+                form.setFieldsValue({
+                    name: selectedRow.name,
+                    manager: selectedRow.manager,
+                    description: selectedRow.description,
+                })
+                setSelectedManager({
+                    value: selectedRow.manager,
+                    realName: selectedRow.managerRealName || ''
+                })
+            } else {
+                form.resetFields()
+                setSelectedManager(null)
+            }
         }
-    }, [selectedRow, form])
+    }, [visible, selectedRow, form])
 
     // 创建
     const handleCreate = async (data) => {
@@ -48,12 +76,29 @@ export const CreateTenant = ({ visible, onClose, selectedRow, type, handleList }
         }
     }
 
+    // 处理选择变化
+    const handleSelectChange = (value, option) => {
+        const selectedOption = filteredOptions.find(item => item.username === value)
+        setSelectedManager({
+            value: value,
+            realName: selectedOption?.realName || option?.realName || ''
+        })
+        // 同步更新表单值
+        form.setFieldsValue({ manager: value })
+    }
+
+    // 渲染选项
+    const renderOption = (item) => {
+        const displayName = item.realName || item.username
+        return <Option key={item.username} value={item.username} userid={item.userid}>{displayName}</Option>
+    }
+
     // 提交
     const handleFormSubmit = async (values) => {
-
         if (type === 'create') {
             const params = {
                 ...values,
+                manager: selectedManager?.value || values.manager,
                 userNumber: 10,
                 ruleNumber: 50,
                 dutyNumber: 10,
@@ -67,6 +112,7 @@ export const CreateTenant = ({ visible, onClose, selectedRow, type, handleList }
         if (type === 'update') {
             const params = {
                 ...values,
+                manager: selectedManager?.value || values.manager,
                 id: selectedRow.id,
             }
 
@@ -110,7 +156,28 @@ export const CreateTenant = ({ visible, onClose, selectedRow, type, handleList }
                                 },
                             ]}
                         >
-                            <Input />
+                            <Select
+                                showSearch
+                                placeholder="请选择租户负责人"
+                                onChange={handleSelectChange}
+                                onFocus={handleSearchUsers}
+                                onDropdownVisibleChange={(open) => {
+                                    if (open) {
+                                        handleSearchUsers()
+                                    }
+                                }}
+                                value={selectedManager?.value}
+                                loading={loading}
+                                notFoundContent={loading ? '加载中...' : '暂无数据'}
+                                filterOption={(input, option) =>
+                                    (option?.children?.toString() || '').toLowerCase().includes(input.toLowerCase())
+                                }
+                                style={{
+                                    width: '100%',
+                                }}
+                            >
+                                {filteredOptions.map(renderOption)}
+                            </Select>
                         </MyFormItem>
 
                     <MyFormItem

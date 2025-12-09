@@ -1,24 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {Form, Table, Space, Button, Modal, Transfer, Popconfirm, Select, Tooltip, message} from 'antd';
-import {DeleteOutlined, EditOutlined, PlusCircleOutlined} from '@ant-design/icons';
+import {DeleteOutlined, PlusCircleOutlined} from '@ant-design/icons';
 import { getUserList } from '../../api/user';
 import {addUsersToTenant, changeTenantUserRole, delUsersOfTenant, getUsersForTenant,} from "../../api/tenant";
 import './index.css'
 import {getRoleList} from "../../api/role";
 import {HandleShowTotal} from "../../utils/lib";
-
-const MyFormItemContext = React.createContext([]);
-
-function toArr(str) {
-    return Array.isArray(str) ? str : [str];
-}
-
-// Custom form item that uses context for path concatenation
-const MyFormItem = ({ name, ...props }) => {
-    const prefixPath = React.useContext(MyFormItemContext);
-    const concatName = name !== undefined ? [...prefixPath, ...toArr(name)] : undefined;
-    return <Form.Item name={concatName} {...props} />;
-};
+import { MyFormItem } from '../../utils/formItem';
 
 export const TenantUsers = ({ tenantInfo }) => {
     const [form] = Form.useForm();
@@ -43,6 +31,10 @@ export const TenantUsers = ({ tenantInfo }) => {
             dataIndex: 'userName',
             key: 'userName',
             width: '50px',
+            render: (text, record) => {
+                const displayName = record?.realName || text || '未知用户'
+                return <span>{displayName}</span>
+            },
         },
         {
             title: '用户ID',
@@ -80,7 +72,7 @@ export const TenantUsers = ({ tenantInfo }) => {
                 <Space size="middle">
                     <Tooltip title="删除">
                         <Popconfirm
-                            title={`确定要删除用户 ${record.userName} 吗?`}
+                            title={`确定要删除用户 ${record.realName || record.userName} 吗?`}
                             onConfirm={() => handleDelete(record)}
                             okText="确定"
                             cancelText="取消"
@@ -108,7 +100,7 @@ export const TenantUsers = ({ tenantInfo }) => {
         getTenantUsers();
         message.open({
             type: 'success',
-            content: `用户: ${record.userName}, 角色修改成功`,
+            content: `用户: ${record.realName || record.userName}, 角色修改成功`,
         });
     }
 
@@ -180,9 +172,10 @@ export const TenantUsers = ({ tenantInfo }) => {
     const formatData = (data) => {
         const formattedData = data.map((item) => ({
             key: item.userid,
-            title: item.username,
+            title: item.realName || item.username, // 显示真实姓名，如果没有则显示用户名
             userid: item.userid,
             username: item.username,
+            realName: item.realName || item.real_name || '', // 保存真实姓名字段
             disabled: false,
         }));
 
@@ -249,6 +242,13 @@ export const TenantUsers = ({ tenantInfo }) => {
                             targetKeys={targetKeys}
                             onChange={handleOnChange}
                             render={(item) => item.title}
+                            filterOption={(inputValue, item) => {
+                                // 支持按真实姓名和用户名搜索
+                                const searchText = inputValue.toLowerCase()
+                                const realName = (item.realName || '').toLowerCase()
+                                const username = (item.username || '').toLowerCase()
+                                return realName.includes(searchText) || username.includes(searchText)
+                            }}
                             listStyle={{ height: 300, width: 300 }} // Set list styles
                             oneWay // Enable one-way transfer
                             titles={['可选用户', '已选用户']} // Optional titles

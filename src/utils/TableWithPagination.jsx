@@ -12,6 +12,7 @@ export const TableWithPagination = ({
   showTotal,
   loading,
   locale,
+  rowSelection,
 }) => (
   <>
     <div
@@ -36,6 +37,7 @@ export const TableWithPagination = ({
           overflow: 'hidden',
         }}
         rowKey={rowKey}
+        rowSelection={rowSelection}
         // rowClassName={(record, index) =>
         //   index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
         // }
