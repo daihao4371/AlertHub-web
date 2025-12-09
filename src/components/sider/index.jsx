@@ -18,12 +18,11 @@ import {
     HeartOutlined
 } from '@ant-design/icons';
 import {Link, useNavigate} from 'react-router-dom';
-import {Menu, Layout, Typography, Dropdown, Space, message, Spin, theme, Popover, Avatar, Divider} from 'antd';
+import {Menu, Layout, Typography, Dropdown, message, Spin, theme, Popover, Avatar, Divider} from 'antd';
 import logoIcon from "../../img/logo.svg";
 import {getUserInfo} from "../../api/user";
 import {getTenantList} from "../../api/tenant";
 
-const { SubMenu } = Menu;
 const { Sider } = Layout;
 
 const adminMenuItems = [
@@ -130,7 +129,7 @@ export const ComponentSider = () => {
     const [getTenantStatus, setTenantStatus] = useState(null)
 
     const {
-        token: { colorBgContainer, borderRadiusLG },
+        token: { colorBgContainer },
     } = theme.useToken()
 
     const handleMenuClick = (info) => {
@@ -255,10 +254,6 @@ export const ComponentSider = () => {
         return localStorage.getItem("TenantName")
     }
 
-    const getTenantIndex = () => {
-        return localStorage.getItem("TenantIndex")
-    }
-
     const changeTenant = (c) => {
         localStorage.setItem("TenantIndex", c.key)
         if (c.item.props.name) {
@@ -272,16 +267,6 @@ export const ComponentSider = () => {
         navigate('/')
         window.location.reload();
     }
-
-    const tenantMenu = (
-        <Menu selectable defaultSelectedKeys={[getTenantIndex()]} onSelect={changeTenant}>
-            {tenantList.map((item) => (
-                <Menu.Item key={item.index} name={item.label} value={item.value}>
-                    {item.label}
-                </Menu.Item>
-            ))}
-        </Menu>
-    )
 
     if (loading || !getTenantStatus) {
         return (
@@ -303,16 +288,19 @@ export const ComponentSider = () => {
 
     return (
         <Sider
+            className="custom-sider"
             style={{
                 overflow: 'hidden',
                 height: '100%',
-                background: '#000',
+                background: '#fff',
                 borderRadius: '12px',
                 display: 'flex',
                 flexDirection: 'column',
-                position: 'relative', 
+                position: 'relative',
+                border: 'none',
+                boxShadow: 'none',
             }}
-            theme="dark"
+            theme="light"
         >
             {/* 顶部Logo和租户选择区域 */}
             <div style={{
@@ -347,23 +335,20 @@ export const ComponentSider = () => {
                         padding: '8px 12px',
                         borderRadius: '4px',
                         cursor: 'pointer',
-                        background: 'rgba(255, 255, 255, 0.1)',
+                        background: '#f5f5f5',
                         marginBottom: '16px',
-                        ':hover': {
-                            background: 'rgba(255, 255, 255, 0.2)',
-                        }
                     }}>
-                        <TeamOutlined style={{color: '#fff', fontSize: '14px', marginRight: '8px'}}/>
+                        <TeamOutlined style={{color: '#333', fontSize: '14px', marginRight: '8px'}}/>
                         <Typography.Text
-                            style={{color: '#fff', fontSize: '14px', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis'}}>
+                            style={{color: '#333', fontSize: '14px', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis'}}>
                             {getTenantName()}
                         </Typography.Text>
-                        <DownOutlined style={{color: '#fff', fontSize: '12px'}}/>
+                        <DownOutlined style={{color: '#333', fontSize: '12px'}}/>
                     </div>
                 </Dropdown>
             </div>
 
-            <Divider style={{margin: '0', background: 'rgba(255, 255, 255, 0.1)'}}/>
+            <Divider style={{margin: '0', background: '#f0f0f0'}}/>
 
             {/* 主内容，预留底部空间 */}
             <div
@@ -377,7 +362,7 @@ export const ComponentSider = () => {
                 }}
             >
                 <Menu
-                    theme="dark"
+                    theme="light"
                     mode="inline"
                     selectedKeys={[selectedMenuKey]}
                     style={{ background: 'transparent'}}
@@ -393,8 +378,8 @@ export const ComponentSider = () => {
                 bottom: 0,
                 width: '100%',
                 padding: '10px',
-                borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-                background: '#000',
+                borderTop: '1px solid #f0f0f0',
+                background: '#fff',
             }}>
                 <Popover content={<Menu items={userPopoverMenuItems} mode="vertical" />} trigger="click" placement="topRight">
                     <div style={{
@@ -416,7 +401,7 @@ export const ComponentSider = () => {
                             icon={<UserOutlined />}
                         />
                         <div style={{marginLeft: "12px", overflow: 'hidden'}}>
-                            <Typography.Text style={{color: "#FFFFFFA6", display: 'block'}}>
+                            <Typography.Text style={{color: "#333", display: 'block'}}>
                                 {userInfo?.username || ""}
                             </Typography.Text>
                         </div>

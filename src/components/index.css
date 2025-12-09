@@ -9,3 +9,45 @@
 .ant-menu-light.ant-menu-root.ant-menu-inline {
     border-inline-end: none;
 }
+
+/* 移除 Sider 组件的默认边框和阴影 */
+.ant-layout-sider,
+.custom-sider,
+.ant-layout-sider-light {
+    border: none !important;
+    box-shadow: none !important;
+    border-right: none !important;
+    border-left: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    outline: none !important;
+}
+
+/* 移除 Sider 的默认背景色覆盖 */
+.ant-layout-sider-light {
+    background: #fff !important;
+}
+
+/* 移除 Sider 内部可能存在的边框 */
+.ant-layout-sider-light .ant-menu {
+    border: none !important;
+    border-inline-end: none !important;
+}
+
+/* 移除所有可能的伪元素边框 */
+.ant-layout-sider::before,
+.ant-layout-sider::after,
+.custom-sider::before,
+.custom-sider::after {
+    display: none !important;
+}
+
+/* 确保最外层 Layout 背景透明 */
+.ant-layout {
+    background: transparent !important;
+}
+
+/* 确保所有 Layout 容器背景透明 */
+.ant-layout-has-sider {
+    background: transparent !important;
+}
