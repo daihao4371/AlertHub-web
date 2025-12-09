@@ -18,10 +18,11 @@ import {
     HeartOutlined
 } from '@ant-design/icons';
 import {Link, useNavigate} from 'react-router-dom';
-import {Menu, Layout, Typography, Dropdown, message, Spin, theme, Popover, Avatar, Divider} from 'antd';
-import logoIcon from "../../img/logo.svg";
+import {Menu, Layout, Typography, Dropdown, message, Spin, theme, Popover, Avatar} from 'antd';
+import logoIcon from "../../img/logo.png";
 import {getUserInfo} from "../../api/user";
 import {getTenantList} from "../../api/tenant";
+import "../index.css";
 
 const { Sider } = Layout;
 
@@ -254,20 +255,6 @@ export const ComponentSider = () => {
         return localStorage.getItem("TenantName")
     }
 
-    const changeTenant = (c) => {
-        localStorage.setItem("TenantIndex", c.key)
-        if (c.item.props.name) {
-            localStorage.setItem("TenantName", c.item.props.name)
-        }
-        if (c.item.props.value) {
-            localStorage.setItem("TenantID", c.item.props.value)
-        }
-
-        setSelectedMenuKey('1')
-        navigate('/')
-        window.location.reload();
-    }
-
     if (loading || !getTenantStatus) {
         return (
             <div
@@ -302,73 +289,63 @@ export const ComponentSider = () => {
             }}
             theme="light"
         >
-            {/* 顶部Logo和租户选择区域 */}
-            <div style={{
-                padding: '16px 16px 0',
-                position: 'sticky',
-                top: 0,
-                zIndex: 1,
-            }}>
+            {/* 顶部Logo和租户选择区域 - 显示在标记位置 */}
+            <div className="logo-container">
+                <img
+                    src={logoIcon || "/placeholder.svg"}
+                    alt="WatchAlert Logo"
+                />
+                {/* 租户选择器 - 移动到logo容器内，显示在标记2的位置（logo下方） */}
                 <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: 16,
-                    marginTop: '-70px',
+                    position: 'absolute',
+                    top: '65px',
+                    left: '18px',
+                    right: '18px',
+                    zIndex: 1,
                 }}>
-                    <img
-                        src={logoIcon || "/placeholder.svg"}
-                        alt="WatchAlert Logo"
-                        style={{ width: "160px", height: "140px", borderRadius: "8px" }}
-                    />
+                    <Dropdown menu={{ items: tenantList.map((item) => ({
+                        key: item.index,
+                        label: item.label,
+                        onClick: () => {
+                            localStorage.setItem("TenantIndex", item.index)
+                            localStorage.setItem("TenantName", item.label)
+                            localStorage.setItem("TenantID", item.value)
+                            setSelectedMenuKey('1')
+                            navigate('/')
+                            window.location.reload();
+                        }
+                    })) }} trigger={["click"]} placement="bottomLeft">
+                        <div className="tenant-selector">
+                            <TeamOutlined style={{color: '#333', fontSize: '14px', marginRight: '8px'}}/>
+                            <Typography.Text
+                                style={{color: '#333', fontSize: '14px', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis'}}>
+                                {getTenantName()}
+                            </Typography.Text>
+                            <DownOutlined style={{color: '#333', fontSize: '12px'}}/>
+                        </div>
+                    </Dropdown>
                 </div>
 
-                <Dropdown menu={{ items: tenantList.map((item) => ({
-                    key: item.index,
-                    label: item.label,
-                    onClick: () => changeTenant({ key: item.index, item: { props: { name: item.label, value: item.value } } })
-                })) }} trigger={["click"]} placement="bottomLeft">
-                    <div style={{
-                        display: 'flex',
-                        marginTop: '-40px',
-                        alignItems: 'center',
-                        padding: '8px 12px',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        background: '#f5f5f5',
-                        marginBottom: '16px',
-                    }}>
-                        <TeamOutlined style={{color: '#333', fontSize: '14px', marginRight: '8px'}}/>
-                        <Typography.Text
-                            style={{color: '#333', fontSize: '14px', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis'}}>
-                            {getTenantName()}
-                        </Typography.Text>
-                        <DownOutlined style={{color: '#333', fontSize: '12px'}}/>
-                    </div>
-                </Dropdown>
-            </div>
-
-            <Divider style={{margin: '0', background: '#f0f0f0'}}/>
-
-            {/* 主内容，预留底部空间 */}
-            <div
-                style={{
-                    textAlign:'left',
-                    alignItems: 'flex-start',
+                {/* 菜单栏 - 移动到logo容器内，显示在标记2的位置（租户选择器下方） */}
+                <div style={{
+                    position: 'absolute',
+                    top: '110px',
+                    left: '0',
+                    right: '0',
+                    bottom: '80px',
+                    zIndex: 1,
                     overflowY: 'auto',
-                    flex: 1,
-                    height: '76vh',
-                    paddingBottom: 70, // 预留底部空间
-                }}
-            >
-                <Menu
-                    theme="light"
-                    mode="inline"
-                    selectedKeys={[selectedMenuKey]}
-                    style={{ background: 'transparent'}}
-                    items={convertMenuItems(userInfo?.role === 'admin' ? adminMenuItems : userMenuItems)}
-                    onClick={handleMenuClick}
-                />
+                    overflowX: 'hidden',
+                }}>
+                    <Menu
+                        theme="light"
+                        mode="inline"
+                        selectedKeys={[selectedMenuKey]}
+                        style={{ background: 'transparent', border: 'none'}}
+                        items={convertMenuItems(userInfo?.role === 'admin' ? adminMenuItems : userMenuItems)}
+                        onClick={handleMenuClick}
+                    />
+                </div>
             </div>
 
             {/* 绝对定位底部用户信息 */}
