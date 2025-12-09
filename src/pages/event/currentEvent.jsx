@@ -533,8 +533,11 @@ export const AlertCurrentEvent = (props) => {
 
     const handleSilenceModalClose = () => {
         setSilenceVisible(false);
-        // 静默操作完成后刷新列表
-        handleCurrentEventList(currentPagination.pageIndex, currentPagination.pageSize);
+        // 延迟刷新列表，确保后端静默操作已完全生效
+        // 静默操作可能需要更长时间才能在后端生效，所以延迟时间稍长
+        setTimeout(() => {
+            handleCurrentEventList(currentPagination.pageIndex, currentPagination.pageSize);
+        }, 500);
     };
 
     const showDrawer = (record) => {
@@ -779,7 +782,10 @@ export const AlertCurrentEvent = (props) => {
                     await ProcessAlertEvent(params)
                     message.success(`成功认领 ${selectedRowKeys.length} 个事件`)
                     setSelectedRowKeys([]) // 清空选择
-                    handleCurrentEventList(currentPagination.pageIndex, currentPagination.pageSize) // 刷新列表
+                    // 延迟刷新，确保后端数据已更新
+                    setTimeout(() => {
+                        handleCurrentEventList(currentPagination.pageIndex, currentPagination.pageSize)
+                    }, 300)
                 } catch (error) {
                     message.error("认领失败: " + error.message)
                 } finally {
@@ -807,7 +813,14 @@ export const AlertCurrentEvent = (props) => {
                     }
                     await ProcessAlertEvent(params)
                     message.success("认领成功")
-                    handleCurrentEventList(currentPagination.pageIndex, currentPagination.pageSize)
+                    // 如果当前打开了抽屉且是认领的事件，关闭抽屉以便用户看到列表更新
+                    if (drawerOpen && selectedEvent && selectedEvent.fingerprint === record.fingerprint) {
+                        setDrawerOpen(false)
+                    }
+                    // 延迟刷新列表，确保后端数据已更新
+                    setTimeout(() => {
+                        handleCurrentEventList(currentPagination.pageIndex, currentPagination.pageSize)
+                    }, 300)
                 } catch (error) {
                     message.error("认领失败: " + error.message)
                 } finally {
