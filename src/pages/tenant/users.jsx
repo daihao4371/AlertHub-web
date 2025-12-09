@@ -1,24 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {Form, Table, Space, Button, Modal, Transfer, Popconfirm, Select, Tooltip, message} from 'antd';
-import {DeleteOutlined, EditOutlined, PlusCircleOutlined} from '@ant-design/icons';
+import {DeleteOutlined, PlusCircleOutlined} from '@ant-design/icons';
 import { getUserList } from '../../api/user';
 import {addUsersToTenant, changeTenantUserRole, delUsersOfTenant, getUsersForTenant,} from "../../api/tenant";
 import './index.css'
 import {getRoleList} from "../../api/role";
 import {HandleShowTotal} from "../../utils/lib";
-
-const MyFormItemContext = React.createContext([]);
-
-function toArr(str) {
-    return Array.isArray(str) ? str : [str];
-}
-
-// Custom form item that uses context for path concatenation
-const MyFormItem = ({ name, ...props }) => {
-    const prefixPath = React.useContext(MyFormItemContext);
-    const concatName = name !== undefined ? [...prefixPath, ...toArr(name)] : undefined;
-    return <Form.Item name={concatName} {...props} />;
-};
+import { MyFormItem } from '../../utils/formItem';
 
 export const TenantUsers = ({ tenantInfo }) => {
     const [form] = Form.useForm();

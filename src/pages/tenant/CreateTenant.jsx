@@ -2,19 +2,7 @@ import { Modal, Form, Input, Button, Divider, Select } from 'antd'
 import React, { useState, useEffect } from 'react'
 import { createTenant, updateTenant } from '../../api/tenant'
 import { getUserList } from '../../api/user'
-
-const MyFormItemContext = React.createContext([])
-
-function toArr(str) {
-    return Array.isArray(str) ? str : [str]
-}
-
-// 表单
-const MyFormItem = ({ name, ...props }) => {
-    const prefixPath = React.useContext(MyFormItemContext)
-    const concatName = name !== undefined ? [...prefixPath, ...toArr(name)] : undefined
-    return <Form.Item name={concatName} {...props} />
-}
+import { MyFormItem } from '../../utils/formItem'
 
 export const CreateTenant = ({ visible, onClose, selectedRow, type, handleList }) => {
     const [form] = Form.useForm()
