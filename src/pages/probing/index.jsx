@@ -229,7 +229,7 @@ export const Probing = () => {
         {
             title: '最短 RT',
             key: 'minRtt',
-            width: 'auto',
+            width: "100px",
             render: (record) => (
                 <>
                     {(record.probingEndpointValues?.pIcmp?.minRtt && record.probingEndpointValues?.pIcmp?.minRtt+"ms") || '-'}
@@ -239,7 +239,7 @@ export const Probing = () => {
         {
             title: '最长 RTT',
             key: 'maxRtt',
-            width: 'auto',
+            width: "100px",
             render: (record) => (
                 <>
                     {(record.probingEndpointValues?.pIcmp?.maxRtt && record.probingEndpointValues?.pIcmp?.maxRtt+"ms") || '-'}
@@ -249,7 +249,7 @@ export const Probing = () => {
         {
             title: '平均 RTT',
             key: 'avgRtt',
-            width: 'auto',
+            width: "100px",
             render: (record) => (
                 <>
                     {(record.probingEndpointValues?.pIcmp?.avgRtt && record.probingEndpointValues?.pIcmp?.avgRtt+"ms") || '-'}
@@ -267,7 +267,7 @@ export const Probing = () => {
         {
             title: '探测状态',
             key: 'isSuccessful',
-            width: 'auto',
+            width: "100px",
             render: (record) => {
                 const status = record.probingEndpointValues?.pTcp?.isSuccessful;
                 // 根据状态值设置标签样式和文本
@@ -283,7 +283,7 @@ export const Probing = () => {
         {
             title: '错误信息',
             key: 'errorMessage',
-            width: 'auto',
+            width: "150px",
             render: (record) => (
                 <>
                     {record.probingEndpointValues?.pTcp?.errorMessage || '-'}
@@ -310,7 +310,7 @@ export const Probing = () => {
         {
             title: '签发时间',
             key: 'startTime',
-            width: 'auto',
+            width: "150px",
             render: (record) => (
                 <>
                     {record.probingEndpointValues?.pSsl?.startTime || '-'}
@@ -320,7 +320,7 @@ export const Probing = () => {
         {
             title: '结束时间',
             key: 'expireTime',
-            width: 'auto',
+            width: "150px",
             render: (record) => (
                 <>
                     {record.probingEndpointValues?.pSsl?.expireTime || '-'}
@@ -330,7 +330,7 @@ export const Probing = () => {
         {
             title: '有效时间',
             key: 'timeProgress',
-            width: 'auto',
+            width: "200px",
             render: (record) => {
                 const startTime = record.probingEndpointValues?.pSsl?.startTime;
                 const endTime = record.probingEndpointValues?.pSsl?.expireTime;
@@ -369,7 +369,7 @@ export const Probing = () => {
         {
             title: '响应延迟',
             key: 'avgRtt',
-            width: 'auto',
+            width: "100px",
             render: (record) => (
                 <>
                     {record.probingEndpointValues?.pSsl?.responseTime + "ms" || '-'}
