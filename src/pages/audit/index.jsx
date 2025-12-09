@@ -6,7 +6,8 @@ import JsonViewer from "react-json-view"
 import {FileText} from "lucide-react";
 import {HandleShowTotal} from "../../utils/lib";
 import {ReloadOutlined} from "@ant-design/icons";
-import { TableWithPagination } from "../../utils/TableWithPagination"
+import { TableWithPagination } from "../../utils/TableWithPagination";
+import './index.css';
 
 export const AuditLog = () => {
     const { Search } = Input
@@ -76,9 +77,17 @@ export const AuditLog = () => {
             dataIndex: "statusCode",
             key: "statusCode",
             width: "150px",
-            render: (text) => (
-                <span>{text === 200 ? <Tag color="success">{text}</Tag> : <Tag color="error">{text}</Tag>}</span>
-            ),
+            render: (text) => {
+                const isSuccess = text === 200;
+                const className = isSuccess 
+                    ? "status-tag status-tag-success" 
+                    : "status-tag status-tag-error";
+                return (
+                    <Tag className={className}>
+                        {text}
+                    </Tag>
+                );
+            },
         },
     ]
     const [height, setHeight] = useState(window.innerHeight)

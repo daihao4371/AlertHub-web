@@ -1,0 +1,27 @@
+/* Exporter状态标签基础样式 */
+.exporter-status-tag {
+    border: none;
+    font-weight: 500;
+    padding: 2px 12px;
+    font-size: 12px;
+    color: #fff;
+}
+
+/* UP状态 - 绿色渐变 */
+.exporter-status-tag-up {
+    background: linear-gradient(135deg, #73d13d 0%, #52c41a 100%);
+    box-shadow: 0 2px 8px rgba(82, 196, 26, 0.3);
+}
+
+/* DOWN状态 - 红色渐变 */
+.exporter-status-tag-down {
+    background: linear-gradient(135deg, #ff7875 0%, #ff4d4f 100%);
+    box-shadow: 0 2px 8px rgba(255, 77, 79, 0.3);
+}
+
+/* UNKNOWN状态 - 灰色渐变 */
+.exporter-status-tag-unknown {
+    background: linear-gradient(135deg, #bfbfbf 0%, #8c8c8c 100%);
+    box-shadow: 0 2px 8px rgba(140, 140, 140, 0.3);
+}
+
