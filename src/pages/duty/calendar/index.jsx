@@ -3,6 +3,7 @@
 import { Calendar, Button, message, Spin } from "antd"
 import React, { useState, useEffect, useCallback } from "react"
 import {CalendarIcon} from "lucide-react"
+import dayjs from "dayjs"
 import { UpdateCalendarModal } from "./UpdateCalendar"
 import { searchCalendar } from "../../../api/duty"
 import { useParams } from "react-router-dom"
@@ -12,15 +13,52 @@ import {getUserList} from "../../../api/user";
 
 export const fetchDutyData = async (dutyId, year, month) => {
     try {
-        const params = {
+        // Get data for current month and adjacent months to handle cross-month dates
+        const currentMonthParams = {
             dutyId: dutyId,
             ...(year &&
-                month && {
+                month !== undefined && {
                     time: year+"-"+(month + 1),
                 }),
         }
-        const res = await searchCalendar(params)
-        return res.data
+        
+        // Also fetch previous and next month data
+        const prevMonth = month === 0 ? 11 : month - 1
+        const prevYear = month === 0 ? year - 1 : year
+        const nextMonth = month === 11 ? 0 : month + 1
+        const nextYear = month === 11 ? year + 1 : year
+        
+        const prevMonthParams = {
+            dutyId: dutyId,
+            time: prevYear+"-"+(prevMonth + 1),
+        }
+        
+        const nextMonthParams = {
+            dutyId: dutyId,
+            time: nextYear+"-"+(nextMonth + 1),
+        }
+        
+        // Fetch all three months data in parallel
+        const [currentRes, prevRes, nextRes] = await Promise.allSettled([
+            searchCalendar(currentMonthParams),
+            searchCalendar(prevMonthParams),
+            searchCalendar(nextMonthParams)
+        ])
+        
+        // Combine results
+        let allData = []
+        
+        if (currentRes.status === 'fulfilled' && currentRes.value?.data) {
+            allData = [...allData, ...currentRes.value.data]
+        }
+        if (prevRes.status === 'fulfilled' && prevRes.value?.data) {
+            allData = [...allData, ...prevRes.value.data]
+        }
+        if (nextRes.status === 'fulfilled' && nextRes.value?.data) {
+            allData = [...allData, ...nextRes.value.data]
+        }
+        
+        return allData
     } catch (error) {
         console.error(error)
         message.error("获取日程数据失败")
@@ -40,6 +78,11 @@ export const CalendarApp = ({ tenantId }) => {
     const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
     const [loading, setLoading] = useState(false)
     const [selectedDayDutyUsers, setSelectedDayDutyUsers] = useState(null)
+
+    // Calendar style configuration
+    const calendarStyle = {
+        width: '100%'
+    }
 
     const fetchData = useCallback(async () => {
         setLoading(true)
@@ -224,6 +267,9 @@ export const CalendarApp = ({ tenantId }) => {
         const today = new Date()
         const isToday =
             value.year() === today.getFullYear() && value.month() === today.getMonth() && value.date() === today.getDate()
+        
+        // Check if this date is in the current displayed month
+        const isCurrentMonth = value.month() === currentMonth
 
         const matchingDutyData = findMatchingDutyData(value)
 
@@ -235,24 +281,28 @@ export const CalendarApp = ({ tenantId }) => {
             <div
                 onDoubleClick={() => handleDoubleClick(value)}
                 className={`
-                    relative cursor-pointer p-2 min-h-[80px]
+                    relative cursor-pointer p-2 min-h-[90px]
                     ${isToday
-                    ? "bg-blue-100 border-2 border-blue-400"
+                    ? "bg-blue-50 border border-blue-200"
                     : hasData
                         ? "bg-white border border-gray-200 hover:border-gray-300"
-                        : "bg-white border border-gray-100"}
+                        : isCurrentMonth 
+                            ? "bg-white border border-gray-100"
+                            : "bg-gray-50 border border-gray-100"}
                   `}
                 style={{
-                    borderRadius: '4px'
+                    borderRadius: '4px',
+                    paddingBottom: hasData ? '25px' : '8px'  // Add extra bottom padding when has data
                 }}
             >
                 {/* 日期显示 */}
                 <div className="mb-1">
-                    <div className={`text-sm font-semibold ${isToday ? "text-blue-600" : "text-gray-900"}`}>
+                    <div className={`text-sm font-semibold ${ 
+                        isToday ? "text-blue-600" : 
+                        isCurrentMonth ? "text-gray-900" : 
+                        "text-gray-400"
+                    }`}>
                         {dateFullCellRender(value)}
-                    </div>
-                    <div className={`text-xs ${isToday ? "text-blue-500" : "text-gray-500"}`}>
-                        周{weekday}
                     </div>
                     </div>
 
@@ -267,7 +317,11 @@ export const CalendarApp = ({ tenantId }) => {
                                 return (
                                     <div
                                         key={user.userid}
-                                        className={`text-xs ${isToday ? "text-blue-700" : "text-gray-700"}`}
+                                        className={`text-xs ${
+                                            isToday ? "text-blue-700" : 
+                                            isCurrentMonth ? "text-gray-700" : 
+                                            "text-gray-500"
+                                        }`}
                                     >
                                         {phoneNumber ? `${displayName}(${phoneNumber})` : displayName}
                                     </div>
@@ -295,19 +349,28 @@ export const CalendarApp = ({ tenantId }) => {
                     </div>
                 )}
 
-                {/* 修改按钮 */}
+                {/* 修改按钮 - 绝对定位到底部 */}
                 {hasData && (
-                    <div className="mt-2">
+                    <div 
+                        className="absolute bottom-1 left-2 right-2"
+                        style={{
+                            zIndex: 10
+                        }}
+                    >
                         <button
                             onClick={(e) => {
                                 e.stopPropagation()
                                 handleDoubleClick(value)
                             }}
-                            className={`text-xs ${isToday ? "text-blue-300 hover:text-blue-100" : "text-gray-500 hover:text-gray-700"} hover:underline`}
+                            className={`text-xs ${
+                                isToday ? "text-blue-400 hover:text-blue-600" : 
+                                isCurrentMonth ? "text-gray-500 hover:text-gray-700" : 
+                                "text-gray-400 hover:text-gray-600"
+                            } hover:underline`}
                             style={{
                                 background: 'none',
                                 border: 'none',
-                                padding: 0,
+                                padding: '2px 0',
                                 cursor: 'pointer',
                                 fontSize: '12px'
                             }}
@@ -459,11 +522,71 @@ export const CalendarApp = ({ tenantId }) => {
 
                 {/* Calendar Section */}
                 <div>
+                    <style>
+                        {`
+                        /* Hide the 6th week row in Ant Design Calendar to show only 5 weeks */
+                        .ant-picker-calendar tbody tr:nth-child(6) {
+                            display: none !important;
+                        }
+                        
+                        /* Alternative selectors for different Ant Design versions */
+                        .ant-picker-panel-body tbody tr:nth-child(6) {
+                            display: none !important;
+                        }
+                        
+                        /* For older Ant Design versions */
+                        .ant-fullcalendar tbody tr:nth-child(6) {
+                            display: none !important;
+                        }
+                        
+                        /* Additional selectors to ensure compatibility */
+                        .ant-picker-calendar .ant-picker-panel .ant-picker-date-panel .ant-picker-body tbody tr:nth-child(6) {
+                            display: none !important;
+                        }
+                        
+                        /* Research-based solution for Ant Design Calendar cellRender overlap issue */
+                        /* When fullscreen=false, cellRender should completely replace default content */
+                        /* But sometimes default date numbers still appear - hide them precisely */
+                        
+                        /* Hide default date value display in non-fullscreen calendar */
+                        .ant-picker-calendar .ant-picker-cell-inner .ant-picker-calendar-date-value {
+                            display: none !important;
+                        }
+                        
+                        /* Hide calendar date content that appears alongside custom cellRender */
+                        .ant-picker-calendar .ant-picker-cell-inner .ant-picker-calendar-date {
+                            display: none !important;
+                        }
+                        
+                        /* Hide direct text nodes that are just numbers (default date display) */
+                        .ant-picker-calendar .ant-picker-cell-inner::before {
+                            content: none !important;
+                        }
+                        
+                        /* Ensure our custom content takes priority by positioning */
+                        .ant-picker-calendar .ant-picker-cell-inner .relative {
+                            position: relative !important;
+                            z-index: 2 !important;
+                        }
+                        
+                        /* Ensure calendar displays properly with 5 weeks */
+                        .ant-picker-calendar {
+                            width: 100%;
+                        }
+                        
+                        /* Ensure table structure is maintained */
+                        .ant-picker-calendar .ant-picker-panel .ant-picker-date-panel .ant-picker-body table {
+                            width: 100%;
+                            table-layout: fixed;
+                        }
+                        `}
+                    </style>
                     <Calendar
                         onPanelChange={handlePanelChange}
                         cellRender={dateCellRender}
                         headerRender={headerRender}
                         fullscreen={false}
+                        style={calendarStyle}
                     />
                 </div>
 
