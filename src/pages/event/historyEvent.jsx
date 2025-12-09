@@ -305,6 +305,7 @@ export const AlertHistoryEvent = (props) => {
             key: "confirmState",
             width: "100px",
             render: (text) => {
+                const displayName = text?.confirmUsernameRealName || text?.confirmUsername || "自动恢复"
                 return (
                     <Tag
                         style={{
@@ -317,7 +318,7 @@ export const AlertHistoryEvent = (props) => {
                             gap: "4px",
                         }}
                     >
-                        {text.confirmUsername || "自动恢复"}
+                        {displayName}
                     </Tag>
                 )
             },
@@ -905,7 +906,7 @@ export const AlertHistoryEvent = (props) => {
                                                 gap: "4px",
                                             }}
                                         >
-                                            {selectedEvent?.confirmState?.confirmUsername || "自动恢复"}
+                                            {selectedEvent?.confirmState?.confirmUsernameRealName || selectedEvent?.confirmState?.confirmUsername || "自动恢复"}
                                         </Tag>
                                     ),
                                 },

@@ -271,16 +271,19 @@ export const Silences = (props) => {
             title: '操作人',
             key: 'updateInfo',
             width: '13%',
-            render: (_, record) => (
-                <>
-                    <div>
-                        <span>{record.updateBy}</span>
-                    </div>
-                    <div>
-                        <span style={{ fontSize: '11px', color: '#999' }}>{formatDate(record.updateAt)}</span>
-                    </div>
-                </>
-            ),
+            render: (_, record) => {
+                const displayName = record?.updateByRealName || record?.updateBy || '未知用户'
+                return (
+                    <>
+                        <div>
+                            <span>{displayName}</span>
+                        </div>
+                        <div>
+                            <span style={{ fontSize: '11px', color: '#999' }}>{formatDate(record.updateAt)}</span>
+                        </div>
+                    </>
+                )
+            },
         },
         {
             title: '状态',
