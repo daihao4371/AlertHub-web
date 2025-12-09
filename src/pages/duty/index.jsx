@@ -64,7 +64,8 @@ export const DutyManage = () => {
             key: 'manager',
             width: 'auto',
             render: (text) => {
-                return <span>{text.username}</span>;
+                const displayName = text?.realName || text?.username || '';
+                return <span>{displayName}</span>;
             },
         },
         {
@@ -88,21 +89,24 @@ export const DutyManage = () => {
                 }
                 return (
                     <>
-                        {text.map((user, index) => (
-                            <Tooltip title={user.username} key={index}>
-                                <Tag style={{
-                                    borderRadius: "12px",
-                                    padding: "0 10px",
-                                    fontSize: "12px",
-                                    fontWeight: "500",
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: "4px",
-                                }}>
-                                    {user.username}
-                                </Tag>
-                            </Tooltip>
-                        ))}
+                        {text.map((user, index) => {
+                            const displayName = user?.realName || user?.username || '';
+                            return (
+                                <Tooltip title={displayName} key={index}>
+                                    <Tag style={{
+                                        borderRadius: "12px",
+                                        padding: "0 10px",
+                                        fontSize: "12px",
+                                        fontWeight: "500",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: "4px",
+                                    }}>
+                                        {displayName}
+                                    </Tag>
+                                </Tooltip>
+                            );
+                        })}
                     </>
                 );
             },
@@ -138,7 +142,8 @@ export const DutyManage = () => {
             dataIndex: "updateBy",
             key: "updateBy",
             width: "auto",
-            render: (text) => {
+            render: (text, record) => {
+                const displayName = record?.updateByRealName || text || "未知用户";
                 return <Tag style={{
                                 borderRadius: "12px",
                                 padding: "0 10px",
@@ -149,7 +154,7 @@ export const DutyManage = () => {
                                 gap: "4px",
                             }}
                         >
-                            {text || "未知用户"}
+                            {displayName}
                         </Tag>
             },
         },
