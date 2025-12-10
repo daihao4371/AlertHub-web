@@ -45,38 +45,53 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
         }
     }
 
+    // 当模态框打开时，根据类型初始化表单
     useEffect(() => {
-        if (selectedRow) {
-            form.setFieldsValue({
-                id: selectedRow.id,
-                name: selectedRow.name,
-                description: selectedRow.description,
-                noticeType: selectedRow.noticeType,
-                template: selectedRow.template,
-                templateFiring: selectedRow.templateFiring,
-                templateRecover: selectedRow.templateRecover,
-                enableFeiShuJsonCard: selectedRow.enableFeiShuJsonCard,
-            })
+        if (visible) {
+            if (type === 'create') {
+                // 创建模式：清空所有表单字段和状态
+                form.resetFields()
+                setSpaceValue('')
+                setSelectedNotifyCard(0)
+                setNotifyType('FeiShu')
+                setIsChecked(false)
+            } else if (selectedRow) {
+                // 更新模式：填充表单数据
+                form.setFieldsValue({
+                    id: selectedRow.id,
+                    name: selectedRow.name,
+                    description: selectedRow.description,
+                    noticeType: selectedRow.noticeType,
+                    template: selectedRow.template,
+                    templateFiring: selectedRow.templateFiring,
+                    templateRecover: selectedRow.templateRecover,
+                    enableFeiShuJsonCard: selectedRow.enableFeiShuJsonCard,
+                })
 
-            let t = 0;
-            if (selectedRow.noticeType === "FeiShu"){
-                t = 0
-            } else if (selectedRow.noticeType === "Email"){
-                t = 1
-            } else if (selectedRow.noticeType === "DingDing"){
-                t = 2
-            } else if (selectedRow.noticeType === "WeChat"){
-                t = 3
-            } else if (selectedRow.noticeType === "Slack"){
-                t = 4
+                let t = 0;
+                if (selectedRow.noticeType === "FeiShu"){
+                    t = 0
+                } else if (selectedRow.noticeType === "Email"){
+                    t = 1
+                } else if (selectedRow.noticeType === "DingDing"){
+                    t = 2
+                } else if (selectedRow.noticeType === "WeChat"){
+                    t = 3
+                } else if (selectedRow.noticeType === "Slack"){
+                    t = 4
+                }
+
+                setIsChecked(selectedRow.enableFeiShuJsonCard || false)
+                setNotifyType(selectedRow.noticeType)
+                setSelectedNotifyCard(t)
+                setSpaceValue(selectedRow.name || '')
             }
-
-            setIsChecked(selectedRow.enableFeiShuJsonCard)
-            setNotifyType(selectedRow.noticeType)
-            setSelectedNotifyCard(t)
-            console.log(t)
+        } else {
+            // 模态框关闭时，清空表单
+            form.resetFields()
+            setSpaceValue('')
         }
-    }, [selectedRow, form])
+    }, [visible, selectedRow, type, form])
 
     const handleCreate = async (values) => {
         try {
@@ -144,12 +159,6 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
         }
     ];
 
-    useEffect(() => {
-        if (selectedNotifyCard === null){
-            setSelectedNotifyCard(0)
-            setNotifyType("FeiShu")
-        }
-    }, [])
 
     const handleCardClick = (index) => {
         let t = "FeiShu";
