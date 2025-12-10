@@ -61,8 +61,15 @@ export const Login = () => {
     };
 
     // 处理密码初始化表单提交
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const handlePasswordSubmit = async (event) => {
         event.preventDefault();
+        
+        // 防重复提交：如果正在提交，直接返回
+        if (isSubmitting) {
+            return;
+        }
+
         const formData = new FormData(event.target);
         const password = formData.get('password');
         const confirmPassword = formData.get('confirm-password');
@@ -75,11 +82,13 @@ export const Login = () => {
             return;
         }
 
+        setIsSubmitting(true);
         try {
             const params = {
                 userid: 'admin',
                 username: 'admin',
-                email: 'admin@qq.com',
+                realName: '超管', // admin账号的真实姓名默认为"超管"
+                email: 'admin@example.com',
                 phone: '18888888888',
                 password: password,
                 role: 'admin',
@@ -89,6 +98,8 @@ export const Login = () => {
             window.location.reload();
         } catch (error) {
             console.error(error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -294,9 +305,12 @@ export const Login = () => {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-6 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-medium rounded-lg hover:from-cyan-700 hover:to-blue-700 active:scale-[0.98] transition-all shadow-lg hover:shadow-xl"
+                                    disabled={isSubmitting}
+                                    className={`px-6 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-medium rounded-lg hover:from-cyan-700 hover:to-blue-700 active:scale-[0.98] transition-all shadow-lg hover:shadow-xl ${
+                                        isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                                    }`}
                                 >
-                                    提交
+                                    {isSubmitting ? '提交中...' : '提交'}
                                 </button>
                             </div>
                         </form>
