@@ -26,99 +26,125 @@ import "../index.css";
 
 const { Sider } = Layout;
 
+// 管理员菜单 - 按功能逻辑分组排序
 const adminMenuItems = [
+    // 1. 概览 - 首页入口
     { key: '1', path: '/', icon: <AreaChartOutlined />, label: '概览' },
+    
+    // 2. 基础配置
+    { key: '2', path: '/datasource', icon: <PieChartOutlined />, label: '数据源' },
+    
+    // 3. 告警相关功能
     {
-        key: '2',
+        key: '3',
         icon: <BellOutlined />,
         label: '告警管理',
         children: [
-            { key: '2-1', path: '/ruleGroup', label: '告警规则' },
-            { key: '2-5', path: '/tmplType/Metrics/group', label: '规则模版' },
-            { key: '2-6', path: '/subscribes', label: '告警订阅' }
+            { key: '3-1', path: '/ruleGroup', label: '告警规则' },
+            { key: '3-2', path: '/tmplType/Metrics/group', label: '规则模版' },
+            { key: '3-3', path: '/subscribes', label: '告警订阅' }
         ]
     },
-    { key: '12', path: '/faultCenter', icon: <ExceptionOutlined />, label: '故障中心' },
+    { key: '4', path: '/faultCenter', icon: <ExceptionOutlined />, label: '故障中心' },
     {
-        key: '3',
+        key: '5',
         icon: <NotificationOutlined />,
         label: '通知管理',
         children: [
-            { key: '3-1', path: '/noticeObjects', label: '通知对象' },
-            { key: '3-2', path: '/noticeTemplate', label: '通知模版' },
-            { key: '3-3', path: '/noticeRecords', label: '通知记录' }
+            { key: '5-1', path: '/noticeObjects', label: '通知对象' },
+            { key: '5-2', path: '/noticeTemplate', label: '通知模版' },
+            { key: '5-3', path: '/noticeRecords', label: '通知记录' }
         ]
     },
-    { key: '4', path: '/dutyManage', icon: <CalendarOutlined />, label: '值班中心' },
+    
+    // 4. 运营管理
+    { key: '6', path: '/dutyManage', icon: <CalendarOutlined />, label: '值班中心' },
+    
+    // 5. 监控分析
     {
-        key: '11',
+        key: '7',
         icon: <ApiOutlined />,
         label: '网络分析',
         children: [
-            { key: '11-1', path: '/probing', label: '拨测任务' },
-            { key: '11-2', path: '/onceProbing', label: '及时拨测' }
+            { key: '7-1', path: '/probing', label: '拨测任务' },
+            { key: '7-2', path: '/onceProbing', label: '及时拨测' }
         ]
     },
-    { key: '6', path: '/datasource', icon: <PieChartOutlined />, label: '数据源' },
-    { key: '13', path: '/exporterMonitor', icon: <HeartOutlined />, label: 'Exporter 巡检' },
-    { key: '8', path: '/folders', icon: <DashboardOutlined />, label: '仪表盘' },
+    { key: '8', path: '/exporterMonitor', icon: <HeartOutlined />, label: 'Exporter 巡检' },
+    
+    // 6. 可视化
+    { key: '9', path: '/folders', icon: <DashboardOutlined />, label: '仪表盘' },
+    
+    // 7. 系统管理
     {
-        key: '5',
+        key: '10',
         icon: <UserOutlined />,
         label: '人员组织',
         children: [
-            { key: '5-1', path: '/user', label: '用户管理' },
-            { key: '5-2', path: '/userRole', label: '角色管理' }
+            { key: '10-1', path: '/user', label: '用户管理' },
+            { key: '10-2', path: '/userRole', label: '角色管理' }
         ]
     },
-    { key: '7', path: '/tenants', icon: <DeploymentUnitOutlined />, label: '租户管理' },
-    { key: '9', path: '/auditLog', icon: <FileDoneOutlined />, label: '日志审计' },
-    { key: '10', path: '/settings', icon: <SettingOutlined />, label: '系统设置' }
+    { key: '11', path: '/tenants', icon: <DeploymentUnitOutlined />, label: '租户管理' },
+    { key: '12', path: '/auditLog', icon: <FileDoneOutlined />, label: '日志审计' },
+    { key: '13', path: '/settings', icon: <SettingOutlined />, label: '系统设置' }
 ];
 
+// 普通用户菜单 - 按功能逻辑分组排序（不包含系统管理功能）
 const userMenuItems = [
+    // 1. 概览 - 首页入口
     { key: '1', path: '/', icon: <AreaChartOutlined />, label: '概览' },
+    
+    // 2. 基础配置
+    { key: '2', path: '/datasource', icon: <PieChartOutlined />, label: '数据源' },
+    
+    // 3. 告警相关功能
     {
-        key: '2',
+        key: '3',
         icon: <BellOutlined />,
         label: '告警管理',
         children: [
-            { key: '2-1', path: '/ruleGroup', label: '告警规则' },
-            { key: '2-5', path: '/tmplType/Metrics/group', label: '规则模版' },
-            { key: '2-6', path: '/subscribes', label: '告警订阅' }
+            { key: '3-1', path: '/ruleGroup', label: '告警规则' },
+            { key: '3-2', path: '/tmplType/Metrics/group', label: '规则模版' },
+            { key: '3-3', path: '/subscribes', label: '告警订阅' }
         ]
     },
-    { key: '12', path: '/faultCenter', icon: <ExceptionOutlined />, label: '故障中心' },
+    { key: '4', path: '/faultCenter', icon: <ExceptionOutlined />, label: '故障中心' },
     {
-        key: '3',
+        key: '5',
         icon: <NotificationOutlined />,
         label: '通知管理',
         children: [
-            { key: '3-1', path: '/noticeObjects', label: '通知对象' },
-            { key: '3-2', path: '/noticeTemplate', label: '通知模版' },
-            { key: '3-3', path: '/noticeRecords', label: '通知记录' }
+            { key: '5-1', path: '/noticeObjects', label: '通知对象' },
+            { key: '5-2', path: '/noticeTemplate', label: '通知模版' },
+            { key: '5-3', path: '/noticeRecords', label: '通知记录' }
         ]
     },
+    
+    // 4. 运营管理
     {
-        key: '4',
+        key: '6',
         icon: <CalendarOutlined />,
         label: '值班管理',
         children: [
-            { key: '4-1', path: '/dutyManage', label: '值班日程' }
+            { key: '6-1', path: '/dutyManage', label: '值班日程' }
         ]
     },
+    
+    // 5. 监控分析
     {
-        key: '11',
+        key: '7',
         icon: <ApiOutlined />,
         label: '网络分析',
         children: [
-            { key: '11-1', path: '/probing', label: '拨测任务' },
-            { key: '11-2', path: '/onceProbing', label: '及时拨测' }
+            { key: '7-1', path: '/probing', label: '拨测任务' },
+            { key: '7-2', path: '/onceProbing', label: '及时拨测' }
         ]
     },
-    { key: '6', path: '/datasource', icon: <PieChartOutlined />, label: '数据源' },
-    { key: '13', path: '/exporterMonitor', icon: <HeartOutlined />, label: 'Exporter 巡检' },
-    { key: '8', path: '/folders', icon: <DashboardOutlined />, label: '仪表盘' }
+    { key: '8', path: '/exporterMonitor', icon: <HeartOutlined />, label: 'Exporter 巡检' },
+    
+    // 6. 可视化
+    { key: '9', path: '/folders', icon: <DashboardOutlined />, label: '仪表盘' }
 ];
 
 export const ComponentSider = () => {
