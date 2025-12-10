@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useMemo } from 'react';
-import {Anchor, Button, Form, Input, Popconfirm, Typography, Radio, Segmented, Tabs, Switch, Select, message} from 'antd';
+import {Anchor, Button, Form, Input, Popconfirm, Typography, Radio, Segmented, Tabs, Switch, Select, message, Descriptions, Card, Collapse} from 'antd';
 import "./index.css";
 import { getSystemSetting, saveSystemSetting } from "../../api/settings";
 import TextArea from "antd/es/input/TextArea";
@@ -98,6 +98,7 @@ export const SystemSettings = () => {
     const [form] = Form.useForm();
     const [version, setVersion] = useState('');
     const [enableAi, setEnableAi] = useState(false);
+    const [enableQuickAction, setEnableQuickAction] = useState(false);
     const [alignValue, setAlignValue] = useState('系统认证');
     const [roleList, setRoleList] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -172,12 +173,20 @@ export const SystemSettings = () => {
                 domain: res.data.oidcConfig?.domain || "",
             }
 
+            const quickActionConfig = {
+                enabled: res.data.quickActionConfig?.enabled || false,
+                baseUrl: res.data.quickActionConfig?.baseUrl || "",
+                apiUrl: res.data.quickActionConfig?.apiUrl || "",
+                secretKey: res.data.quickActionConfig?.secretKey || "",
+            }
+
             //  确保表单字段正确初始化
             form.setFieldsValue({
                 emailConfig,
                 aiConfig,
                 ldapConfig,
-                oidcConfig
+                oidcConfig,
+                quickActionConfig
             });
 
             // 修复 authType 映射逻辑
@@ -189,6 +198,7 @@ export const SystemSettings = () => {
             setAlignValue(authTypeMapping[res.data.authType] || "系统认证");
 
             setEnableAi(aiConfig.enable);
+            setEnableQuickAction(quickActionConfig.enabled);
             setVersion(res.data.appVersion || 'Unknown');
         } catch (error) {
             console.error("Failed to load settings:", error);
@@ -219,6 +229,10 @@ export const SystemSettings = () => {
                 authType: alignValue === "系统认证" ? 0 : alignValue === "LDAP 认证" ? 1 : 2, // 支持 OIDC认证
                 oidcConfig: {
                     ...values.oidcConfig,
+                },
+                quickActionConfig: {
+                    ...values.quickActionConfig,
+                    enabled: enableQuickAction,
                 }
             };
 
@@ -271,6 +285,14 @@ export const SystemSettings = () => {
         setEnableAi(enabled);
         // 同步更新表单字段
         form.setFieldValue(['aiConfig', 'enable'], enabled);
+    };
+
+    // 快捷操作启用状态处理
+    const handleQuickActionEnableChange = (e) => {
+        const enabled = e.target.value;
+        setEnableQuickAction(enabled);
+        // 同步更新表单字段
+        form.setFieldValue(['quickActionConfig', 'enabled'], enabled);
     };
 
     const segmentedOptions = ['系统认证', 'LDAP 认证', 'OIDC 认证'];
@@ -545,6 +567,126 @@ export const SystemSettings = () => {
                         )}
                     </section>
 
+                    <section id="quickAction">
+                        <Typography.Title level={5}>快捷操作配置</Typography.Title>
+                        <p style={helpTextStyle}>• 用于在飞书/钉钉通知消息中显示快捷操作按钮（认领、静默、查看详情等）；</p>
+                        
+                        {/* 当前配置值显示 */}
+                        <Collapse
+                            ghost
+                            items={[{
+                                key: '1',
+                                label: '📋 查看当前配置值',
+                                children: (
+                                    <Card size="small" style={{ marginBottom: '16px', backgroundColor: '#fafafa' }}>
+                                        <Descriptions column={1} bordered size="small">
+                                            <Descriptions.Item label="配置来源">
+                                                系统设置 → 快捷操作配置
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="启用状态">
+                                                {enableQuickAction ? '✅ 已启用' : '❌ 已禁用'}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="前端页面地址 (baseUrl)">
+                                                {form.getFieldValue(['quickActionConfig', 'baseUrl']) || '未配置'}
+                                                <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
+                                                    获取方式: settings.quickActionConfig.baseUrl
+                                                </div>
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="后端API地址 (apiUrl)">
+                                                {form.getFieldValue(['quickActionConfig', 'apiUrl']) || '未配置（将使用前端地址）'}
+                                                <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
+                                                    获取方式: settings.quickActionConfig.apiUrl || settings.quickActionConfig.baseUrl
+                                                </div>
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="Token签名密钥 (secretKey)">
+                                                {form.getFieldValue(['quickActionConfig', 'secretKey']) ? 
+                                                    '••••••••' + (form.getFieldValue(['quickActionConfig', 'secretKey']) || '').slice(-4) : 
+                                                    '未配置'}
+                                                <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
+                                                    获取方式: settings.quickActionConfig.secretKey
+                                                </div>
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="配置存储位置">
+                                                <div>
+                                                    <strong>MySQL数据库 → settings表 → quick_action_config字段（JSON格式）</strong>
+                                                    <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                                                        💡 配置通过系统设置页面可视化配置，修改后立即生效，无需重启服务
+                                                    </div>
+                                                </div>
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="配置流程">
+                                                <div style={{ fontSize: '12px', color: '#666' }}>
+                                                    <div>1️⃣ 在系统设置页面填写配置并保存</div>
+                                                    <div>2️⃣ 配置保存到 MySQL settings 表的 quick_action_config 字段</div>
+                                                    <div>3️⃣ 系统启动时自动加载配置到内存缓存</div>
+                                                    <div>4️⃣ 模板渲染时从内存缓存获取配置（高性能）</div>
+                                                    <div style={{ color: '#52c41a', marginTop: '4px' }}>
+                                                        ✅ 支持实时修改，修改后立即生效
+                                                    </div>
+                                                </div>
+                                            </Descriptions.Item>
+                                        </Descriptions>
+                                    </Card>
+                                )
+                            }]}
+                        />
+                        
+                        <MyFormItemGroup prefix={['quickActionConfig']}>
+                            <MyFormItem name="enabled">
+                                <Radio.Group
+                                    block
+                                    options={radioOptions}
+                                    value={enableQuickAction}
+                                    onChange={handleQuickActionEnableChange}
+                                />
+                            </MyFormItem>
+
+                            {enableQuickAction === true && (
+                                <>
+                                    <MyFormItem
+                                        name="baseUrl"
+                                        label="前端页面地址"
+                                        rules={[
+                                            { required: true, message: '请输入前端页面地址' },
+                                            { type: 'url', message: '请输入有效的URL地址' }
+                                        ]}
+                                    >
+                                        <Input placeholder="例如: https://your-frontend-domain.com"/>
+                                    </MyFormItem>
+                                    <div style={helpTextStyle}>
+                                        用于"查看详情"按钮跳转的前端页面地址，必须包含 http(s)://
+                                    </div>
+                                    
+                                    <MyFormItem
+                                        name="apiUrl"
+                                        label="后端API地址（可选）"
+                                        rules={[
+                                            { type: 'url', message: '请输入有效的URL地址' }
+                                        ]}
+                                    >
+                                        <Input placeholder="例如: https://your-api-domain.com（不填则使用前端地址）"/>
+                                    </MyFormItem>
+                                    <div style={helpTextStyle}>
+                                        用于快捷操作API调用的后端地址，如果不填写则使用前端地址
+                                    </div>
+                                    
+                                    <MyFormItem
+                                        name="secretKey"
+                                        label="Token签名密钥"
+                                        rules={[
+                                            { required: true, message: '请输入Token签名密钥' }
+                                        ]}
+                                    >
+                                        <Input.Password placeholder="用于生成和验证快捷操作Token的密钥"/>
+                                    </MyFormItem>
+                                    <div style={helpTextStyle}>
+                                        用于生成和验证快捷操作链接中Token的密钥，建议使用随机字符串
+                                    </div>
+                                </>
+                            )}
+                        </MyFormItemGroup>
+                    </section>
+
                     <section id="version">
                         <Typography.Title level={5}>系统版本</Typography.Title>
                         <div style={{
@@ -587,6 +729,7 @@ export const SystemSettings = () => {
                         {key: '1', href: '#email', title: '邮箱配置'},
                         {key: '2', href: '#ai', title: 'AI 能力'},
                         {key: '3', href: '#auth', title: '认证'},
+                        {key: '4', href: '#quickAction', title: '快捷操作配置'},
                         {key: '999', href: '#version', title: '系统版本'},
                         {key: '9999', href: '#option', title: '保存取消'},
                     ]}

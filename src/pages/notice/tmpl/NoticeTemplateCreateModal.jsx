@@ -1,13 +1,14 @@
-import {Modal, Form, Input, Button, Card, Tooltip, Checkbox, Drawer} from 'antd'
+import {Modal, Form, Input, Button, Card, Tooltip, Checkbox, Drawer, Alert, Switch, Descriptions, Collapse} from 'antd'
 import VSCodeEditor from "../../../utils/VSCodeEditor";
 import React, { useEffect, useState } from 'react'
 import { createNoticeTmpl, updateNoticeTmpl } from '../../../api/noticeTmpl'
+import { getSystemSetting } from '../../../api/settings'
 import FeiShuImg from "../img/feishu.svg";
 import EmailImg from "../img/Email.svg";
 import DingDingImg from "../img/dingding.svg";
 import WeChatImg from "../img/qywechat.svg"
 import SlackImg from "../img/slack.svg"
-import {QuestionCircleOutlined} from "@ant-design/icons";
+import {QuestionCircleOutlined, InfoCircleOutlined} from "@ant-design/icons";
 
 const MyFormItemContext = React.createContext([])
 
@@ -28,6 +29,8 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
     const [selectedNotifyCard, setSelectedNotifyCard] = useState(null);
     const [notifyType,setNotifyType] = useState('')
     const [isChecked, setIsChecked] = useState(false)
+    const [enableQuickAction, setEnableQuickAction] = useState(false)
+    const [quickActionConfig, setQuickActionConfig] = useState(null)
 
     // 禁止输入空格
     const [spaceValue, setSpaceValue] = useState('')
@@ -45,6 +48,23 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
         }
     }
 
+    // 加载系统快捷操作配置
+    useEffect(() => {
+        const loadQuickActionConfig = async () => {
+            try {
+                const res = await getSystemSetting()
+                if (res && res.data && res.data.quickActionConfig) {
+                    setQuickActionConfig(res.data.quickActionConfig)
+                }
+            } catch (error) {
+                console.error('加载快捷操作配置失败:', error)
+            }
+        }
+        if (visible) {
+            loadQuickActionConfig()
+        }
+    }, [visible])
+
     // 当模态框打开时，根据类型初始化表单
     useEffect(() => {
         if (visible) {
@@ -55,6 +75,7 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
                 setSelectedNotifyCard(0)
                 setNotifyType('FeiShu')
                 setIsChecked(false)
+                setEnableQuickAction(false)
             } else if (selectedRow) {
                 // 更新模式：填充表单数据
                 form.setFieldsValue({
@@ -82,6 +103,7 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
                 }
 
                 setIsChecked(selectedRow.enableFeiShuJsonCard || false)
+                setEnableQuickAction(selectedRow.enableQuickAction || false)
                 setNotifyType(selectedRow.noticeType)
                 setSelectedNotifyCard(t)
                 setSpaceValue(selectedRow.name || '')
@@ -99,6 +121,7 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
                 ...values,
                 noticeType: notifyType,
                 enableFeiShuJsonCard: isChecked,
+                enableQuickAction: enableQuickAction,
             }
             await createNoticeTmpl(params)
             handleList()
@@ -114,6 +137,7 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
                 id: selectedRow.id,
                 noticeType: notifyType,
                 enableFeiShuJsonCard: isChecked,
+                enableQuickAction: enableQuickAction,
             }
             await updateNoticeTmpl(newValue)
             handleList()
@@ -184,7 +208,7 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
 
     return (
         <Drawer
-            title="创建通知模版"
+            title={type === 'create' ? '创建通知模版' : '编辑通知模版'}
             open={visible}
             onClose={onClose}
             size='large'
@@ -282,6 +306,98 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
                             checked={isChecked}
                             onChange={(e) => setIsChecked(e.target.checked)}
                         />
+                    </div>
+                )}
+
+                {/* 快捷操作配置 - 仅飞书和钉钉支持 */}
+                {(selectedNotifyCard === 0 || selectedNotifyCard === 2) && (
+                    <div style={{marginTop: '16px', marginBottom: '16px'}}>
+                        <div style={{display: 'flex', alignItems: 'center', marginBottom: '8px'}}>
+                            <MyFormItem style={{marginBottom: '0', marginRight: '10px'}}>
+                                <span>启用快捷操作按钮</span>
+                                <Tooltip title="在通知消息中显示快捷操作按钮（认领、静默、查看详情等）">
+                                    <QuestionCircleOutlined style={{color: '#1890ff', marginLeft: '4px'}}/>
+                                </Tooltip>
+                            </MyFormItem>
+                            <Switch
+                                checked={enableQuickAction}
+                                onChange={setEnableQuickAction}
+                                disabled={!quickActionConfig || !quickActionConfig.enabled || !quickActionConfig.baseUrl || !quickActionConfig.secretKey}
+                            />
+                        </div>
+                        
+                        {/* 系统配置状态提示 */}
+                        {quickActionConfig ? (
+                            quickActionConfig.enabled && quickActionConfig.baseUrl && quickActionConfig.secretKey ? (
+                                <>
+                                    <Alert
+                                        message="快捷操作已配置"
+                                        description={`前端地址: ${quickActionConfig.baseUrl || '未配置'} | API地址: ${quickActionConfig.apiUrl || '使用前端地址'}`}
+                                        type="success"
+                                        icon={<InfoCircleOutlined />}
+                                        showIcon
+                                        style={{marginTop: '8px'}}
+                                    />
+                                    <Collapse
+                                        ghost
+                                        size="small"
+                                        items={[{
+                                            key: '1',
+                                            label: '📋 查看配置值获取方式',
+                                            children: (
+                                                <div style={{ backgroundColor: '#fafafa', padding: '12px', borderRadius: '4px' }}>
+                                                    <Descriptions column={1} bordered size="small">
+                                                        <Descriptions.Item label="前端页面地址">
+                                                            {quickActionConfig.baseUrl || '未配置'}
+                                                            <div style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>
+                                                                获取方式: getSystemSetting() → data.quickActionConfig.baseUrl
+                                                            </div>
+                                                        </Descriptions.Item>
+                                                        <Descriptions.Item label="后端API地址">
+                                                            {quickActionConfig.apiUrl || '未配置（将使用前端地址）'}
+                                                            <div style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>
+                                                                获取方式: getSystemSetting() → data.quickActionConfig.apiUrl || baseUrl
+                                                            </div>
+                                                        </Descriptions.Item>
+                                                        <Descriptions.Item label="Token签名密钥">
+                                                            {quickActionConfig.secretKey ? '••••••••' + quickActionConfig.secretKey.slice(-4) : '未配置'}
+                                                            <div style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>
+                                                                获取方式: getSystemSetting() → data.quickActionConfig.secretKey
+                                                            </div>
+                                                        </Descriptions.Item>
+                                                        <Descriptions.Item label="配置来源">
+                                                            <div style={{ fontSize: '12px', color: '#666' }}>
+                                                                <div>1. 前端: 通过 API /api/w8t/setting/getSystemSetting 获取</div>
+                                                                <div>2. 后端: 从 MySQL settings 表读取 quick_action_config 字段</div>
+                                                                <div>3. 后端: 系统启动时加载到内存缓存 templates.quickActionConfig</div>
+                                                            </div>
+                                                        </Descriptions.Item>
+                                                    </Descriptions>
+                                                </div>
+                                            )
+                                        }]}
+                                        style={{ marginTop: '8px' }}
+                                    />
+                                </>
+                            ) : (
+                                <Alert
+                                    message="快捷操作未完全配置"
+                                    description="请在系统设置中配置快捷操作参数（启用状态、前端地址、签名密钥）后才能使用快捷操作功能"
+                                    type="warning"
+                                    icon={<InfoCircleOutlined />}
+                                    showIcon
+                                    style={{marginTop: '8px'}}
+                                />
+                            )
+                        ) : (
+                            <Alert
+                                message="快捷操作配置加载中..."
+                                type="info"
+                                icon={<InfoCircleOutlined />}
+                                showIcon
+                                style={{marginTop: '8px'}}
+                            />
+                        )}
                     </div>
                 )}
 
