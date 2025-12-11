@@ -117,11 +117,12 @@ export const CreateSilenceModal = ({ visible, onClose, selectedRow, type, handle
                     }
                     await handleUpdate(updateParams)
                 }
+                // 只有在成功时才关闭弹窗
+                onClose()
             } catch (error) {
-                // 错误已在具体方法中处理
+                // 错误已在具体方法中处理，不关闭弹窗，让用户看到错误信息
             } finally {
                 setLoading(false)
-                onClose()
             }
         },
         [startTimestamp, endTimestamp, faultCenterId, type, selectedRow, handleCreate, handleUpdate, onClose],

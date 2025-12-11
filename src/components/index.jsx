@@ -303,7 +303,7 @@ const Components = (props) => {
                                 fontSize: "12px",
                             }}
                         >
-                            WatchAlert 提供轻量级一站式监控报警服务!
+                            AlertHub 提供轻量级一站式监控报警服务!
                         </div>
                     </Layout>
                 </Layout>

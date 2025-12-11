@@ -329,7 +329,7 @@ default_theme = dark`, 'Grafana 配置')}
                                     }}>
 {`curl -s -u <username>:<password> -X POST \\
   -H "Content-Type: application/json" \\
-  -d '{"name":"token"}' \\
+  -d '{"name":"token-'$(date +%s)'"}' \\
   "http://<grafana-host>:<port>/api/serviceaccounts/2/tokens"`}
                                     </pre>
                                     <Button
@@ -337,7 +337,7 @@ default_theme = dark`, 'Grafana 配置')}
                                         icon={<CopyOutlined />}
                                         onClick={() => copyToClipboard(`curl -s -u <username>:<password> -X POST \\
   -H "Content-Type: application/json" \\
-  -d '{"name":"token"}' \\
+  -d '{"name":"token-'$(date +%s)'"}' \\
   "http://<grafana-host>:<port>/api/serviceaccounts/2/tokens"`, 'Token 获取命令')}
                                         style={{
                                             position: 'absolute',
@@ -354,6 +354,7 @@ default_theme = dark`, 'Grafana 配置')}
                                         <li><code>&lt;username&gt;:&lt;password&gt;</code> - Grafana 管理员账号和密码</li>
                                         <li><code>&lt;grafana-host&gt;:&lt;port&gt;</code> - Grafana 服务器地址和端口</li>
                                         <li><code>&lt;service-account-id&gt;</code> - Service Account 的 ID (在 Grafana 的 Service Accounts 页面查看)</li>
+                                        <li><code>$(date +%s)</code> - 使用时间戳确保 token 名称唯一，避免命名冲突</li>
                                     </ul>
                                 </div>
 

@@ -48,6 +48,7 @@ import {HandleApiError, HandleShowTotal} from "../../../utils/lib";
 import {useAppContext} from "../../../context/RuleContext";
 import { TableWithPagination } from '../../../utils/TableWithPagination';
 import { RuleGroupSidebar } from './RuleGroupSidebar';
+import './index.css';
 
 export const AlertRuleList = () => {
     const { setCloneAlertRule } = useAppContext()
@@ -80,6 +81,27 @@ export const AlertRuleList = () => {
         selectedRowKeys,
         onChange: (selectedKeys) => {
             setSelectedRowKeys(selectedKeys)
+        },
+    }
+
+    // 告警等级映射配置，包含文本和样式类名
+    const SEVERITY_MAP = {
+        P0: { 
+            text: "P0",
+            className: "severity-tag severity-tag-p0"
+        },
+        P1: { 
+            text: "P1",
+            className: "severity-tag severity-tag-p1"
+        },
+        P2: { 
+            text: "P2",
+            className: "severity-tag severity-tag-p2"
+        },
+        // 其他未知等级使用紫色渐变
+        default: { 
+            text: "Unknown",
+            className: "severity-tag severity-tag-default"
         },
     }
 
@@ -132,11 +154,14 @@ export const AlertRuleList = () => {
                 const severities = GetSeverity(record); // 获取 severity 数组
                 return (
                     <span>
-                      {severities.map((severity, index) => (
-                          <Tag color={severity === "P0" ? "red" : severity === "P1" ? "gold" : severity === "P2" ? "cyan" : "purple"} key={index}>
-                              {severity}
-                          </Tag>
-                      ))}
+                      {severities.map((severity, index) => {
+                          const severityInfo = SEVERITY_MAP[severity] || SEVERITY_MAP.default;
+                          return (
+                              <Tag className={severityInfo.className} key={index}>
+                                  {severityInfo === SEVERITY_MAP.default ? severity : severityInfo.text}
+                              </Tag>
+                          );
+                      })}
                     </span>
                 );
             }

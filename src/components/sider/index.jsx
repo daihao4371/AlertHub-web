@@ -18,106 +18,133 @@ import {
     HeartOutlined
 } from '@ant-design/icons';
 import {Link, useNavigate} from 'react-router-dom';
-import {Menu, Layout, Typography, Dropdown, message, Spin, theme, Popover, Avatar, Divider} from 'antd';
-import logoIcon from "../../img/logo.svg";
+import {Menu, Layout, Typography, Dropdown, message, Spin, theme, Popover, Avatar} from 'antd';
+import logoIcon from "../../img/logo.png";
 import {getUserInfo} from "../../api/user";
 import {getTenantList} from "../../api/tenant";
+import "../index.css";
 
 const { Sider } = Layout;
 
+// 管理员菜单 - 按功能逻辑分组排序
 const adminMenuItems = [
+    // 1. 概览 - 首页入口
     { key: '1', path: '/', icon: <AreaChartOutlined />, label: '概览' },
+    
+    // 2. 基础配置
+    { key: '2', path: '/datasource', icon: <PieChartOutlined />, label: '数据源' },
+    
+    // 3. 告警相关功能
     {
-        key: '2',
+        key: '3',
         icon: <BellOutlined />,
         label: '告警管理',
         children: [
-            { key: '2-1', path: '/ruleGroup', label: '告警规则' },
-            { key: '2-5', path: '/tmplType/Metrics/group', label: '规则模版' },
-            { key: '2-6', path: '/subscribes', label: '告警订阅' }
+            { key: '3-1', path: '/ruleGroup', label: '告警规则' },
+            { key: '3-2', path: '/tmplType/Metrics/group', label: '规则模版' },
+            { key: '3-3', path: '/subscribes', label: '告警订阅' }
         ]
     },
-    { key: '12', path: '/faultCenter', icon: <ExceptionOutlined />, label: '故障中心' },
+    { key: '4', path: '/faultCenter', icon: <ExceptionOutlined />, label: '故障中心' },
     {
-        key: '3',
+        key: '5',
         icon: <NotificationOutlined />,
         label: '通知管理',
         children: [
-            { key: '3-1', path: '/noticeObjects', label: '通知对象' },
-            { key: '3-2', path: '/noticeTemplate', label: '通知模版' },
-            { key: '3-3', path: '/noticeRecords', label: '通知记录' }
+            { key: '5-1', path: '/noticeObjects', label: '通知对象' },
+            { key: '5-2', path: '/noticeTemplate', label: '通知模版' },
+            { key: '5-3', path: '/noticeRecords', label: '通知记录' }
         ]
     },
-    { key: '4', path: '/dutyManage', icon: <CalendarOutlined />, label: '值班中心' },
+    
+    // 4. 运营管理
+    { key: '6', path: '/dutyManage', icon: <CalendarOutlined />, label: '值班中心' },
+    
+    // 5. 监控分析
     {
-        key: '11',
+        key: '7',
         icon: <ApiOutlined />,
         label: '网络分析',
         children: [
-            { key: '11-1', path: '/probing', label: '拨测任务' },
-            { key: '11-2', path: '/onceProbing', label: '及时拨测' }
+            { key: '7-1', path: '/probing', label: '拨测任务' },
+            { key: '7-2', path: '/onceProbing', label: '及时拨测' }
         ]
     },
-    { key: '6', path: '/datasource', icon: <PieChartOutlined />, label: '数据源' },
-    { key: '13', path: '/exporterMonitor', icon: <HeartOutlined />, label: 'Exporter 巡检' },
-    { key: '8', path: '/folders', icon: <DashboardOutlined />, label: '仪表盘' },
+    { key: '8', path: '/exporterMonitor', icon: <HeartOutlined />, label: 'Exporter 巡检' },
+    
+    // 6. 可视化
+    { key: '9', path: '/folders', icon: <DashboardOutlined />, label: '仪表盘' },
+    
+    // 7. 系统管理
     {
-        key: '5',
+        key: '10',
         icon: <UserOutlined />,
         label: '人员组织',
         children: [
-            { key: '5-1', path: '/user', label: '用户管理' },
-            { key: '5-2', path: '/userRole', label: '角色管理' }
+            { key: '10-1', path: '/user', label: '用户管理' },
+            { key: '10-2', path: '/userRole', label: '角色管理' }
         ]
     },
-    { key: '7', path: '/tenants', icon: <DeploymentUnitOutlined />, label: '租户管理' },
-    { key: '9', path: '/auditLog', icon: <FileDoneOutlined />, label: '日志审计' },
-    { key: '10', path: '/settings', icon: <SettingOutlined />, label: '系统设置' }
+    { key: '11', path: '/tenants', icon: <DeploymentUnitOutlined />, label: '租户管理' },
+    { key: '12', path: '/auditLog', icon: <FileDoneOutlined />, label: '日志审计' },
+    { key: '13', path: '/settings', icon: <SettingOutlined />, label: '系统设置' }
 ];
 
+// 普通用户菜单 - 按功能逻辑分组排序（不包含系统管理功能）
 const userMenuItems = [
+    // 1. 概览 - 首页入口
     { key: '1', path: '/', icon: <AreaChartOutlined />, label: '概览' },
+    
+    // 2. 基础配置
+    { key: '2', path: '/datasource', icon: <PieChartOutlined />, label: '数据源' },
+    
+    // 3. 告警相关功能
     {
-        key: '2',
+        key: '3',
         icon: <BellOutlined />,
         label: '告警管理',
         children: [
-            { key: '2-1', path: '/ruleGroup', label: '告警规则' },
-            { key: '2-5', path: '/tmplType/Metrics/group', label: '规则模版' },
-            { key: '2-6', path: '/subscribes', label: '告警订阅' }
+            { key: '3-1', path: '/ruleGroup', label: '告警规则' },
+            { key: '3-2', path: '/tmplType/Metrics/group', label: '规则模版' },
+            { key: '3-3', path: '/subscribes', label: '告警订阅' }
         ]
     },
-    { key: '12', path: '/faultCenter', icon: <ExceptionOutlined />, label: '故障中心' },
+    { key: '4', path: '/faultCenter', icon: <ExceptionOutlined />, label: '故障中心' },
     {
-        key: '3',
+        key: '5',
         icon: <NotificationOutlined />,
         label: '通知管理',
         children: [
-            { key: '3-1', path: '/noticeObjects', label: '通知对象' },
-            { key: '3-2', path: '/noticeTemplate', label: '通知模版' },
-            { key: '3-3', path: '/noticeRecords', label: '通知记录' }
+            { key: '5-1', path: '/noticeObjects', label: '通知对象' },
+            { key: '5-2', path: '/noticeTemplate', label: '通知模版' },
+            { key: '5-3', path: '/noticeRecords', label: '通知记录' }
         ]
     },
+    
+    // 4. 运营管理
     {
-        key: '4',
+        key: '6',
         icon: <CalendarOutlined />,
         label: '值班管理',
         children: [
-            { key: '4-1', path: '/dutyManage', label: '值班日程' }
+            { key: '6-1', path: '/dutyManage', label: '值班日程' }
         ]
     },
+    
+    // 5. 监控分析
     {
-        key: '11',
+        key: '7',
         icon: <ApiOutlined />,
         label: '网络分析',
         children: [
-            { key: '11-1', path: '/probing', label: '拨测任务' },
-            { key: '11-2', path: '/onceProbing', label: '及时拨测' }
+            { key: '7-1', path: '/probing', label: '拨测任务' },
+            { key: '7-2', path: '/onceProbing', label: '及时拨测' }
         ]
     },
-    { key: '6', path: '/datasource', icon: <PieChartOutlined />, label: '数据源' },
-    { key: '13', path: '/exporterMonitor', icon: <HeartOutlined />, label: 'Exporter 巡检' },
-    { key: '8', path: '/folders', icon: <DashboardOutlined />, label: '仪表盘' }
+    { key: '8', path: '/exporterMonitor', icon: <HeartOutlined />, label: 'Exporter 巡检' },
+    
+    // 6. 可视化
+    { key: '9', path: '/folders', icon: <DashboardOutlined />, label: '仪表盘' }
 ];
 
 export const ComponentSider = () => {
@@ -254,20 +281,6 @@ export const ComponentSider = () => {
         return localStorage.getItem("TenantName")
     }
 
-    const changeTenant = (c) => {
-        localStorage.setItem("TenantIndex", c.key)
-        if (c.item.props.name) {
-            localStorage.setItem("TenantName", c.item.props.name)
-        }
-        if (c.item.props.value) {
-            localStorage.setItem("TenantID", c.item.props.value)
-        }
-
-        setSelectedMenuKey('1')
-        navigate('/')
-        window.location.reload();
-    }
-
     if (loading || !getTenantStatus) {
         return (
             <div
@@ -302,73 +315,63 @@ export const ComponentSider = () => {
             }}
             theme="light"
         >
-            {/* 顶部Logo和租户选择区域 */}
-            <div style={{
-                padding: '16px 16px 0',
-                position: 'sticky',
-                top: 0,
-                zIndex: 1,
-            }}>
+            {/* 顶部Logo和租户选择区域 - 显示在标记位置 */}
+            <div className="logo-container">
+                <img
+                    src={logoIcon || "/placeholder.svg"}
+                    alt="WatchAlert Logo"
+                />
+                {/* 租户选择器 - 移动到logo容器内，显示在标记2的位置（logo下方） */}
                 <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: 16,
-                    marginTop: '-70px',
+                    position: 'absolute',
+                    top: '65px',
+                    left: '18px',
+                    right: '18px',
+                    zIndex: 1,
                 }}>
-                    <img
-                        src={logoIcon || "/placeholder.svg"}
-                        alt="WatchAlert Logo"
-                        style={{ width: "160px", height: "140px", borderRadius: "8px" }}
-                    />
+                    <Dropdown menu={{ items: tenantList.map((item) => ({
+                        key: item.index,
+                        label: item.label,
+                        onClick: () => {
+                            localStorage.setItem("TenantIndex", item.index)
+                            localStorage.setItem("TenantName", item.label)
+                            localStorage.setItem("TenantID", item.value)
+                            setSelectedMenuKey('1')
+                            navigate('/')
+                            window.location.reload();
+                        }
+                    })) }} trigger={["click"]} placement="bottomLeft">
+                        <div className="tenant-selector">
+                            <TeamOutlined style={{color: '#333', fontSize: '14px', marginRight: '8px'}}/>
+                            <Typography.Text
+                                style={{color: '#333', fontSize: '14px', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis'}}>
+                                {getTenantName()}
+                            </Typography.Text>
+                            <DownOutlined style={{color: '#333', fontSize: '12px'}}/>
+                        </div>
+                    </Dropdown>
                 </div>
 
-                <Dropdown menu={{ items: tenantList.map((item) => ({
-                    key: item.index,
-                    label: item.label,
-                    onClick: () => changeTenant({ key: item.index, item: { props: { name: item.label, value: item.value } } })
-                })) }} trigger={["click"]} placement="bottomLeft">
-                    <div style={{
-                        display: 'flex',
-                        marginTop: '-40px',
-                        alignItems: 'center',
-                        padding: '8px 12px',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        background: '#f5f5f5',
-                        marginBottom: '16px',
-                    }}>
-                        <TeamOutlined style={{color: '#333', fontSize: '14px', marginRight: '8px'}}/>
-                        <Typography.Text
-                            style={{color: '#333', fontSize: '14px', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis'}}>
-                            {getTenantName()}
-                        </Typography.Text>
-                        <DownOutlined style={{color: '#333', fontSize: '12px'}}/>
-                    </div>
-                </Dropdown>
-            </div>
-
-            <Divider style={{margin: '0', background: '#f0f0f0'}}/>
-
-            {/* 主内容，预留底部空间 */}
-            <div
-                style={{
-                    textAlign:'left',
-                    alignItems: 'flex-start',
+                {/* 菜单栏 - 移动到logo容器内，显示在标记2的位置（租户选择器下方） */}
+                <div style={{
+                    position: 'absolute',
+                    top: '110px',
+                    left: '0',
+                    right: '0',
+                    bottom: '80px',
+                    zIndex: 1,
                     overflowY: 'auto',
-                    flex: 1,
-                    height: '76vh',
-                    paddingBottom: 70, // 预留底部空间
-                }}
-            >
-                <Menu
-                    theme="light"
-                    mode="inline"
-                    selectedKeys={[selectedMenuKey]}
-                    style={{ background: 'transparent'}}
-                    items={convertMenuItems(userInfo?.role === 'admin' ? adminMenuItems : userMenuItems)}
-                    onClick={handleMenuClick}
-                />
+                    overflowX: 'hidden',
+                }}>
+                    <Menu
+                        theme="light"
+                        mode="inline"
+                        selectedKeys={[selectedMenuKey]}
+                        style={{ background: 'transparent', border: 'none'}}
+                        items={convertMenuItems(userInfo?.role === 'admin' ? adminMenuItems : userMenuItems)}
+                        onClick={handleMenuClick}
+                    />
+                </div>
             </div>
 
             {/* 绝对定位底部用户信息 */}
