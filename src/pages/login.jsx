@@ -151,7 +151,7 @@ export const Login = () => {
                         className="text-center space-y-4"
                     >
                         <h2 className="text-4xl tracking-wide font-bold text-gray-800 mb-2">
-                        WatchAlert 告警引擎
+                        AlertHub 告警引擎
                         </h2>
                         <p className="text-gray-600 max-w-md text-lg leading-relaxed">
                             事件驱动运维,数据辅助决策。
@@ -193,7 +193,7 @@ export const Login = () => {
                     <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
                         欢迎回来
                     </h1>
-                    <p className="text-gray-600 mb-8 text-base">请登录以继续使用 WatchAlert</p>
+                    <p className="text-gray-600 mb-8 text-base">请登录以继续使用 AlertHub</p>
                     {!showOidcButtons ? (
                             <div>
                                 <form onSubmit={onFinish} className="space-y-5">
