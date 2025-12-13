@@ -45,12 +45,10 @@ export const LabelSelector = ({ datasourceId, labels, onLabelsChange }) => {
             } else if (response?.data && Array.isArray(response.data)) {
                 setAvailableKeys(response.data);
             } else {
-                console.warn('标签键响应格式异常:', response);
                 setAvailableKeys([]);
             }
         } catch (error) {
             message.error(`加载标签键失败: ${error.message}`);
-            console.error('加载标签键出错:', error);
             setAvailableKeys([]);
         } finally {
             setLoadingKeys(false);
@@ -118,7 +116,6 @@ export const LabelSelector = ({ datasourceId, labels, onLabelsChange }) => {
             } else if (response?.data && Array.isArray(response.data)) {
                 values = response.data;
             } else {
-                console.warn('标签值响应格式异常:', response);
                 values = [];
             }
 
@@ -129,7 +126,6 @@ export const LabelSelector = ({ datasourceId, labels, onLabelsChange }) => {
             updateLabelRowValues(rowId, values);
         } catch (error) {
             message.error(`加载标签 '${labelKey}' 的值失败: ${error.message}`);
-            console.error(`加载标签值出错 ${labelKey}:`, error);
             updateLabelRowValues(rowId, []);
         } finally {
             setLoadingValues(prev => {

@@ -1,7 +1,6 @@
-import React from 'react';
-import { Select, Button, Spin } from 'antd';
+import React, { useCallback } from 'react';
+import { Select, Button, Spin, Empty } from 'antd';
 import {
-    ArrowLeftOutlined,
     PlusOutlined,
     ReloadOutlined,
     SearchOutlined,
@@ -10,6 +9,7 @@ import {
 } from '@ant-design/icons';
 import { useMetricsExplorer } from './components/useMetricsExplorer';
 import { MetricsSearch } from './components/MetricsSearch';
+import { MetricChart } from './components/MetricChart';
 import './index.css';
 
 const { Option } = Select;
@@ -43,19 +43,24 @@ export const MetricsExplorer = () => {
         loadingMetrics,
         handleSearchChange,
         
+        // 图表数据相关
+        chartData,
+        querying,
+        metricsToRender,
+        handleLazyLoad,
+        
         // 操作
         handleQuery,
         handleRefresh
     } = useMetricsExplorer();
 
+    // 处理图表可见性变化（懒加载触发）
+    const handleChartVisible = useCallback((metricName) => {
+        handleLazyLoad(metricName);
+    }, [handleLazyLoad]);
+
     return (
         <div className="metrics-explorer">
-            {/* 标题栏 */}
-            <div className="metrics-explorer__title-bar">
-                <ArrowLeftOutlined className="metrics-explorer__back-icon" />
-                <h2 className="metrics-explorer__title">指标浏览器</h2>
-            </div>
-
             {/* 统一的工具栏 - 扁平化布局 */}
             <div className="metrics-explorer__toolbar">
                 {/* 数据源选择 */}
@@ -202,13 +207,51 @@ export const MetricsExplorer = () => {
 
             {/* 查询结果区域 */}
             <div className="metrics-explorer__results">
-                <div className="metrics-explorer__results-placeholder">
-                    <p>请输入搜索条件或选择标签来查看指标图表</p>
-                    <p className="metrics-explorer__results-hint">
-                        默认不加载所有指标,以避免性能问题
-                    </p>
+                {metricsToRender.length === 0 ? (
+                    <div className="metrics-explorer__results-placeholder">
+                        <Empty
+                            image={Empty.PRESENTED_IMAGE_SIMPLE}
+                            description={
+                                <div>
+                                    <p>请输入搜索条件来查看指标图表</p>
+                                    <p className="metrics-explorer__results-hint">
+                                        搜索指标名称后，匹配的指标将自动渲染图表
+                                    </p>
+                                </div>
+                            }
+                        />
                     </div>
-                </div>
+                ) : (
+                    <div className="metrics-explorer__charts-grid">
+                        {metricsToRender.map((metricName) => {
+                            const chartInfo = chartData.get(metricName);
+                            return (
+                                <div 
+                                    key={metricName} 
+                                    className="metrics-explorer__chart-wrapper"
+                                    data-metric-name={metricName}
+                                >
+                                    <MetricChart
+                                        metricName={metricName}
+                                        data={chartInfo?.data || []}
+                                        loading={chartInfo?.loading || false}
+                                        error={chartInfo?.error || null}
+                                        onVisible={() => handleChartVisible(metricName)}
+                                    />
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+                
+                {/* 查询状态提示 */}
+                {querying && metricsToRender.length > 0 && (
+                    <div className="metrics-explorer__query-status">
+                        <Spin size="small" />
+                        <span>正在查询指标数据...</span>
+                    </div>
+                )}
+            </div>
                         </div>
     );
 };
