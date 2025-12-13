@@ -1,0 +1,25 @@
+/* 指标搜索区域 - 与页面样式保持一致 */
+.metrics-explorer__search-section {
+  padding: 16px 24px;
+  background: transparent;
+  border-bottom: 1px solid #f0f0f0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.metrics-explorer__search-label {
+  color: rgba(0, 0, 0, 0.88);
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.metrics-explorer__search-input {
+  width: 100%;
+  max-width: 100%;
+}
+
+.metrics-explorer__search-input .ant-input-wrapper {
+  width: 100%;
+}
+
