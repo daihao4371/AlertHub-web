@@ -124,12 +124,68 @@ export const AlertCurrentEvent = (props) => {
         P2: "#b0e1fb",
     }
 
+    // 状态映射配置，包含文本和样式信息
     const statusMap = {
-        "pre_alert": { color: "#ffe465", text: "预告警" },
-        "alerting": { color: "red", text: "告警中" },
-        "silenced": { color: "grey", text: "静默中" },
-        "pending_recovery": { color: "orange", text: "待恢复" },
-        "recovered": { color: "green", text: "已恢复" },
+        "pre_alert": { 
+            text: "预告警",
+            style: {
+                background: "linear-gradient(135deg, #ffd666 0%, #ffc53d 100%)",
+                border: "none",
+                fontWeight: "500",
+                boxShadow: "0 2px 8px rgba(255, 197, 61, 0.3)",
+                padding: "2px 12px",
+                fontSize: "12px",
+                color: "#fff"
+            }
+        },
+        "alerting": { 
+            text: "告警中",
+            style: {
+                background: "linear-gradient(135deg, #ff7875 0%, #ff4d4f 100%)",
+                border: "none",
+                fontWeight: "500",
+                boxShadow: "0 2px 8px rgba(255, 77, 79, 0.3)",
+                padding: "2px 12px",
+                fontSize: "12px",
+                color: "#fff"
+            }
+        },
+        "silenced": { 
+            text: "静默中",
+            style: {
+                background: "linear-gradient(135deg, #bfbfbf 0%, #8c8c8c 100%)",
+                border: "none",
+                fontWeight: "500",
+                boxShadow: "0 2px 8px rgba(140, 140, 140, 0.3)",
+                padding: "2px 12px",
+                fontSize: "12px",
+                color: "#fff"
+            }
+        },
+        "pending_recovery": { 
+            text: "待恢复",
+            style: {
+                background: "linear-gradient(135deg, #ffb84d 0%, #ff9800 100%)",
+                border: "none",
+                fontWeight: "500",
+                boxShadow: "0 2px 8px rgba(255, 152, 0, 0.3)",
+                padding: "2px 12px",
+                fontSize: "12px",
+                color: "#fff"
+            }
+        },
+        "recovered": { 
+            text: "已恢复",
+            style: {
+                background: "linear-gradient(135deg, #73d13d 0%, #52c41a 100%)",
+                border: "none",
+                fontWeight: "500",
+                boxShadow: "0 2px 8px rgba(82, 196, 26, 0.3)",
+                padding: "2px 12px",
+                fontSize: "12px",
+                color: "#fff"
+            }
+        },
     }
 
     const rowSelection = {
@@ -331,6 +387,7 @@ export const AlertCurrentEvent = (props) => {
                 return (
                     <div>
                         {(text === "alerting" && record.confirmState?.confirmUsername) ? (
+                            // 处理中状态：使用蓝色渐变样式
                             <Tag style={{
                                 background:"linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
                                 border: "none",
@@ -343,13 +400,15 @@ export const AlertCurrentEvent = (props) => {
                                 处理中
                             </Tag>
                         ) : (text === "silenced" && record.silenceInfo?.remainingTime) ? (
+                            // 静默中状态：显示剩余时间
                             <Tooltip title={record.silenceInfo?.comment || "静默中"}>
-                                <Tag color={status.color}>
+                                <Tag style={status.style}>
                                     {status.text} {formatSilenceTime(record.silenceInfo?.remainingTime)}
                                 </Tag>
                             </Tooltip>
                         ) : (
-                            <Tag color={status.color}>{status.text}</Tag>
+                            // 其他状态：使用对应的渐变样式
+                            <Tag style={status.style}>{status.text}</Tag>
                         )}
                     </div>
                 )
@@ -361,6 +420,7 @@ export const AlertCurrentEvent = (props) => {
             key: "confirmState",
             width: "100px",
             render: (text) => {
+                const displayName = text?.confirmUsernameRealName || text?.confirmUsername || "未认领"
                 return (
                     <Tag
                         style={{
@@ -373,7 +433,7 @@ export const AlertCurrentEvent = (props) => {
                             gap: "4px",
                         }}
                     >
-                        {text.confirmUsername || "未认领"}
+                        {displayName}
                     </Tag>
                 )
             },
@@ -473,8 +533,11 @@ export const AlertCurrentEvent = (props) => {
 
     const handleSilenceModalClose = () => {
         setSilenceVisible(false);
-        // 静默操作完成后刷新列表
-        handleCurrentEventList(currentPagination.pageIndex, currentPagination.pageSize);
+        // 延迟刷新列表，确保后端静默操作已完全生效
+        // 静默操作可能需要更长时间才能在后端生效，所以延迟时间稍长
+        setTimeout(() => {
+            handleCurrentEventList(currentPagination.pageIndex, currentPagination.pageSize);
+        }, 500);
     };
 
     const showDrawer = (record) => {
@@ -719,7 +782,10 @@ export const AlertCurrentEvent = (props) => {
                     await ProcessAlertEvent(params)
                     message.success(`成功认领 ${selectedRowKeys.length} 个事件`)
                     setSelectedRowKeys([]) // 清空选择
-                    handleCurrentEventList(currentPagination.pageIndex, currentPagination.pageSize) // 刷新列表
+                    // 延迟刷新，确保后端数据已更新
+                    setTimeout(() => {
+                        handleCurrentEventList(currentPagination.pageIndex, currentPagination.pageSize)
+                    }, 300)
                 } catch (error) {
                     message.error("认领失败: " + error.message)
                 } finally {
@@ -747,7 +813,14 @@ export const AlertCurrentEvent = (props) => {
                     }
                     await ProcessAlertEvent(params)
                     message.success("认领成功")
-                    handleCurrentEventList(currentPagination.pageIndex, currentPagination.pageSize)
+                    // 如果当前打开了抽屉且是认领的事件，关闭抽屉以便用户看到列表更新
+                    if (drawerOpen && selectedEvent && selectedEvent.fingerprint === record.fingerprint) {
+                        setDrawerOpen(false)
+                    }
+                    // 延迟刷新列表，确保后端数据已更新
+                    setTimeout(() => {
+                        handleCurrentEventList(currentPagination.pageIndex, currentPagination.pageSize)
+                    }, 300)
                 } catch (error) {
                     message.error("认领失败: " + error.message)
                 } finally {
@@ -1308,7 +1381,8 @@ export const AlertCurrentEvent = (props) => {
                                     label: '事件状态',
                                     children: (
                                         <>
-                                            {(selectedEvent.status === "alerting" && selectedEvent.confirmState?.confirmUsername) && (
+                                            {(selectedEvent.status === "alerting" && selectedEvent.confirmState?.confirmUsername) ? (
+                                                // 处理中状态：使用蓝色渐变样式
                                                 <Tag style={{
                                                     background:"linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
                                                     border: "none",
@@ -1320,9 +1394,12 @@ export const AlertCurrentEvent = (props) => {
                                                 }}>
                                                     处理中
                                                 </Tag>
-                                            ) ||
-                                                <Tag color={statusMap[selectedEvent.status].color}>{statusMap[selectedEvent.status].text}</Tag>
-                                            }
+                                            ) : (
+                                                // 其他状态：使用对应的渐变样式
+                                                <Tag style={statusMap[selectedEvent.status].style}>
+                                                    {statusMap[selectedEvent.status].text}
+                                                </Tag>
+                                            )}
                                         </>
                                     ),
                                 },
@@ -1367,7 +1444,7 @@ export const AlertCurrentEvent = (props) => {
                                                 gap: '4px',
                                             }}
                                         >
-                                            {RenderTruncatedText(selectedEvent?.confirmState?.confirmUsername || '未认领')}
+                                            {RenderTruncatedText(selectedEvent?.confirmState?.confirmUsernameRealName || selectedEvent?.confirmState?.confirmUsername || '未认领')}
                                         </Tag>
                                     ),
                                 },

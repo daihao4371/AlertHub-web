@@ -6,7 +6,6 @@ import {
     Input,
     Radio,
     Tag,
-    Dropdown,
     message,
     Modal,
     Drawer,
@@ -14,7 +13,8 @@ import {
     Tooltip,
     Space,
     Switch,
-    Popconfirm
+    Popconfirm,
+    Dropdown
 } from "antd"
 import {Link, useNavigate} from "react-router-dom"
 import { useParams } from "react-router-dom"
@@ -32,14 +32,14 @@ import { ReactComponent as CkImg } from "./img/clickhouse.svg"
 import { getDatasourceList } from "../../../api/datasource"
 import {
     DeleteOutlined,
-    ExportOutlined,
-    DownOutlined,
     ImportOutlined,
     EditOutlined,
     CopyOutlined, 
     PlusOutlined,
+    DownOutlined,
     CheckSquareOutlined,
-    CloseSquareOutlined
+    CloseSquareOutlined,
+    ExportOutlined
 } from "@ant-design/icons"
 import {FaultCenterList} from "../../../api/faultCenter";
 import VSCodeEditor from "../../../utils/VSCodeEditor";
@@ -48,6 +48,7 @@ import {HandleApiError, HandleShowTotal} from "../../../utils/lib";
 import {useAppContext} from "../../../context/RuleContext";
 import { TableWithPagination } from '../../../utils/TableWithPagination';
 import { RuleGroupSidebar } from './RuleGroupSidebar';
+import './index.css';
 
 export const AlertRuleList = () => {
     const { setCloneAlertRule } = useAppContext()
@@ -82,6 +83,28 @@ export const AlertRuleList = () => {
             setSelectedRowKeys(selectedKeys)
         },
     }
+
+    // 告警等级映射配置，包含文本和样式类名
+    const SEVERITY_MAP = {
+        P0: { 
+            text: "P0",
+            className: "severity-tag severity-tag-p0"
+        },
+        P1: { 
+            text: "P1",
+            className: "severity-tag severity-tag-p1"
+        },
+        P2: { 
+            text: "P2",
+            className: "severity-tag severity-tag-p2"
+        },
+        // 其他未知等级使用紫色渐变
+        default: { 
+            text: "Unknown",
+            className: "severity-tag severity-tag-default"
+        },
+    }
+
     const columns = [
         {
             title: "规则名称",
@@ -131,11 +154,14 @@ export const AlertRuleList = () => {
                 const severities = GetSeverity(record); // 获取 severity 数组
                 return (
                     <span>
-                      {severities.map((severity, index) => (
-                          <Tag color={severity === "P0" ? "red" : severity === "P1" ? "gold" : severity === "P2" ? "cyan" : "purple"} key={index}>
-                              {severity}
-                          </Tag>
-                      ))}
+                      {severities.map((severity, index) => {
+                          const severityInfo = SEVERITY_MAP[severity] || SEVERITY_MAP.default;
+                          return (
+                              <Tag className={severityInfo.className} key={index}>
+                                  {severityInfo === SEVERITY_MAP.default ? severity : severityInfo.text}
+                              </Tag>
+                          );
+                      })}
                     </span>
                 );
             }
@@ -211,7 +237,8 @@ export const AlertRuleList = () => {
             dataIndex: "updateBy",
             key: "updateBy",
             width: "auto",
-            render: (text) => {
+            render: (text, record) => {
+                const displayName = record?.updateByRealName || text || "未知用户"
                 return <Tag style={{
                                 borderRadius: "12px",
                                 padding: "0 10px",
@@ -222,7 +249,7 @@ export const AlertRuleList = () => {
                                 gap: "4px",
                             }}
                         >
-                            {text || "未知用户"}
+                            {displayName}
                         </Tag>
             },
         },
@@ -395,7 +422,6 @@ export const AlertRuleList = () => {
             })
 
             setList(res.data.list)
-            setSelectedRowKeys([])
         } catch (error) {
             console.error(error)
         }
@@ -420,7 +446,6 @@ export const AlertRuleList = () => {
             })
 
             setList(res.data.list)
-            setSelectedRowKeys([])
         } catch (error) {
             console.error(error)
         }
@@ -469,6 +494,7 @@ export const AlertRuleList = () => {
             return
         }
 
+        const selectedCount = selectedRowKeys.length
         const deletePromises = selectedRowKeys.map((key) => {
             const record = list.find((item) => item.ruleId === key)
             if (record) {
@@ -480,9 +506,14 @@ export const AlertRuleList = () => {
             return Promise.resolve()
         })
 
-        await Promise.all(deletePromises)
-        setSelectedRowKeys([])
-        handleList(id, pagination.index, pagination.size)
+        try {
+            await Promise.all(deletePromises)
+            setSelectedRowKeys([])
+            handleList(id, pagination.index, pagination.size)
+            message.success(`成功删除 ${selectedCount} 条规则`)
+        } catch (error) {
+            HandleApiError(error)
+        }
     }
 
     // 批量导出
@@ -510,14 +541,15 @@ export const AlertRuleList = () => {
         message.success(`已导出 ${selectedRules.length} 条规则`)
     }
 
-    // 批量改变状态
+    // 批量改变状态（启用/禁用）
     const handleBatchChangeStatus = async (status) => {
         if (selectedRowKeys.length === 0) {
-            message.warning("请先选择要启用的规则")
+            message.warning(`请先选择要${status ? '启用' : '禁用'}的规则`)
             return
         }
 
-        const enablePromises = selectedRowKeys.map((key) => {
+        const selectedCount = selectedRowKeys.length
+        const changeStatusPromises = selectedRowKeys.map((key) => {
             const record = list.find((item) => item.ruleId === key)
             if (record) {
                 return RuleChangeStatus({
@@ -526,14 +558,80 @@ export const AlertRuleList = () => {
                     ruleId: record.ruleId,
                     faultCenterId: record.faultCenterId,
                     enabled: status,
-                });
+                })
             }
             return Promise.resolve()
         })
 
-        await Promise.all(enablePromises)
-        setSelectedRowKeys([])
-        handleList(id, pagination.index, pagination.size)
+        try {
+            await Promise.all(changeStatusPromises)
+            setSelectedRowKeys([])
+            handleList(id, pagination.index, pagination.size)
+            message.success(`成功${status ? '启用' : '禁用'} ${selectedCount} 条规则`)
+        } catch (error) {
+            HandleApiError(error)
+        }
+    }
+
+    // 批量操作菜单
+    const batchOperationMenu = {
+        items: [
+            {
+                key: "batchEnable",
+                label: "批量启用",
+                icon: <CheckSquareOutlined />,
+                onClick: () => {
+                    if (selectedRowKeys.length > 0) {
+                        Modal.confirm({
+                            title: "确认启用",
+                            content: `确定要启用选中的 ${selectedRowKeys.length} 条规则吗？`,
+                            onOk: () => handleBatchChangeStatus(true),
+                        })
+                    } else {
+                        message.warning("请先选择要启用的规则")
+                    }
+                },
+            },
+            {
+                key: "batchDisable",
+                label: "批量禁用",
+                icon: <CloseSquareOutlined />,
+                onClick: () => {
+                    if (selectedRowKeys.length > 0) {
+                        Modal.confirm({
+                            title: "确认禁用",
+                            content: `确定要禁用选中的 ${selectedRowKeys.length} 条规则吗？`,
+                            onOk: () => handleBatchChangeStatus(false),
+                        })
+                    } else {
+                        message.warning("请先选择要禁用的规则")
+                    }
+                },
+            },
+            {
+                key: "batchDelete",
+                label: "批量删除",
+                icon: <DeleteOutlined />,
+                danger: true,
+                onClick: () => {
+                    if (selectedRowKeys.length > 0) {
+                        Modal.confirm({
+                            title: "确认删除",
+                            content: `确定要删除选中的 ${selectedRowKeys.length} 条规则吗？`,
+                            onOk: handleBatchDelete,
+                        })
+                    } else {
+                        message.warning("请先选择要删除的规则")
+                    }
+                },
+            },
+            {
+                key: "batchExport",
+                label: "批量导出",
+                icon: <ExportOutlined />,
+                onClick: handleBatchExport,
+            },
+        ],
     }
 
     // 获取故障中心列表
@@ -611,66 +709,6 @@ export const AlertRuleList = () => {
         }
     }
 
-    // 批量操作菜单
-    const batchOperationMenu = {
-        items: [
-            {
-                key: "batchDelete",
-                label: "批量删除",
-                icon: <DeleteOutlined />,
-                danger: true,
-                onClick: () => {
-                    if (selectedRowKeys.length > 0) {
-                        Modal.confirm({
-                            title: "确认删除",
-                            content: `确定要删除选中的 ${selectedRowKeys.length} 条规则吗？`,
-                            onOk: handleBatchDelete,
-                        })
-                    } else {
-                        message.warning("请先选择要删除的规则")
-                    }
-                },
-            },
-            {
-                key: "batchExport",
-                label: "批量导出",
-                icon: <ExportOutlined />,
-                onClick: handleBatchExport,
-            },
-            {
-                key: "batchEnable",
-                label: "批量启用",
-                icon: <CheckSquareOutlined />,
-                onClick: () => {
-                    if (selectedRowKeys.length > 0) {
-                        Modal.confirm({
-                            title: "确认启用",
-                            content: `确定要启用选中的 ${selectedRowKeys.length} 条规则吗？`,
-                            onOk: () => handleBatchChangeStatus(true),
-                        })
-                    } else {
-                        message.warning("请先选择要启用的规则")
-                    }
-                },
-            },
-            {
-                key: "batchDisable",
-                label: "批量禁用",
-                icon: <CloseSquareOutlined />,
-                onClick: () => {
-                    if (selectedRowKeys.length > 0) {
-                        Modal.confirm({
-                            title: "确认禁用",
-                            content: `确定要禁用选中的 ${selectedRowKeys.length} 条规则吗？`,
-                            onOk: () => handleBatchChangeStatus(false),
-                        })
-                    } else {
-                        message.warning("请先选择要禁用的规则")
-                    }
-                },
-            }
-        ],
-    }
 
     return (
         <div style={{ display: 'flex' }}>
@@ -770,7 +808,8 @@ export const AlertRuleList = () => {
                     handleList(id, current, pageSize);
                 }}
                 scrollY={'calc(100vh - 300px)'}  // 动态计算表格高度
-                rowKey={record => record.id}
+                rowKey={record => record.ruleId}
+                rowSelection={rowSelection}
                 showTotal={HandleShowTotal}
             />
 

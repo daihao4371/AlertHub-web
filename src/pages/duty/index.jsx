@@ -7,7 +7,17 @@ import { deleteDutyManager, getDutyManagerList } from '../../api/duty';
 import {Link} from "react-router-dom";
 import { copyToClipboard } from "../../utils/copyToClipboard";
 import {HandleShowTotal} from "../../utils/lib";
-import {Users} from "lucide-react";
+
+// 统一的 Tag 样式常量
+const TAG_STYLE = {
+    borderRadius: "12px",
+    padding: "0 10px",
+    fontSize: "12px",
+    fontWeight: "500",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+};
 
 export const DutyManage = () => {
     const [visible, setVisible] = useState(false);
@@ -64,7 +74,8 @@ export const DutyManage = () => {
             key: 'manager',
             width: 'auto',
             render: (text) => {
-                return <span>{text.username}</span>;
+                const displayName = text?.realName || text?.username || '';
+                return <span>{displayName}</span>;
             },
         },
         {
@@ -74,35 +85,18 @@ export const DutyManage = () => {
             width: 'auto',
             render: (text) => {
                 if (!text || text.length === 0) {
-                    return <Tag style={{
-                                    borderRadius: "12px",
-                                    padding: "0 10px",
-                                    fontSize: "12px",
-                                    fontWeight: "500",
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: "4px",
-                                }}>
-                                    暂无
-                                </Tag>;
+                    return <Tag style={TAG_STYLE}>暂无</Tag>;
                 }
                 return (
                     <>
-                        {text.map((user, index) => (
-                            <Tooltip title={user.username} key={index}>
-                                <Tag style={{
-                                    borderRadius: "12px",
-                                    padding: "0 10px",
-                                    fontSize: "12px",
-                                    fontWeight: "500",
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: "4px",
-                                }}>
-                                    {user.username}
-                                </Tag>
-                            </Tooltip>
-                        ))}
+                        {text.map((user, index) => {
+                            const displayName = user?.realName || user?.username || '';
+                            return (
+                                <Tooltip title={displayName} key={index}>
+                                    <Tag style={TAG_STYLE}>{displayName}</Tag>
+                                </Tooltip>
+                            );
+                        })}
                     </>
                 );
             },
@@ -138,19 +132,9 @@ export const DutyManage = () => {
             dataIndex: "updateBy",
             key: "updateBy",
             width: "auto",
-            render: (text) => {
-                return <Tag style={{
-                                borderRadius: "12px",
-                                padding: "0 10px",
-                                fontSize: "12px",
-                                fontWeight: "500",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "4px",
-                            }}
-                        >
-                            {text || "未知用户"}
-                        </Tag>
+            render: (text, record) => {
+                const displayName = record?.updateByRealName || text || "未知用户";
+                return <Tag style={TAG_STYLE}>{displayName}</Tag>;
             },
         },
         {
@@ -197,11 +181,6 @@ export const DutyManage = () => {
             window.removeEventListener('resize', handleResize);
         };
     }, []);
-
-    const handleCopy = (text) => {
-        navigator.clipboard.writeText(text);
-        message.success('已复制到剪贴板');
-    };
 
     useEffect(() => {
         handleList();
@@ -259,9 +238,6 @@ export const DutyManage = () => {
                 <CreateDutyModal visible={visible} onClose={handleModalClose} handleList={handleList} type="create" />
 
                 <CreateDutyModal visible={updateVisible} onClose={handleUpdateModalClose} handleList={handleList} selectedRow={selectedRow} type="update" />
-
-                {/*<CalendarApp visible={calendarVisible} onClose={handleCalendarModalClose} name={calendarName} tenantId={tenantId} dutyId={calendarDutyId} handleList={handleList} />*/}
-
             </div>
 
             <div style={{ overflowX: 'auto', marginTop: 10 }}>

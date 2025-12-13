@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import {Table, Button, Tag, Input, Popconfirm, Radio, message, Progress, Tooltip, Space, Modal, Switch} from 'antd';
-import {ProbingChangeState, ProbingDelete, ProbingList, ProbingSearch} from "../../api/probing";
+import {Table, Button, Tag, Input, Popconfirm, Radio, message, Progress, Tooltip, Space, Switch} from 'antd';
+import {ProbingChangeState, ProbingDelete, ProbingList} from "../../api/probing";
 import {Link, useNavigate} from "react-router-dom";
 import moment from 'moment';
 import {CopyOutlined, DeleteOutlined, EditOutlined, PlusOutlined, ReloadOutlined} from "@ant-design/icons";
@@ -8,6 +8,16 @@ import {DetailProbingHistory} from "./detail";
 import {HandleApiError, HandleShowTotal} from "../../utils/lib";
 import {useAppContext} from "../../context/RuleContext";
 
+// 统一的 Tag 样式常量
+const TAG_STYLE = {
+    borderRadius: "12px",
+    padding: "0 10px",
+    fontSize: "12px",
+    fontWeight: "500",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+};
 
 export const Probing = () => {
     const { setCloneProbeRule } = useAppContext()
@@ -22,17 +32,20 @@ export const Probing = () => {
     const [searchQuery,setSearchQuery] = useState('')
     const [openDetailHistoryModal, setOpenDetailHistoryModal] = useState(false)
     const [selectedRow, setSelectedRow] = useState(null)
-    const HTTPColumns = [
-        {
+    const [loading,setLoading]=useState(true)
+    const [height, setHeight] = useState(window.innerHeight);
+
+    // 公共列定义：任务名称
+    const getTaskNameColumn = () => ({
             title: '任务名称',
             dataIndex: 'name',
             key: 'name',
             width: 'auto',
-            render: (_, record) => (
-                <>{record.ruleName || '-'}</>
-            )
-        },
-        {
+        render: (_, record) => <>{record.ruleName || '-'}</>
+    });
+
+    // 公共列定义：端点
+    const getEndpointColumn = () => ({
             title: '端点',
             key: 'probingEndpointConfig.endpoint',
             width: 'auto',
@@ -53,7 +66,111 @@ export const Probing = () => {
                     </Button>
                 </div>
             ),
+    });
+
+    // 公共列定义：更新时间
+    const getUpdateTimeColumn = () => ({
+            title: "更新时间",
+            dataIndex: "updateAt",
+            key: "updateAt",
+            width: "auto",
+            render: (text) => {
+                const date = new Date(text * 1000)
+                    return (
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span>{date.toLocaleString()}</span>
+                        </div>
+                    )
+            },
+    });
+
+    // 公共列定义：更新人
+    const getUpdateByColumn = () => ({
+            title: "更新人",
+            dataIndex: "updateBy",
+            key: "updateBy",
+            width: "auto",
+        render: (text, record) => {
+            const displayName = record?.updateByRealName || text || "未知用户";
+            return <Tag style={TAG_STYLE}>{displayName}</Tag>
         },
+    });
+
+    // 公共列定义：状态
+    const getStatusColumn = () => ({
+            title: '状态',
+            dataIndex: 'enabled',
+            key: 'enabled',
+            width: "100px",
+            render: (enabled, record) => {
+                const handleStatusChange = async (checked) => {
+                    try {
+                        const params={
+                            tenantId: record.tenantId,
+                            ruleId: record.ruleId,
+                            enabled: checked,
+                        }
+                        await ProbingChangeState(params)
+                        message.success(`状态已更新为: ${checked ? "启用" : "禁用"}`);
+                        handleList(probingType)
+                    } catch (error) {
+                        HandleApiError(error)
+                    }
+                };
+
+                return (
+                    <Switch
+                        checked={enabled}
+                        onChange={handleStatusChange}
+                        checkedChildren="启用"
+                        unCheckedChildren="禁用"
+                        loading={false}
+                    />
+                );
+            },
+    });
+
+    // 公共列定义：操作
+    const getOperationColumn = (listLength) => ({
+            title: '操作',
+            dataIndex: 'operation',
+            fixed: 'right',
+            width: 120,
+            render: (_, record) =>
+            listLength >= 1 ? (
+                    <Space size="middle">
+                        <Link to={`/probing/${record.ruleId}/edit?type=${record.ruleType}`}>
+                            <Button
+                                type="text"
+                                icon={<EditOutlined />}
+                                style={{ color: "#1677ff" }}
+                            />
+                        </Link>
+                        <Tooltip title="克隆">
+                            <Button
+                                type="text"
+                                icon={<CopyOutlined />}
+                                onClick={() => handleClone(record)}
+                                style={{ color: "#615454" }}
+                            />
+                        </Tooltip>
+                        <Tooltip title="删除">
+                            <Popconfirm
+                                title="确定要删除此任务吗?"
+                                onConfirm={() => handleDelete(record)}
+                                okText="确定"
+                                cancelText="取消"
+                                placement="left"
+                            >
+                                <Button type="text" icon={<DeleteOutlined />} style={{ color: "#ff4d4f" }} />
+                            </Popconfirm>
+                        </Tooltip>
+                    </Space>
+                ) : null,
+    });
+    const HTTPColumns = [
+        getTaskNameColumn(),
+        getEndpointColumn(),
         {
             title: '状态码',
             key: 'statusCode',
@@ -78,146 +195,18 @@ export const Probing = () => {
             width: "100px",
             render: (record) => (
                 <>
-                    {record.probingEndpointValues?.pHttp?.latency && record.probingEndpointValues?.pHttp?.latency+"ms" || '-'}
+                    {(record.probingEndpointValues?.pHttp?.latency && record.probingEndpointValues?.pHttp?.latency+"ms") || '-'}
                 </>
             ),
         },
-        {
-            title: "更新时间",
-            dataIndex: "updateAt",
-            key: "updateAt",
-            width: "auto",
-            render: (text) => {
-                const date = new Date(text * 1000)
-                    return (
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                            <span>{date.toLocaleString()}</span>
-                        </div>
-                    )
-            },
-        },
-        {
-            title: "更新人",
-            dataIndex: "updateBy",
-            key: "updateBy",
-            width: "auto",
-            render: (text) => {
-                return <Tag style={{
-                                borderRadius: "12px",
-                                padding: "0 10px",
-                                fontSize: "12px",
-                                fontWeight: "500",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "4px",
-                            }}
-                        >
-                            {text || "未知用户"}
-                        </Tag>
-            },
-        },
-        {
-            title: '状态',
-            dataIndex: 'enabled',
-            key: 'enabled',
-            width: "100px",
-            render: (enabled, record) => {
-                const handleStatusChange = async (checked) => {
-                    try {
-                        const params={
-                            tenantId: record.tenantId,
-                            ruleId: record.ruleId,
-                            enabled: checked,
-                        }
-                        await ProbingChangeState(params)
-                        message.success(`状态已更新为: ${checked ? "启用" : "禁用"}`);
-                        handleList(probingType)
-                    } catch (error) {
-                        HandleApiError(error)
-                    }
-                };
-
-                return (
-                    <Switch
-                        checked={enabled}
-                        onChange={handleStatusChange}
-                        checkedChildren="启用"
-                        unCheckedChildren="禁用"
-                        loading={false}
-                    />
-                );
-            },
-        },
-        {
-            title: '操作',
-            dataIndex: 'operation',
-            fixed: 'right',
-            width: 120,
-            render: (_, record) =>
-                httpMonList.length >= 1 ? (
-                    <Space size="middle">
-                        <Link to={`/probing/${record.ruleId}/edit?type=${record.ruleType}`}>
-                            <Button
-                                type="text"
-                                icon={<EditOutlined />}
-                                style={{ color: "#1677ff" }}
-                            />
-                        </Link>
-                        <Tooltip title="克隆">
-                            <Button
-                                type="text"
-                                icon={<CopyOutlined />}
-                                onClick={() => handleClone(record)}
-                                style={{ color: "#615454" }}
-                            />
-                        </Tooltip>
-                        <Tooltip title="删除">
-                            <Popconfirm
-                                title="确定要删除此任务吗?"
-                                onConfirm={() => handleDelete(record)}
-                                okText="确定"
-                                cancelText="取消"
-                                placement="left"
-                            >
-                                <Button type="text" icon={<DeleteOutlined />} style={{ color: "#ff4d4f" }} />
-                            </Popconfirm>
-                        </Tooltip>
-                    </Space>
-                ) : null,
-        },
+        getUpdateTimeColumn(),
+        getUpdateByColumn(),
+        getStatusColumn(),
+        getOperationColumn(httpMonList.length),
     ]
     const ICMPColumns = [
-        {
-            title: '任务名称',
-            dataIndex: 'name',
-            key: 'name',
-            width: 'auto',
-            render: (_, record) => (
-                <>{record.ruleName || '-'}</>
-            )
-        },
-        {
-            title: '端点',
-            key: 'probingEndpointConfig.endpoint',
-            width: 'auto',
-            render: (record) => (
-                <div style={{display: 'flex', alignItems: 'center'}}>
-                    <Button
-                        type={"text"}
-                        style={{
-                            color: "rgba(22,119,255,0.83)",
-                            fontWeight: "500",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                        }}
-                        onClick={() => handleModalOpen(record)}
-                    >
-                        {record.probingEndpointConfig?.endpoint || '-'}
-                    </Button>
-                </div>
-            ),
-        },
+        getTaskNameColumn(),
+        getEndpointColumn(),
         {
             title: '丢包率',
             key: 'packetLoss',
@@ -240,173 +229,45 @@ export const Probing = () => {
         {
             title: '最短 RT',
             key: 'minRtt',
-            width: 'auto',
+            width: "100px",
             render: (record) => (
                 <>
-                    {record.probingEndpointValues?.pIcmp?.minRtt && record.probingEndpointValues?.pIcmp?.minRtt+"ms" || '-'}
+                    {(record.probingEndpointValues?.pIcmp?.minRtt && record.probingEndpointValues?.pIcmp?.minRtt+"ms") || '-'}
                 </>
             ),
         },
         {
             title: '最长 RTT',
             key: 'maxRtt',
-            width: 'auto',
+            width: "100px",
             render: (record) => (
                 <>
-                    {record.probingEndpointValues?.pIcmp?.maxRtt && record.probingEndpointValues?.pIcmp?.maxRtt+"ms" || '-'}
+                    {(record.probingEndpointValues?.pIcmp?.maxRtt && record.probingEndpointValues?.pIcmp?.maxRtt+"ms") || '-'}
                 </>
             ),
         },
         {
             title: '平均 RTT',
             key: 'avgRtt',
-            width: 'auto',
+            width: "100px",
             render: (record) => (
                 <>
-                    {record.probingEndpointValues?.pIcmp?.avgRtt && record.probingEndpointValues?.pIcmp?.avgRtt+"ms" || '-'}
+                    {(record.probingEndpointValues?.pIcmp?.avgRtt && record.probingEndpointValues?.pIcmp?.avgRtt+"ms") || '-'}
                 </>
             ),
         },
-        {
-            title: "更新时间",
-            dataIndex: "updateAt",
-            key: "updateAt",
-            width: "auto",
-            render: (text) => {
-                const date = new Date(text * 1000)
-                    return (
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                            <span>{date.toLocaleString()}</span>
-                        </div>
-                    )
-            },
-        },
-        {
-            title: "更新人",
-            dataIndex: "updateBy",
-            key: "updateBy",
-            width: "auto",
-            render: (text) => {
-                return <Tag style={{
-                                borderRadius: "12px",
-                                padding: "0 10px",
-                                fontSize: "12px",
-                                fontWeight: "500",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "4px",
-                            }}
-                        >
-                            {text || "未知用户"}
-                        </Tag>
-            },
-        },
-        {
-            title: '状态',
-            dataIndex: 'enabled',
-            key: 'enabled',
-            width: '100px',
-            render: (enabled, record) => {
-                const handleStatusChange = async (checked) => {
-                    try {
-                        const params={
-                            tenantId: record.tenantId,
-                            ruleId: record.ruleId,
-                            enabled: checked,
-                        }
-                        await ProbingChangeState(params)
-                        message.success(`状态已更新为: ${checked ? "启用" : "禁用"}`);
-                        handleList(probingType)
-                    } catch (error) {
-                        HandleApiError(error)
-                    }
-                };
-
-                return (
-                    <Switch
-                        checked={enabled}
-                        onChange={handleStatusChange}
-                        checkedChildren="启用"
-                        unCheckedChildren="禁用"
-                        loading={false}
-                    />
-                );
-            },
-        },
-        {
-            title: '操作',
-            dataIndex: 'operation',
-            fixed: 'right',
-            width: 120,
-            render: (_, record) =>
-                icmpMonList.length >= 1 ? (
-                    <Space size="middle">
-                        <Link to={`/probing/${record.ruleId}/edit?type=${record.ruleType}`}>
-                            <Button
-                                type="text"
-                                icon={<EditOutlined />}
-                                style={{ color: "#1677ff" }}
-                            />
-                        </Link>
-                        <Tooltip title="克隆">
-                            <Button
-                                type="text"
-                                icon={<CopyOutlined />}
-                                onClick={() => handleClone(record)}
-                                style={{ color: "#615454" }}
-                            />
-                        </Tooltip>
-                        <Tooltip title="删除">
-                            <Popconfirm
-                                title="确定要删除此任务吗?"
-                                onConfirm={() => handleDelete(record)}
-                                okText="确定"
-                                cancelText="取消"
-                                placement="left"
-                            >
-                                <Button type="text" icon={<DeleteOutlined />} style={{ color: "#ff4d4f" }} />
-                            </Popconfirm>
-                        </Tooltip>
-                    </Space>
-                ) : null,
-        },
+        getUpdateTimeColumn(),
+        getUpdateByColumn(),
+        getStatusColumn(),
+        getOperationColumn(icmpMonList.length),
     ]
     const TCPColumns = [
-        {
-            title: '任务名称',
-            dataIndex: 'name',
-            key: 'name',
-            width: 'auto',
-            render: (_, record) => (
-                <>{record.ruleName || '-'}</>
-            )
-        },
-        {
-            title: '端点',
-            key: 'probingEndpointConfig.endpoint',
-            width: 'auto',
-            render: (record) => (
-                <div style={{display: 'flex', alignItems: 'center'}}>
-                    <Button
-                        type={"text"}
-                        style={{
-                            color: "rgba(22,119,255,0.83)",
-                            fontWeight: "500",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                        }}
-                        onClick={() => handleModalOpen(record)}
-                    >
-                        {record.probingEndpointConfig?.endpoint || '-'}
-                    </Button>
-                </div>
-            ),
-        },
+        getTaskNameColumn(),
+        getEndpointColumn(),
         {
             title: '探测状态',
             key: 'isSuccessful',
-            width: 'auto',
+            width: "100px",
             render: (record) => {
                 const status = record.probingEndpointValues?.pTcp?.isSuccessful;
                 // 根据状态值设置标签样式和文本
@@ -422,127 +283,20 @@ export const Probing = () => {
         {
             title: '错误信息',
             key: 'errorMessage',
-            width: 'auto',
+            width: "150px",
             render: (record) => (
                 <>
                     {record.probingEndpointValues?.pTcp?.errorMessage || '-'}
                 </>
             ),
         },
-        {
-            title: "更新时间",
-            dataIndex: "updateAt",
-            key: "updateAt",
-            width: "auto",
-            render: (text) => {
-                const date = new Date(text * 1000)
-                    return (
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                            <span>{date.toLocaleString()}</span>
-                        </div>
-                    )
-            },
-        },
-        {
-            title: "更新人",
-            dataIndex: "updateBy",
-            key: "updateBy",
-            width: "auto",
-            render: (text) => {
-                return <Tag style={{
-                                borderRadius: "12px",
-                                padding: "0 10px",
-                                fontSize: "12px",
-                                fontWeight: "500",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "4px",
-                            }}
-                        >
-                            {text || "未知用户"}
-                        </Tag>
-            },
-        },
-        {
-            title: '状态',
-            dataIndex: 'enabled',
-            key: 'enabled',
-            width: '100px',
-            render: (enabled, record) => {
-                const handleStatusChange = async (checked) => {
-                    try {
-                        const params={
-                            tenantId: record.tenantId,
-                            ruleId: record.ruleId,
-                            enabled: checked,
-                        }
-                        await ProbingChangeState(params)
-                        message.success(`状态已更新为: ${checked ? "启用" : "禁用"}`);
-                        handleList(probingType)
-                    } catch (error) {
-                        HandleApiError(error)
-                    }
-                };
-
-                return (
-                    <Switch
-                        checked={enabled}
-                        onChange={handleStatusChange}
-                        checkedChildren="启用"
-                        unCheckedChildren="禁用"
-                        loading={false}
-                    />
-                );
-            },
-        },
-        {
-            title: '操作',
-            dataIndex: 'operation',
-            fixed: 'right',
-            width: 120,
-            render: (_, record) =>
-                tcpMonList.length >= 1 ? (
-                    <Space size="middle">
-                        <Link to={`/probing/${record.ruleId}/edit?type=${record.ruleType}`}>
-                            <Button
-                                type="text"
-                                icon={<EditOutlined />}
-                                style={{ color: "#1677ff" }}
-                            />
-                        </Link>
-                        <Tooltip title="克隆">
-                            <Button
-                                type="text"
-                                icon={<CopyOutlined />}
-                                onClick={() => handleClone(record)}
-                                style={{ color: "#615454" }}
-                            />
-                        </Tooltip>
-                        <Tooltip title="删除">
-                            <Popconfirm
-                                title="确定要删除此任务吗?"
-                                onConfirm={() => handleDelete(record)}
-                                okText="确定"
-                                cancelText="取消"
-                                placement="left"
-                            >
-                                <Button type="text" icon={<DeleteOutlined />} style={{ color: "#ff4d4f" }} />
-                            </Popconfirm>
-                        </Tooltip>
-                    </Space>
-                ) : null,
-        },
+        getUpdateTimeColumn(),
+        getUpdateByColumn(),
+        getStatusColumn(),
+        getOperationColumn(tcpMonList.length),
     ]
     const SSLColumns = [
-        {
-            title: '任务名称',
-            dataIndex: 'name',
-            key: 'name',
-            width: 'auto',
-            render: (_, record) => (
-                <>{record.ruleName || '-'}</>
-            )
-        },
+        getTaskNameColumn(),
         {
             title: '端点',
             key: 'probingEndpointConfig.endpoint',
@@ -556,7 +310,7 @@ export const Probing = () => {
         {
             title: '签发时间',
             key: 'startTime',
-            width: 'auto',
+            width: "150px",
             render: (record) => (
                 <>
                     {record.probingEndpointValues?.pSsl?.startTime || '-'}
@@ -566,7 +320,7 @@ export const Probing = () => {
         {
             title: '结束时间',
             key: 'expireTime',
-            width: 'auto',
+            width: "150px",
             render: (record) => (
                 <>
                     {record.probingEndpointValues?.pSsl?.expireTime || '-'}
@@ -576,7 +330,7 @@ export const Probing = () => {
         {
             title: '有效时间',
             key: 'timeProgress',
-            width: 'auto',
+            width: "200px",
             render: (record) => {
                 const startTime = record.probingEndpointValues?.pSsl?.startTime;
                 const endTime = record.probingEndpointValues?.pSsl?.expireTime;
@@ -615,118 +369,18 @@ export const Probing = () => {
         {
             title: '响应延迟',
             key: 'avgRtt',
-            width: 'auto',
+            width: "100px",
             render: (record) => (
                 <>
                     {record.probingEndpointValues?.pSsl?.responseTime + "ms" || '-'}
                 </>
             ),
         },
-        {
-            title: "更新时间",
-            dataIndex: "updateAt",
-            key: "updateAt",
-            width: "auto",
-            render: (text) => {
-                const date = new Date(text * 1000)
-                    return (
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                            <span>{date.toLocaleString()}</span>
-                        </div>
-                    )
-            },
-        },
-        {
-            title: "更新人",
-            dataIndex: "updateBy",
-            key: "updateBy",
-            width: "auto",
-            render: (text) => {
-                return <Tag style={{
-                                borderRadius: "12px",
-                                padding: "0 10px",
-                                fontSize: "12px",
-                                fontWeight: "500",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "4px",
-                            }}
-                        >
-                            {text || "未知用户"}
-                        </Tag>
-            },
-        },
-        {
-            title: '状态',
-            dataIndex: 'enabled',
-            key: 'enabled',
-            width: '100px',
-            render: (enabled, record) => {
-                const handleStatusChange = async (checked) => {
-                    try {
-                        const params={
-                            tenantId: record.tenantId,
-                            ruleId: record.ruleId,
-                            enabled: checked,
-                        }
-                        await ProbingChangeState(params)
-                        message.success(`状态已更新为: ${checked ? "启用" : "禁用"}`);
-                        handleList(probingType)
-                    } catch (error) {
-                        HandleApiError(error)
-                    }
-                };
-
-                return (
-                    <Switch
-                        checked={enabled}
-                        onChange={handleStatusChange}
-                        checkedChildren="启用"
-                        unCheckedChildren="禁用"
-                        loading={false}
-                    />
-                );
-            },
-        },
-        {
-            title: '操作',
-            dataIndex: 'operation',
-            fixed: 'right',
-            width: 120,
-            render: (_, record) =>
-                sslMonList.length >= 1 ? (
-                    <Space size="middle">
-                        <Link to={`/probing/${record.ruleId}/edit?type=${record.ruleType}`}>
-                            <Button
-                                type="text"
-                                icon={<EditOutlined />}
-                                style={{ color: "#1677ff" }}
-                            />
-                        </Link>
-                        <Tooltip title="克隆">
-                            <Button
-                                type="text"
-                                icon={<CopyOutlined />}
-                                onClick={() => handleClone(record)}
-                                style={{ color: "#615454" }}
-                            />
-                        </Tooltip>
-                        <Tooltip title="删除">
-                            <Popconfirm
-                                title="确定要删除此任务吗?"
-                                onConfirm={() => handleDelete(record)}
-                                okText="确定"
-                                cancelText="取消"
-                                placement="left"
-                            >
-                                <Button type="text" icon={<DeleteOutlined />} style={{ color: "#ff4d4f" }} />
-                            </Popconfirm>
-                        </Tooltip>
-                    </Space>
-                ) : null,
-        },
+        getUpdateTimeColumn(),
+        getUpdateByColumn(),
+        getStatusColumn(),
+        getOperationColumn(sslMonList.length),
     ]
-    const [loading,setLoading]=useState(true)
     const optionsWithDisabled = [
         {
             label: 'HTTP',
@@ -745,7 +399,6 @@ export const Probing = () => {
             value: 'SSL',
         },
     ];
-    const [height, setHeight] = useState(window.innerHeight);
 
     useEffect(() => {
         // 定义一个处理窗口大小变化的函数
@@ -768,7 +421,8 @@ export const Probing = () => {
     }, [probingType, searchQuery]);
 
     useEffect(() => {
-        const view = params.get('view');
+        const urlParams = new URLSearchParams(window.location.search);
+        const view = urlParams.get('view');
         setprobingType(view ? view : "HTTP");
 
         // 从 URL 中获取 query 参数，并更新 searchQuery 的状态
@@ -799,12 +453,18 @@ export const Probing = () => {
             switch (ruleType){
                 case "HTTP":
                     setHttpMonList(res.data)
+                    break
                 case "ICMP":
                     setIcmpMonList(res.data)
+                    break
                 case "TCP":
                     setTcpMonList(res.data)
+                    break
                 case "SSL":
                     setSslMonList(res.data)
+                    break
+                default:
+                    break
             }
         } catch (error) {
             console.error(error);
@@ -833,12 +493,18 @@ export const Probing = () => {
             switch (probingType){
                 case "HTTP":
                     setHttpMonList(res.data)
+                    break
                 case "ICMP":
                     setIcmpMonList(res.data)
+                    break
                 case "TCP":
                     setTcpMonList(res.data)
+                    break
                 case "SSL":
                     setSslMonList(res.data)
+                    break
+                default:
+                    break
             }
         } catch (error) {
             console.error(error)
@@ -854,9 +520,6 @@ export const Probing = () => {
     };
 
     const handleClone = (record) => {
-        // 实现克隆功能
-        console.log("Clone rule:", record)
-
         // 将规则数据存储到 localStorage，以便在创建页面中获取
         const cloneData = {
             ...record,
@@ -877,6 +540,27 @@ export const Probing = () => {
         // 跳转到创建页面
         navigate(`/probing/create?isClone=1`)
     }
+
+    // 公共 Table 配置
+    const getTableProps = (columns, dataSource) => ({
+        columns,
+        dataSource,
+        loading,
+        scroll: {
+            y: height - 280,
+            x: 'max-content',
+        },
+        style: {
+            backgroundColor: "#fff",
+            borderRadius: "8px",
+            overflow: "hidden",
+        },
+        pagination: {
+            showTotal: HandleShowTotal,
+            pageSizeOptions: ['10'],
+        },
+        rowKey: (record) => record.id,
+    });
 
     return (
         <>
@@ -925,92 +609,10 @@ export const Probing = () => {
             </div>
 
             <div style={{overflowX: 'auto', marginTop: 10, height: '76vh'}}>
-                {probingType === "HTTP" && (
-                    <Table
-                        columns={HTTPColumns}
-                        dataSource={httpMonList}
-                        loading={loading}
-                        scroll={{
-                            y: height - 280, // 动态设置滚动高度
-                            x: 'max-content', // 水平滚动
-                        }}
-                        style={{
-                            backgroundColor: "#fff",
-                            borderRadius: "8px",
-                            overflow: "hidden",
-                        }}
-                        pagination={{
-                            showTotal: HandleShowTotal,
-                            pageSizeOptions: ['10'],
-                        }}
-                        rowKey={(record) => record.id} // 设置行唯一键
-                    />
-                )}
-
-                {probingType === "ICMP" && (
-                    <Table
-                        columns={ICMPColumns}
-                        dataSource={icmpMonList}
-                        loading={loading}
-                        scroll={{
-                            y: height - 280, // 动态设置滚动高度
-                            x: 'max-content', // 水平滚动
-                        }}
-                        style={{
-                            backgroundColor: "#fff",
-                            borderRadius: "8px",
-                            overflow: "hidden",
-                        }}
-                        pagination={{
-                            showTotal: HandleShowTotal,
-                            pageSizeOptions: ['10'],
-                        }}
-                        rowKey={(record) => record.id} // 设置行唯一键
-                    />
-                )}
-
-                {probingType === "TCP" && (
-                    <Table
-                        columns={TCPColumns}
-                        dataSource={tcpMonList}
-                        loading={loading}
-                        scroll={{
-                            y: height - 280, // 动态设置滚动高度
-                            x: 'max-content', // 水平滚动
-                        }}
-                        style={{
-                            backgroundColor: "#fff",
-                            borderRadius: "8px",
-                            overflow: "hidden",
-                        }}
-                        pagination={{
-                            showTotal: HandleShowTotal,
-                            pageSizeOptions: ['10'],
-                        }}
-                        rowKey={(record) => record.id} // 设置行唯一键
-                    />
-                )}
-                {probingType === "SSL" && (
-                    <Table
-                        columns={SSLColumns}
-                        dataSource={sslMonList}
-                        loading={loading}
-                        scroll={{
-                            y: height - 280, // 动态设置滚动高度
-                            x: 'max-content', // 水平滚动
-                        }}
-                        style={{
-                            backgroundColor: "#fff",
-                            borderRadius: "8px",
-                            overflow: "hidden",
-                        }}
-                        pagination={{
-                            showTotal: HandleShowTotal,
-                            pageSizeOptions: ['10'],
-                        }}
-                        rowKey={(record) => record.id} // 设置行唯一键
-                    />
-                )}
+                {probingType === "HTTP" && <Table {...getTableProps(HTTPColumns, httpMonList)} />}
+                {probingType === "ICMP" && <Table {...getTableProps(ICMPColumns, icmpMonList)} />}
+                {probingType === "TCP" && <Table {...getTableProps(TCPColumns, tcpMonList)} />}
+                {probingType === "SSL" && <Table {...getTableProps(SSLColumns, sslMonList)} />}
             </div>
         </>
     );

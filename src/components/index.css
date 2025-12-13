@@ -9,3 +9,108 @@
 .ant-menu-light.ant-menu-root.ant-menu-inline {
     border-inline-end: none;
 }
+
+/* 移除 Sider 组件的默认边框和阴影 */
+.ant-layout-sider,
+.custom-sider,
+.ant-layout-sider-light {
+    border: none !important;
+    box-shadow: none !important;
+    border-right: none !important;
+    border-left: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    outline: none !important;
+}
+
+/* 移除 Sider 的默认背景色覆盖 */
+.ant-layout-sider-light {
+    background: #fff !important;
+}
+
+/* 移除 Sider 内部可能存在的边框 */
+.ant-layout-sider-light .ant-menu {
+    border: none !important;
+    border-inline-end: none !important;
+}
+
+/* 移除所有可能的伪元素边框 */
+.ant-layout-sider::before,
+.ant-layout-sider::after,
+.custom-sider::before,
+.custom-sider::after {
+    display: none !important;
+}
+
+/* 确保最外层 Layout 背景透明 */
+.ant-layout {
+    background: transparent !important;
+}
+
+/* 确保所有 Layout 容器背景透明 */
+.ant-layout-has-sider {
+    background: transparent !important;
+}
+
+/* Logo 容器样式 - 确保logo显示在顶部标记区域，logo紧贴容器顶部，包含租户选择器和菜单栏 */
+.custom-sider .logo-container {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    flex-direction: column;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    background: #fff;
+    min-height: 220px;
+    height: 100%;
+    box-sizing: border-box;
+    overflow: visible;
+    position: relative;
+    flex: 1;
+}
+
+/* Logo 图片样式 - 最大化logo尺寸，从顶部开始显示，使用负margin向上移动，使用scale放大确保充分利用空间 */
+.custom-sider .logo-container img[alt="WatchAlert Logo"] {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: 220px;
+    min-height: 120px;
+    object-fit: contain;
+    object-position: top center;
+    border-radius: 0;
+    display: block;
+    transform: scale(1.1);
+    transform-origin: top center;
+    margin-top: -50px;
+    position: relative;
+    z-index: 0;
+}
+
+/* 租户选择器样式 - 确保下拉菜单正常显示 */
+.custom-sider .ant-dropdown {
+    z-index: 1050 !important;
+}
+
+/* 租户选择器容器样式 */
+.custom-sider .tenant-selector {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    background: #f5f5f5;
+    margin-bottom: 0;
+    transition: background-color 0.2s;
+}
+
+/* 菜单栏向上移动 - 减少间距 */
+.custom-sider .ant-menu {
+    margin-top: -4px !important;
+    padding-top: 0 !important;
+}
+
+.custom-sider .tenant-selector:hover {
+    background: #e8e8e8;
+}

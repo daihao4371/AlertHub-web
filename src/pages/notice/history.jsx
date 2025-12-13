@@ -28,16 +28,78 @@ const { Title, Text } = Typography
 const { Search } = Input
 
 // Constants
-const SEVERITY_COLORS = {
-    P0: '#ff4d4f',
-    P1: '#faad14',
-    P2: '#b0e1fb'
-}
-
 const SEVERITY_LABELS = {
     P0: "P0",
     P1: "P1",
     P2: "P2",
+}
+
+// 告警等级映射配置，包含文本和样式信息
+const SEVERITY_MAP = {
+    P0: { 
+        text: "P0",
+        style: {
+            background: "linear-gradient(135deg, #ff7875 0%, #ff4d4f 100%)",
+            border: "none",
+            fontWeight: "500",
+            boxShadow: "0 2px 8px rgba(255, 77, 79, 0.3)",
+            padding: "2px 12px",
+            fontSize: "12px",
+            color: "#fff"
+        }
+    },
+    P1: { 
+        text: "P1",
+        style: {
+            background: "linear-gradient(135deg, #ffb84d 0%, #faad14 100%)",
+            border: "none",
+            fontWeight: "500",
+            boxShadow: "0 2px 8px rgba(250, 173, 20, 0.3)",
+            padding: "2px 12px",
+            fontSize: "12px",
+            color: "#fff"
+        }
+    },
+    P2: { 
+        text: "P2",
+        style: {
+            background: "linear-gradient(135deg, #91d5ff 0%, #69c0ff 100%)",
+            border: "none",
+            fontWeight: "500",
+            boxShadow: "0 2px 8px rgba(105, 192, 255, 0.3)",
+            padding: "2px 12px",
+            fontSize: "12px",
+            color: "#fff"
+        }
+    },
+}
+
+// 发送状态映射配置，包含文本和样式信息
+const STATUS_MAP = {
+    0: { 
+        text: "发送成功",
+        style: {
+            background: "linear-gradient(135deg, #73d13d 0%, #52c41a 100%)",
+            border: "none",
+            fontWeight: "500",
+            boxShadow: "0 2px 8px rgba(82, 196, 26, 0.3)",
+            padding: "2px 12px",
+            fontSize: "12px",
+            color: "#fff"
+        }
+    },
+    1: { 
+        text: "发送失败",
+        style: {
+            background: "linear-gradient(135deg, #ff7875 0%, #ff4d4f 100%)",
+            border: "none",
+            fontWeight: "500",
+            boxShadow: "0 2px 8px rgba(255, 77, 79, 0.3)",
+            padding: "2px 12px",
+            fontSize: "12px",
+            color: "#fff"
+        }
+    },
 }
 
 const ITEMS_PER_PAGE = 10
@@ -85,23 +147,14 @@ export const NoticeRecords = () => {
                 dataIndex: "severity",
                 key: "severity",
                 width: 120,
-                render: (text) => (
-                    <Tag
-                        color={SEVERITY_COLORS[text]}
-                        style={{
-                            borderRadius: "12px",
-                            padding: "0 10px",
-                            fontSize: "12px",
-                            fontWeight: "500",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "4px",
-                        }}
-                    >
-                        {/* <AlertTriangle size={12} /> */}
-                        {SEVERITY_LABELS[text] || text}
-                    </Tag>
-                ),
+                render: (text) => {
+                    const severityInfo = SEVERITY_MAP[text]
+                    return (
+                        <Tag style={severityInfo?.style || {}}>
+                            {severityInfo?.text || SEVERITY_LABELS[text] || text}
+                        </Tag>
+                    )
+                },
             },
             {
                 title: "通知类型",
@@ -130,39 +183,14 @@ export const NoticeRecords = () => {
                 dataIndex: "status",
                 key: "status",
                 width: 120,
-                render: (status) =>
-                    status === 0 ? (
-                        <Tag
-                            // icon={<CheckCircle size={12} />}
-                            color="success"
-                            style={{
-                                borderRadius: "12px",
-                                padding: "0 10px",
-                                fontSize: "12px",
-                                fontWeight: "500",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "4px",
-                            }}
-                        >
-                            发送成功
+                render: (status) => {
+                    const statusInfo = STATUS_MAP[status]
+                    return (
+                        <Tag style={statusInfo.style}>
+                            {statusInfo.text}
                         </Tag>
-                    ) : (
-                        <Tag
-                            color="error"
-                            style={{
-                                borderRadius: "12px",
-                                padding: "0 10px",
-                                fontSize: "12px",
-                                fontWeight: "500",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "4px",
-                            }}
-                        >
-                            发送失败
-                        </Tag>
-                    ),
+                    )
+                },
             },
             {
                 title: "通知时间",
@@ -365,26 +393,12 @@ export const NoticeRecords = () => {
                 extra={
                     selectedRecord && (
                         <Space>
-                            <Tag
-                                color={SEVERITY_COLORS[selectedRecord.severity]}
-                                style={{
-                                    borderRadius: "12px",
-                                    padding: "0 10px",
-                                    fontSize: "12px",
-                                    fontWeight: "500",
-                                }}
-                            >
-                                {selectedRecord.severity}
+                            <Tag style={SEVERITY_MAP[selectedRecord.severity]?.style || {}}>
+                                {SEVERITY_MAP[selectedRecord.severity]?.text || selectedRecord.severity}
                             </Tag>
-                            {selectedRecord.status === 0 ? (
-                                <Tag color="success" style={{ borderRadius: "12px" }}>
-                                    发送成功
-                                </Tag>
-                            ) : (
-                                <Tag color="error" style={{ borderRadius: "12px" }}>
-                                    发送失败
-                                </Tag>
-                            )}
+                            <Tag style={STATUS_MAP[selectedRecord.status].style}>
+                                {STATUS_MAP[selectedRecord.status].text}
+                            </Tag>
                         </Space>
                     )
                 }
@@ -402,7 +416,11 @@ export const NoticeRecords = () => {
                                 },
                                 {
                                     label: '告警等级',
-                                    children: <Tag color={SEVERITY_COLORS[selectedRecord.severity]}>{selectedRecord.severity}</Tag>,
+                                    children: (
+                                        <Tag style={SEVERITY_MAP[selectedRecord.severity]?.style || {}}>
+                                            {SEVERITY_MAP[selectedRecord.severity]?.text || selectedRecord.severity}
+                                        </Tag>
+                                    ),
                                 },
                                 {
                                     label: '通知对象',

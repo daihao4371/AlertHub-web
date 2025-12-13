@@ -228,7 +228,7 @@ const Components = (props) => {
                 style={{
                     height: "100vh",
                     overflow: "hidden",
-                    background: "#000000",
+                    background: "transparent",
                     opacity: isRendered ? 1 : 0, // 添加淡入效果
                     transition: 'opacity 0.3s ease-in'
                 }}
@@ -241,9 +241,11 @@ const Components = (props) => {
                             width: "220px",
                             borderRadius: borderRadiusLG,
                             overflow: "hidden",
-                            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+                            boxShadow: "none",
                             height: "100%",
-                            background: "#000000",
+                            background: "#fff",
+                            border: "none",
+                            outline: "none",
                         }}
                     >
                         <div style={{ height: "100%", overflow: "auto", padding: "16px 0", marginLeft: "15px" }}>
@@ -301,7 +303,7 @@ const Components = (props) => {
                                 fontSize: "12px",
                             }}
                         >
-                            WatchAlert 提供轻量级一站式监控报警服务!
+                            AlertHub 提供轻量级一站式监控报警服务!
                         </div>
                     </Layout>
                 </Layout>

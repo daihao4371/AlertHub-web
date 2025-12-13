@@ -29,6 +29,7 @@ import { useNavigate } from "react-router-dom"
 import { copyToClipboard } from "../../utils/copyToClipboard"
 import { HandleShowTotal } from "../../utils/lib"
 import { TableWithPagination } from "../../utils/TableWithPagination"
+import './index.css'
 
 const { Option } = Select
 
@@ -188,13 +189,34 @@ export const ExporterMonitor = () => {
   const getStatusTag = (status) => {
     switch (status) {
       case "up":
-        return <Tag icon={<CheckCircleOutlined />} color="success">UP</Tag>
+        return (
+          <Tag 
+            icon={<CheckCircleOutlined />} 
+            className="exporter-status-tag exporter-status-tag-up"
+          >
+            UP
+          </Tag>
+        )
       case "down":
-        return <Tag icon={<CloseCircleOutlined />} color="error">DOWN</Tag>
+        return (
+          <Tag 
+            icon={<CloseCircleOutlined />} 
+            className="exporter-status-tag exporter-status-tag-down"
+          >
+            DOWN
+          </Tag>
+        )
       case "unknown":
-        return <Tag icon={<QuestionCircleOutlined />} color="default">UNKNOWN</Tag>
+        return (
+          <Tag 
+            icon={<QuestionCircleOutlined />} 
+            className="exporter-status-tag exporter-status-tag-unknown"
+          >
+            UNKNOWN
+          </Tag>
+        )
       default:
-        return <Tag>{status}</Tag>
+        return <Tag className="exporter-status-tag">{status}</Tag>
     }
   }
 

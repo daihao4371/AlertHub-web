@@ -2,72 +2,46 @@ import { createDutyManager, updateDutyManager } from '../../api/duty'
 import { Modal, Form, Input, Button, Select } from 'antd'
 import React, { useState, useEffect } from 'react'
 import {getUserList} from "../../api/user";
-const MyFormItemContext = React.createContext([])
-
-function toArr(str) {
-    return Array.isArray(str) ? str : [str]
-}
-
-const MyFormItem = ({ name, ...props }) => {
-    const prefixPath = React.useContext(MyFormItemContext)
-    const concatName = name !== undefined ? [...prefixPath, ...toArr(name)] : undefined
-    return <Form.Item name={concatName} {...props} />
-}
 
 export const CreateDutyModal = ({ visible, onClose, handleList, selectedRow, type }) => {
     const [form] = Form.useForm()
     const { Option } = Select
     const [filteredOptions, setFilteredOptions] = useState([])
-    const renderedOptions = new Set();
     const [selectedItems, setSelectedItems] = useState({})
 
     useEffect(() => {
-        if (selectedRow) {
-            form.setFieldsValue({
-                name: selectedRow.name,
-                description: selectedRow.description,
-                manager: selectedRow.manager.username,
-            })
+        if (visible) {
+            if (selectedRow) {
+                form.setFieldsValue({
+                    name: selectedRow.name,
+                    description: selectedRow.description,
+                    manager: selectedRow.manager.username,
+                })
+                setSelectedItems({
+                    value: selectedRow.manager.username,
+                    userid: selectedRow.manager.userid,
+                    realName: selectedRow.manager.realName || ''
+                })
+            } else {
+                form.resetFields()
+                setSelectedItems({})
+            }
         }
-    }, [selectedRow, form])
+    }, [visible, selectedRow, form])
 
-
-    // 禁止输入空格
-    const [spaceValue, setSpaceValue] = useState('')
-
+    // 禁止输入空格的处理函数
     const handleInputChange = (e) => {
-        // 移除输入值中的空格
         const newValue = e.target.value.replace(/\s/g, '')
-        setSpaceValue(newValue)
+        form.setFieldsValue({ name: newValue })
     }
 
     const handleKeyPress = (e) => {
-        // 阻止空格键的默认行为
         if (e.key === ' ') {
             e.preventDefault()
         }
     }
 
-    const handleCreate = async (data) => {
-        try {
-            await createDutyManager(data)
-            handleList()
-        } catch (error) {
-            console.error(error)
-        }
-    }
-
-    const handleUpdate = async (data) => {
-        try {
-            await updateDutyManager(data)
-            handleList()
-        } catch (error) {
-            console.error(error)
-        }
-    }
-
     const handleFormSubmit = async (values) => {
-
         const newData = {
             ...values,
             manager: {
@@ -76,20 +50,21 @@ export const CreateDutyModal = ({ visible, onClose, handleList, selectedRow, typ
             }
         }
 
-        if (type === 'create') {
-            handleCreate(newData)
-        }
-        if (type === 'update') {
-            const newUpdateData = {
-                ...newData,
-                tenantId: selectedRow.tenantId,
-                id: selectedRow.id,
+        try {
+            if (type === 'create') {
+                await createDutyManager(newData)
+            } else if (type === 'update') {
+                await updateDutyManager({
+                    ...newData,
+                    tenantId: selectedRow.tenantId,
+                    id: selectedRow.id,
+                })
             }
-            handleUpdate(newUpdateData)
+            handleList()
+            onClose()
+        } catch (error) {
+            console.error(error)
         }
-
-        // 关闭弹窗
-        onClose()
     }
 
     const handleSelectChange = (value, option) => {
@@ -119,18 +94,16 @@ export const CreateDutyModal = ({ visible, onClose, handleList, selectedRow, typ
     }
 
     const renderOption = (item) => {
-        if (!renderedOptions.has(item.username)) {
-            renderedOptions.add(item.username);
-            const displayName = item.realName || item.username;
-            return <Option key={item.username} value={item.username} userid={item.userid}>{displayName}</Option>;
-        }
-        return null;
+        const displayName = item.realName || item.username;
+        return <Option key={item.username} value={item.username} userid={item.userid}>{displayName}</Option>;
     };
 
     return (
         <Modal visible={visible} onCancel={onClose} footer={null}>
-            <Form form={form} name="form_item_path" layout="vertical" onFinish={handleFormSubmit}>
-                <MyFormItem name="name" label="名称"
+            <Form form={form} layout="vertical" onFinish={handleFormSubmit}>
+                <Form.Item 
+                    name="name" 
+                    label="名称"
                     rules={[
                         {
                             required: true,
@@ -138,14 +111,14 @@ export const CreateDutyModal = ({ visible, onClose, handleList, selectedRow, typ
                     ]}
                 >
                     <Input
-                        value={spaceValue}
                         onChange={handleInputChange}
-                        onKeyPress={handleKeyPress} />
-                </MyFormItem>
+                        onKeyPress={handleKeyPress} 
+                    />
+                </Form.Item>
 
-                <MyFormItem name="description" label="描述">
+                <Form.Item name="description" label="描述">
                     <Input />
-                </MyFormItem>
+                </Form.Item>
 
                 <Form.Item
                     name="manager"
@@ -161,6 +134,7 @@ export const CreateDutyModal = ({ visible, onClose, handleList, selectedRow, typ
                         placeholder="管理当前值班值班表的负责人"
                         onChange={handleSelectChange}
                         onClick={handleSearchDutyUser}
+                        value={selectedItems.value}
                         style={{
                             width: '100%',
                         }}
