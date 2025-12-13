@@ -1,0 +1,174 @@
+/* 主容器 - 扁平化结构 */
+.metrics-explorer {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+/* 标题栏 */
+.metrics-explorer__title-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #f0f0f0;
+  flex: 0 0 auto;
+}
+
+.metrics-explorer__back-icon {
+  font-size: 16px;
+  color: #666;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.metrics-explorer__back-icon:hover {
+  color: #1890ff;
+}
+
+.metrics-explorer__title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* 统一的工具栏 - 扁平化布局，无背景设计 */
+.metrics-explorer__toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 24px;
+  border-bottom: 1px solid #f0f0f0;
+  background: transparent;
+  flex: 0 0 auto;
+}
+
+.metrics-explorer__toolbar-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.metrics-explorer__label-row {
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  transition: border-color 0.2s;
+}
+
+.metrics-explorer__label-row:hover {
+  border-color: #40a9ff;
+}
+
+.metrics-explorer__toolbar-actions {
+  margin-left: auto;
+  gap: 8px;
+}
+
+/* 按钮样式优化 - 参考数据源页面 */
+.metrics-explorer__toolbar .ant-btn-primary {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+  transition: all 0.2s;
+}
+
+.metrics-explorer__toolbar .ant-btn-primary:hover:not(:disabled) {
+  background-color: #333333 !important;
+  border-color: #333333 !important;
+}
+
+.metrics-explorer__toolbar .ant-btn-primary:disabled {
+  background-color: #d9d9d9 !important;
+  border-color: #d9d9d9 !important;
+}
+
+/* 删除按钮样式（红色文本按钮） */
+.metrics-explorer__toolbar .ant-btn-text[style*="color: #ff4d4f"] {
+  color: #ff4d4f !important;
+  transition: all 0.2s;
+}
+
+.metrics-explorer__toolbar .ant-btn-text[style*="color: #ff4d4f"]:hover:not(:disabled) {
+  background-color: #fff2f0 !important;
+  color: #ff4d4f !important;
+}
+
+/* 虚线按钮样式（Add label） */
+.metrics-explorer__toolbar .ant-btn-dashed {
+  color: rgba(0, 0, 0, 0.88) !important;
+  transition: all 0.2s;
+}
+
+.metrics-explorer__toolbar .ant-btn-dashed:hover:not(:disabled) {
+  border-color: #40a9ff !important;
+  color: #40a9ff !important;
+}
+
+/* 默认按钮样式（刷新按钮） */
+.metrics-explorer__toolbar .ant-btn:not(.ant-btn-primary):not(.ant-btn-text):not(.ant-btn-dashed) {
+  color: rgba(0, 0, 0, 0.88) !important;
+  transition: all 0.2s;
+}
+
+.metrics-explorer__toolbar .ant-btn:not(.ant-btn-primary):not(.ant-btn-text):not(.ant-btn-dashed):hover:not(:disabled) {
+  border-color: #40a9ff !important;
+  color: #40a9ff !important;
+}
+
+/* 加载状态 */
+.metrics-explorer__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  color: #8c8c8c;
+  font-size: 12px;
+}
+
+/* 查询结果区域 */
+.metrics-explorer__results {
+  flex: 1;
+  padding: 24px;
+  overflow: auto;
+}
+
+.metrics-explorer__results-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #8c8c8c;
+  text-align: center;
+}
+
+.metrics-explorer__results-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #999;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .metrics-explorer__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .metrics-explorer__toolbar-item {
+    width: 100%;
+  }
+  
+  .metrics-explorer__toolbar-actions {
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+  
+  .metrics-explorer__label-row {
+    flex-wrap: wrap;
+  }
+}

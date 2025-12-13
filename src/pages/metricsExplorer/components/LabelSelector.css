@@ -1,0 +1,80 @@
+/* 标签选择器样式 */
+.label-selector {
+  flex: 0 0 auto;
+  padding: 24px;
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.label-selector__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.label-selector__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  background: #fff;
+  border-radius: 4px;
+  border: 1px solid #e8e8e8;
+}
+
+.label-selector__row:hover {
+  border-color: #40a9ff;
+}
+
+.label-selector__key-select {
+  width: 150px;
+}
+
+.label-selector__value-select {
+  width: 200px;
+}
+
+.label-selector__delete-btn {
+  flex-shrink: 0;
+  color: #ff4d4f;
+}
+
+.label-selector__delete-btn:hover {
+  color: #ff7875;
+  background-color: #fff2f0;
+}
+
+.label-selector__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.label-selector__loading,
+.label-selector__empty {
+  text-align: center;
+  padding: 24px;
+  color: #8c8c8c;
+}
+
+.label-selector__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .label-selector__row {
+    flex-wrap: wrap;
+  }
+  
+  .label-selector__key-select,
+  .label-selector__value-select {
+    flex: 1;
+    min-width: 120px;
+  }
+}
+
