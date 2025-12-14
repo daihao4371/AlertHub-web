@@ -1,7 +1,6 @@
 import React, { useMemo, useRef, useEffect, memo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { Spin, Empty } from 'antd';
-import './MetricChart.css';
 
 /**
  * 格式化大数字为易读格式

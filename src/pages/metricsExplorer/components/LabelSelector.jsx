@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Select, Button, message, Spin } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { getPrometheusLabels, getPrometheusLabelValues } from '../../../api/prometheus';
-import './LabelSelector.css';
 
 const { Option } = Select;
 

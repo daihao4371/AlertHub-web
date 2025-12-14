@@ -1,4 +1,4 @@
-/* 主容器 - 扁平化结构 */
+/* ========== 主容器 - 扁平化结构 ========== */
 .metrics-explorer {
   height: 100%;
   display: flex;
@@ -6,7 +6,7 @@
   background: #fff;
 }
 
-/* 统一的工具栏 - 扁平化布局，无背景设计 */
+/* ========== 统一的工具栏 - 扁平化布局，无背景设计 ========== */
 .metrics-explorer__toolbar {
   display: flex;
   align-items: center;
@@ -102,8 +102,161 @@
   font-size: 12px;
 }
 
+/* ========== 指标搜索区域 ========== */
+.metrics-explorer__search-section {
+  padding: 16px 24px;
+  background: transparent;
+  border-bottom: 1px solid #f0f0f0;
+  width: 100%;
+  box-sizing: border-box;
+}
 
-/* 查询结果区域 */
+.metrics-explorer__search-label {
+  color: rgba(0, 0, 0, 0.88);
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.metrics-explorer__search-input {
+  width: 100%;
+  max-width: 100%;
+}
+
+.metrics-explorer__search-input .ant-input-wrapper {
+  width: 100%;
+}
+
+/* ========== 标签选择器样式 ========== */
+.label-selector {
+  flex: 0 0 auto;
+  padding: 24px;
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.label-selector__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.label-selector__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  background: #fff;
+  border-radius: 4px;
+  border: 1px solid #e8e8e8;
+}
+
+.label-selector__row:hover {
+  border-color: #40a9ff;
+}
+
+.label-selector__key-select {
+  width: 150px;
+}
+
+.label-selector__value-select {
+  width: 200px;
+}
+
+.label-selector__delete-btn {
+  flex-shrink: 0;
+  color: #ff4d4f;
+}
+
+.label-selector__delete-btn:hover {
+  color: #ff7875;
+  background-color: #fff2f0;
+}
+
+.label-selector__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.label-selector__loading,
+.label-selector__empty {
+  text-align: center;
+  padding: 24px;
+  color: #8c8c8c;
+}
+
+.label-selector__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* ========== 指标图表组件样式 ========== */
+.metric-chart {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+.metric-chart:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.metric-chart__header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fafafa;
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+}
+
+.metric-chart__title {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.88);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.metric-chart__content {
+  flex: 1;
+  min-height: 250px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.metric-chart__loading,
+.metric-chart__error {
+  flex-direction: column;
+  gap: 8px;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 14px;
+}
+
+.metric-chart__loading {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.metric-chart__error {
+  color: #ff4d4f;
+}
+
+/* ========== 查询结果区域 ========== */
 .metrics-explorer__results {
   flex: 1;
   padding: 24px;
@@ -139,19 +292,6 @@
   height: 100%;
 }
 
-/* 响应式布局 */
-@media (max-width: 1400px) {
-  .metrics-explorer__charts-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 1000px) {
-  .metrics-explorer__charts-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* 查询状态提示 */
 .metrics-explorer__query-status {
   display: flex;
@@ -166,7 +306,19 @@
   border-radius: 4px;
 }
 
-/* 响应式设计 */
+/* ========== 响应式设计 ========== */
+@media (max-width: 1400px) {
+  .metrics-explorer__charts-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 1000px) {
+  .metrics-explorer__charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
   .metrics-explorer__toolbar {
     flex-direction: column;
@@ -184,5 +336,15 @@
   
   .metrics-explorer__label-row {
     flex-wrap: wrap;
+  }
+
+  .label-selector__row {
+    flex-wrap: wrap;
+  }
+  
+  .label-selector__key-select,
+  .label-selector__value-select {
+    flex: 1;
+    min-width: 120px;
   }
 }
