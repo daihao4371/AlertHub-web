@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { message } from 'antd';
 import { getDatasourceList } from '../../../api/datasource';
-import { getPrometheusLabels, getPrometheusLabelValues, getPrometheusMetrics } from '../../../api/prometheus';
+import { getPrometheusLabels, getPrometheusLabelValues, getPrometheusMetrics, getPrometheusSeries } from '../../../api/prometheus';
 import { queryRangePromMetrics } from '../../../api/other';
 
 /**
@@ -216,16 +216,124 @@ export const useMetricsExplorer = () => {
             }));
     }, [labelRows]);
 
-    // 执行查询
-    const handleQuery = useCallback(() => {
+    // 计算时间范围
+    const getTimeRange = useCallback(() => {
+        const seconds = parseInt(timeRange, 10);
+        const end = Math.floor(Date.now() / 1000);
+        const start = end - seconds;
+        return { start, end };
+    }, [timeRange]);
+
+    // 执行查询 - 根据标签键值对查询匹配的指标
+    const handleQuery = useCallback(async () => {
         const validLabels = getValidLabels();
         if (validLabels.length === 0) {
             message.warning('请至少配置一个标签过滤器');
             return;
         }
-        
-        message.info('查询功能开发中...');
-    }, [getValidLabels]);
+
+        if (!selectedDatasource) {
+            message.warning('请先选择数据源');
+            return;
+        }
+
+        setQuerying(true);
+        try {
+            // 构建标签匹配器
+            // 将所有标签组合成一个匹配器: "{job=\"node_exporter\",instance=\"10.10.217.225:9100\"}"
+            const labelSelectors = validLabels.map(label => 
+                `${label.labelKey}="${label.labelValue}"`
+            ).join(',');
+            const matchers = [`{${labelSelectors}}`];
+
+            // 计算时间范围
+            const { start, end } = getTimeRange();
+
+            // 调用 Prometheus Series API 查询匹配的时间序列
+            const response = await getPrometheusSeries(selectedDatasource, matchers, start, end);
+
+            // 从返回的时间序列中提取所有唯一的指标名称
+            const matchedMetrics = new Set();
+            
+            if (response?.data?.status === 'success' && response?.data?.data) {
+                const series = response.data.data;
+                // 遍历所有时间序列，提取 __name__ 标签的值（指标名称）
+                series.forEach((seriesItem) => {
+                    if (seriesItem && typeof seriesItem === 'object') {
+                        // __name__ 标签包含指标名称
+                        if (seriesItem.__name__) {
+                            matchedMetrics.add(seriesItem.__name__);
+                        }
+                    }
+                });
+            } else if (response?.data && Array.isArray(response.data)) {
+                // 兼容直接返回数组的格式
+                response.data.forEach((seriesItem) => {
+                    if (seriesItem && typeof seriesItem === 'object') {
+                        if (seriesItem.__name__) {
+                            matchedMetrics.add(seriesItem.__name__);
+                        }
+                    }
+                });
+            }
+
+            // 将 Set 转换为数组并排序
+            let metricsArray = Array.from(matchedMetrics).sort();
+
+            // 精准匹配：如果选择的标签键是业务相关的（非通用标签），则只保留包含该标签键的指标
+            // 例如：选择 cpu="0" 时，只显示指标名称中包含 "cpu" 的指标
+            // 通用标签（如 job, instance, __name__）不参与指标名称过滤
+            const commonLabels = ['job', 'instance', '__name__', 'id', 'name', 'namespace', 'pod', 'container'];
+            const businessLabelKeys = validLabels
+                .map(label => label.labelKey.toLowerCase())
+                .filter(key => !commonLabels.includes(key));
+            
+            if (businessLabelKeys.length > 0) {
+                metricsArray = metricsArray.filter(metric => {
+                    const metricLower = metric.toLowerCase();
+                    // 检查指标名称是否包含任何一个业务标签键
+                    // 这样可以确保只显示与标签键相关的指标
+                    // 例如：cpu="0" 只显示 node_cpu_* 等 CPU 相关指标，不显示 node_schedstat_* 等调度器指标
+                    return businessLabelKeys.some(key => metricLower.includes(key));
+                });
+            }
+
+            if (metricsArray.length === 0) {
+                message.warning('未找到匹配的指标，请检查标签过滤器配置');
+                // 清空当前显示的指标
+                setFilteredMetrics([]);
+                setChartData(new Map());
+                return;
+            }
+
+            // 应用搜索关键词过滤（如果存在）
+            let finalMetrics = metricsArray;
+            if (searchKeyword && searchKeyword.trim()) {
+                const keyword = searchKeyword.toLowerCase().trim();
+                finalMetrics = metricsArray.filter(metric => 
+                    metric.toLowerCase().includes(keyword)
+                );
+            }
+
+            // 更新指标列表 - 这会触发 useEffect 自动查询
+            setFilteredMetrics(finalMetrics);
+            
+            // 显示成功消息
+            if (finalMetrics.length > MAX_RENDER_COUNT) {
+                message.info(`找到 ${finalMetrics.length} 个匹配的指标，仅显示前 ${MAX_RENDER_COUNT} 个`);
+            } else {
+                message.success(`找到 ${finalMetrics.length} 个匹配的指标`);
+            }
+
+            // 清空之前的图表数据，准备加载新的指标数据
+            // useEffect 会自动处理查询队列
+        } catch (error) {
+            message.error(`查询失败: ${error.message || '未知错误'}`);
+            console.error('查询指标失败:', error);
+        } finally {
+            setQuerying(false);
+        }
+    }, [getValidLabels, selectedDatasource, getTimeRange, searchKeyword, MAX_RENDER_COUNT]);
 
     // 加载指标列表
     const loadMetrics = useCallback(async () => {
@@ -277,14 +385,6 @@ export const useMetricsExplorer = () => {
         }
         return metricName;
     }, []);
-
-    // 计算时间范围
-    const getTimeRange = useCallback(() => {
-        const seconds = parseInt(timeRange, 10);
-        const end = Math.floor(Date.now() / 1000);
-        const start = end - seconds;
-        return { start, end };
-    }, [timeRange]);
 
     // 查询单个指标数据
     const queryMetricData = useCallback(async (metricName) => {
