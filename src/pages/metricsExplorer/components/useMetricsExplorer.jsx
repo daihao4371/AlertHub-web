@@ -5,6 +5,23 @@ import { getPrometheusLabels, getPrometheusLabelValues, getPrometheusMetrics, ge
 import { queryRangePromMetrics } from '../../../api/other';
 
 /**
+ * 统一处理 Prometheus API 响应格式
+ * 支持两种响应格式：
+ * 1. { data: { status: 'success', data: [...] } }
+ * 2. { data: [...] }
+ * @param {Object} response - API 响应对象
+ * @returns {Array} 提取的数据数组
+ */
+const extractResponseData = (response) => {
+    if (response?.data?.status === 'success' && response?.data?.data) {
+        return response.data.data;
+    } else if (response?.data && Array.isArray(response.data)) {
+        return response.data;
+    }
+    return [];
+};
+
+/**
  * MetricsExplorer 业务逻辑 Hook
  * 管理数据源、标签、指标搜索等所有业务逻辑
  */
@@ -74,14 +91,8 @@ export const useMetricsExplorer = () => {
         setLoadingKeys(true);
         try {
             const response = await getPrometheusLabels(selectedDatasource);
-            
-            if (response?.data?.status === 'success' && response?.data?.data) {
-                setAvailableKeys(response.data.data);
-            } else if (response?.data && Array.isArray(response.data)) {
-                setAvailableKeys(response.data);
-            } else {
-                setAvailableKeys([]);
-            }
+            const keys = extractResponseData(response);
+            setAvailableKeys(keys);
         } catch (error) {
             message.error(`加载标签键失败: ${error.message}`);
             setAvailableKeys([]);
@@ -114,14 +125,7 @@ export const useMetricsExplorer = () => {
 
         try {
             const response = await getPrometheusLabelValues(selectedDatasource, labelKey);
-            
-            let values = [];
-            if (response?.data?.status === 'success' && response?.data?.data) {
-                values = response.data.data;
-            } else if (response?.data && Array.isArray(response.data)) {
-                values = response.data;
-            }
-
+            const values = extractResponseData(response);
             labelValuesCache.current.set(cacheKey, values);
             updateLabelRowValues(rowId, values);
         } catch (error) {
@@ -254,28 +258,14 @@ export const useMetricsExplorer = () => {
 
             // 从返回的时间序列中提取所有唯一的指标名称
             const matchedMetrics = new Set();
+            const series = extractResponseData(response);
             
-            if (response?.data?.status === 'success' && response?.data?.data) {
-                const series = response.data.data;
-                // 遍历所有时间序列，提取 __name__ 标签的值（指标名称）
-                series.forEach((seriesItem) => {
-                    if (seriesItem && typeof seriesItem === 'object') {
-                        // __name__ 标签包含指标名称
-                        if (seriesItem.__name__) {
-                            matchedMetrics.add(seriesItem.__name__);
-                        }
-                    }
-                });
-            } else if (response?.data && Array.isArray(response.data)) {
-                // 兼容直接返回数组的格式
-                response.data.forEach((seriesItem) => {
-                    if (seriesItem && typeof seriesItem === 'object') {
-                        if (seriesItem.__name__) {
-                            matchedMetrics.add(seriesItem.__name__);
-                        }
-                    }
-                });
-            }
+            // 遍历所有时间序列，提取 __name__ 标签的值（指标名称）
+            series.forEach((seriesItem) => {
+                if (seriesItem && typeof seriesItem === 'object' && seriesItem.__name__) {
+                    matchedMetrics.add(seriesItem.__name__);
+                }
+            });
 
             // 将 Set 转换为数组并排序
             let metricsArray = Array.from(matchedMetrics).sort();
@@ -346,14 +336,7 @@ export const useMetricsExplorer = () => {
         setLoadingMetrics(true);
         try {
             const response = await getPrometheusMetrics(selectedDatasource);
-            
-            let metrics = [];
-            if (response?.data?.status === 'success' && response?.data?.data) {
-                metrics = response.data.data;
-            } else if (response?.data && Array.isArray(response.data)) {
-                metrics = response.data;
-            }
-
+            const metrics = extractResponseData(response);
             setMetricsList(metrics);
             setFilteredMetrics(metrics);
         } catch (error) {
