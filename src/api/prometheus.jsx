@@ -15,42 +15,71 @@ async function getPrometheusMetrics(datasourceId) {
 }
 
 // 获取 Prometheus 标签名称列表
-async function getPrometheusLabels(datasourceId, metricName) {
+// 完全基于 Prometheus API: /api/v1/labels
+async function getPrometheusLabels(datasourceId, metricName = null, start = null, end = null) {
     try {
         const params = { datasourceId };
         if (metricName) {
             params.metricName = metricName;
         }
+        if (start) {
+            params.start = start;
+        }
+        if (end) {
+            params.end = end;
+        }
         const res = await http('get', '/api/w8t/prometheus/labels', params);
         return res;
     } catch (error) {
         HandleApiError(error);
-        return error;
+        throw error;
     }
 }
 
 // 获取 Prometheus 标签值列表
-async function getPrometheusLabelValues(datasourceId, labelName) {
+// 完全基于 Prometheus API: /api/v1/label/{labelName}/values
+async function getPrometheusLabelValues(datasourceId, labelName, metricName = null, start = null, end = null) {
     try {
-        const res = await http('get', '/api/w8t/prometheus/label_values', {
+        const params = { 
             datasourceId,
             labelName
-        });
+        };
+        if (metricName) {
+            params.metricName = metricName;
+        }
+        if (start) {
+            params.start = start;
+        }
+        if (end) {
+            params.end = end;
+        }
+        const res = await http('get', '/api/w8t/prometheus/label_values', params);
         return res;
     } catch (error) {
         HandleApiError(error);
-        return error;
+        throw error;
     }
 }
 
 // 获取 Prometheus 时间序列元数据
-async function getPrometheusSeries(params) {
+// 基于 Prometheus API: /api/v1/series
+async function getPrometheusSeries(datasourceId, matchers, start = null, end = null) {
     try {
+        const params = {
+            datasourceId,
+            'match[]': matchers
+        };
+        if (start) {
+            params.start = start;
+        }
+        if (end) {
+            params.end = end;
+        }
         const res = await http('post', '/api/w8t/prometheus/series', params);
         return res;
     } catch (error) {
         HandleApiError(error);
-        return error;
+        throw error;
     }
 }
 

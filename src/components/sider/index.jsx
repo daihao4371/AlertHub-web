@@ -15,7 +15,8 @@ import {
     TeamOutlined,
     DownOutlined,
     LogoutOutlined,
-    HeartOutlined
+    HeartOutlined,
+    BarChartOutlined
 } from '@ant-design/icons';
 import {Link, useNavigate} from 'react-router-dom';
 import {Menu, Layout, Typography, Dropdown, message, Spin, theme, Popover, Avatar} from 'antd';
@@ -31,8 +32,17 @@ const adminMenuItems = [
     // 1. 概览 - 首页入口
     { key: '1', path: '/', icon: <AreaChartOutlined />, label: '概览' },
     
-    // 2. 基础配置
-    { key: '2', path: '/datasource', icon: <PieChartOutlined />, label: '数据源' },
+    // 2. 基础配置 - 数据源相关
+    {
+        key: '2',
+        icon: <PieChartOutlined />,
+        label: '数据源',
+        children: [
+            { key: '2-1', path: '/datasource', label: '数据源管理' },
+            { key: '2-2', path: '/exporterMonitor', label: 'Exporter 巡检' },
+            { key: '2-3', path: '/metricsExplorer', label: '指标浏览器' }
+        ]
+    },
     
     // 3. 告警相关功能
     {
@@ -70,7 +80,6 @@ const adminMenuItems = [
             { key: '7-2', path: '/onceProbing', label: '及时拨测' }
         ]
     },
-    { key: '8', path: '/exporterMonitor', icon: <HeartOutlined />, label: 'Exporter 巡检' },
     
     // 6. 可视化
     { key: '9', path: '/folders', icon: <DashboardOutlined />, label: '仪表盘' },
@@ -95,8 +104,17 @@ const userMenuItems = [
     // 1. 概览 - 首页入口
     { key: '1', path: '/', icon: <AreaChartOutlined />, label: '概览' },
     
-    // 2. 基础配置
-    { key: '2', path: '/datasource', icon: <PieChartOutlined />, label: '数据源' },
+    // 2. 基础配置 - 数据源相关
+    {
+        key: '2',
+        icon: <PieChartOutlined />,
+        label: '数据源',
+        children: [
+            { key: '2-1', path: '/datasource', label: '数据源管理' },
+            { key: '2-2', path: '/exporterMonitor', label: 'Exporter 巡检' },
+            { key: '2-3', path: '/metricsExplorer', label: '指标浏览器' }
+        ]
+    },
     
     // 3. 告警相关功能
     {
@@ -141,7 +159,6 @@ const userMenuItems = [
             { key: '7-2', path: '/onceProbing', label: '及时拨测' }
         ]
     },
-    { key: '8', path: '/exporterMonitor', icon: <HeartOutlined />, label: 'Exporter 巡检' },
     
     // 6. 可视化
     { key: '9', path: '/folders', icon: <DashboardOutlined />, label: '仪表盘' }

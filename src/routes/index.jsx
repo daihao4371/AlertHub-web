@@ -33,6 +33,7 @@ import {FaultCenter} from "../pages/faultCenter";
 import {FaultCenterDetail} from "../pages/faultCenter/detail";
 import {ExporterMonitor} from "../pages/exporterMonitor";
 import {ExporterMonitorConfig} from "../pages/exporterMonitor/config";
+import {MetricsExplorer} from "../pages/metricsExplorer";
 
 // eslint-disable-next-line import/no-anonymous-default-export
 export default [
@@ -175,6 +176,10 @@ export default [
     {
         path: '/exporterMonitor/config',
         element: <ComponentsContent name="Exporter 巡检配置" c={<ExporterMonitorConfig />} />
+    },
+    {
+        path: '/metricsExplorer',
+        element: <ComponentsContent name="指标浏览器" c={<MetricsExplorer />} />
     },
     {
         path: '/*',
