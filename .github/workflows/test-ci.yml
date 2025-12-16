@@ -56,21 +56,30 @@ jobs:
       - name: Set env variables
         id: set_env
         run: |
-          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          if [[ "${GITHUB_REF}" =~ ^refs/tags/ ]]; then
+            # Tag推送
+            VERSION=${GITHUB_REF#refs/tags/}
+            echo "✅ Tag推送: ${VERSION}"
+          else
+            # 分支推送
+            VERSION=${GITHUB_REF#refs/heads/}
+            echo "✅ 分支推送: ${VERSION}"
+          fi
+          
           ACR_REGISTRY="${{ secrets.ALIYUN_ACR_REGISTRY || 'registry.cn-hangzhou.aliyuncs.com' }}"
           ACR_NAMESPACE="${{ secrets.ALIYUN_ACR_NAMESPACE || 'devops-dh' }}"
           HAS_CREDS="${{ steps.check_acr.outputs.has_creds }}"
 
-          echo "BRANCH_NAME=${BRANCH_NAME}" >> $GITHUB_ENV
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
           echo "ACR_REGISTRY=${ACR_REGISTRY}" >> $GITHUB_ENV
           echo "ACR_NAMESPACE=${ACR_NAMESPACE}" >> $GITHUB_ENV
 
           # 根据是否有凭证设置镜像标签
           if [ "${HAS_CREDS}" == "true" ]; then
-            echo "IMAGE_TAG=${ACR_REGISTRY}/${ACR_NAMESPACE}/watchalert-web:${BRANCH_NAME}" >> $GITHUB_ENV
+            echo "IMAGE_TAG=${ACR_REGISTRY}/${ACR_NAMESPACE}/watchalert-web:${VERSION}" >> $GITHUB_ENV
           else
             # 如果没有凭证，使用本地标签，避免推送到未认证的注册表
-            echo "IMAGE_TAG=watchalert-web:${BRANCH_NAME}" >> $GITHUB_ENV
+            echo "IMAGE_TAG=watchalert-web:${VERSION}" >> $GITHUB_ENV
           fi
 
       - name: Build and push
@@ -84,6 +93,6 @@ jobs:
           # 设置provenance为false，避免推送attestation导致的权限问题
           provenance: false
           build-args: |
-            VERSION=${{ env.BRANCH_NAME }}
+            VERSION=${{ env.VERSION }}
           tags: |
             ${{ env.IMAGE_TAG }}
