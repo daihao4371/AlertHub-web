@@ -14,7 +14,7 @@ dayjs.locale('zh-cn');
 
 export default function App() {
     const element = useRoutes(routes);
-    const title = "WatchAlert";
+    const title = "AlertHub";
 
     return (
         <AppContextProvider>

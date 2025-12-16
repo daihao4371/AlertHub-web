@@ -172,7 +172,7 @@ export const Login = () => {
                     >
                         <img 
                             src={loginIllustration} 
-                            alt="WatchAlert 告警引擎"
+                            alt="AlertHub 告警引擎"
                             className="w-full h-full object-contain"
                             style={{
                                 filter: 'drop-shadow(0 10px 30px rgba(0, 0, 0, 0.1))',

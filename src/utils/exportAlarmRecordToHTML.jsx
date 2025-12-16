@@ -449,7 +449,7 @@ function generateHtmlContent(title, data, exportTimeRange) {
       </div>
       
       <div class="footer">
-        <p>此报表由 WatchAlert 自动生成</p>
+        <p>此报表由 AlertHub 自动生成</p>
       </div>
       
       ${paginationScript}

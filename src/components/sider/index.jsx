@@ -96,7 +96,19 @@ const adminMenuItems = [
     },
     { key: '11', path: '/tenants', icon: <DeploymentUnitOutlined />, label: '租户管理' },
     { key: '12', path: '/auditLog', icon: <FileDoneOutlined />, label: '日志审计' },
-    { key: '13', path: '/settings', icon: <SettingOutlined />, label: '系统设置' }
+    {
+        key: '13',
+        path: '/settings',
+        icon: <SettingOutlined />,
+        label: '系统设置',
+        children: [
+            { key: '13-1', path: '/settings/email', label: '邮箱配置' },
+            { key: '13-2', path: '/settings/ai', label: 'AI 能力' },
+            { key: '13-3', path: '/settings/auth', label: '认证' },
+            { key: '13-4', path: '/settings/quick-action', label: '快捷操作配置' },
+            { key: '13-5', path: '/settings/version', label: '系统版本' }
+        ]
+    }
 ];
 
 // 普通用户菜单 - 按功能逻辑分组排序（不包含系统管理功能）

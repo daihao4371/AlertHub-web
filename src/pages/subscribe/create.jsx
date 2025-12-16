@@ -291,7 +291,7 @@ export const CreateSubscribeModel = ({ visible, onClose, selectedRow, type, hand
                                     required: true,
                                 },
                             ]}>
-                    <Input placeholder="WatchAlert 监控报警平台"/>
+                    <Input placeholder="AlertHub 监控报警平台"/>
                 </MyFormItem>
 
                 <MyFormItem name="sNoticeTemplateId" label="通知模版" tooltip={"仅限 Email 类型通知模版"}

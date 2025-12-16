@@ -377,7 +377,7 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                             <MyFormItem name="subject" label="邮件主题" rules={[{required: true}]}>
                                 <Input
                                     onChange={(e) => handleInputEmailChange('subject', e.target.value)}
-                                    placeholder="WatchAlert监控报警平台"
+                                    placeholder="AlertHub监控报警平台"
                                     style={{width: '100%'}}
                                 />
                             </MyFormItem>

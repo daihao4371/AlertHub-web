@@ -18,6 +18,11 @@ import { GrafanaDashboardComponent } from "../pages/dashboards/dashboard/iframe"
 import { DashboardFolder } from "../pages/dashboards/folder";
 import { AuditLog } from "../pages/audit";
 import { SystemSettings } from "../pages/settings";
+import { EmailSettings } from "../pages/settings/Email";
+import { AISettings } from "../pages/settings/AI";
+import { AuthSettings } from "../pages/settings/Auth";
+import { QuickActionSettings } from "../pages/settings/QuickAction";
+import { VersionSettings } from "../pages/settings/Version";
 import { TenantDetail } from "../pages/tenant/detail";
 import { AlertRule } from "../pages/alert/rule/create";
 import {Dashboards} from "../pages/dashboards/dashboard";
@@ -131,7 +136,33 @@ export default [
     },
     {
         path: '/settings',
-        element: <ComponentsContent name="系统设置" c={<SystemSettings/>}/>
+        element: <ComponentsContent name="系统设置" c={<SystemSettings/>}/>,
+        children: [
+            {
+                index: true,
+                element: <EmailSettings />
+            },
+            {
+                path: 'email',
+                element: <EmailSettings />
+            },
+            {
+                path: 'ai',
+                element: <AISettings />
+            },
+            {
+                path: 'auth',
+                element: <AuthSettings />
+            },
+            {
+                path: 'quick-action',
+                element: <QuickActionSettings />
+            },
+            {
+                path: 'version',
+                element: <VersionSettings />
+            }
+        ]
     },
     {
         path: '/onceProbing',
