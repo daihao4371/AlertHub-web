@@ -223,7 +223,7 @@ const CreateFolderModal = ({ visible, onClose, selectedRow, type, handleList }) 
                                 border: '1px solid #ffd54f'
                             }}>
                                 <div style={{marginBottom: 12}}>
-                                    <strong>⚠️ 重要提示:</strong> 为使 Grafana 仪表盘正常嵌入到 WatchAlert,
+                                    <strong>⚠️ 重要提示:</strong> 为使 Grafana 仪表盘正常嵌入到 AlertHub,
                                     需要在 Grafana 服务器的配置文件 <code>grafana.ini</code> 中添加以下配置:
                                 </div>
                                 <div style={{position: 'relative'}}>
