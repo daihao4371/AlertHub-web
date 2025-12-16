@@ -1,22 +1,8 @@
-import React, { useState, useEffect, useContext, useMemo } from 'react';
-import { Form, Input, Button, Popconfirm, message, Typography } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Form, Input, message, Typography } from 'antd';
 import { getSystemSetting, saveSystemSetting } from "../../api/settings";
-
-// 表单上下文
-const MyFormItemContext = React.createContext([]);
-const toArr = (str) => (Array.isArray(str) ? str : [str]);
-
-const MyFormItemGroup = ({ prefix, children }) => {
-    const prefixPath = useContext(MyFormItemContext);
-    const concatPath = useMemo(() => [...prefixPath, ...toArr(prefix)], [prefixPath, prefix]);
-    return <MyFormItemContext.Provider value={concatPath}>{children}</MyFormItemContext.Provider>;
-};
-
-const MyFormItem = ({ name, ...props }) => {
-    const prefixPath = useContext(MyFormItemContext);
-    const concatName = name !== undefined ? [...prefixPath, ...toArr(name)] : undefined;
-    return <Form.Item name={concatName} {...props} />;
-};
+import { MyFormItemGroup, MyFormItem, helpTextStyle } from "./utils";
+import { FormActions } from "./FormActions";
 
 export const EmailSettings = () => {
     const [form] = Form.useForm();
@@ -63,7 +49,10 @@ export const EmailSettings = () => {
             };
 
             await saveSystemSetting(processedValues);
-            message.success('邮箱配置保存成功');
+            message.success({
+                content: '邮箱配置保存成功，且立即生效！',
+                duration: 3,
+            });
             loadSettings();
         } catch (error) {
             console.error("Failed to save email settings:", error);
@@ -73,8 +62,6 @@ export const EmailSettings = () => {
         }
     };
 
-    const handleSave = (values) => saveSettings(values);
-
     // 取消修改
     const handleCancel = () => {
         form.resetFields();
@@ -82,14 +69,12 @@ export const EmailSettings = () => {
         message.info('已取消修改');
     };
 
-    const helpTextStyle = { fontSize: '12px', color: '#7f838a', marginBottom: '16px' };
-
     return (
         <>
             <Typography.Title level={4}>邮箱配置</Typography.Title>
             <p style={helpTextStyle}>• 用于推送邮件告警消息；</p>
             
-            <Form form={form} name="emailForm" layout="vertical" onFinish={handleSave}>
+            <Form form={form} name="emailForm" layout="vertical" onFinish={saveSettings}>
                 <MyFormItemGroup prefix={['emailConfig']}>
                     <MyFormItem
                         name="serverAddress"
@@ -131,25 +116,10 @@ export const EmailSettings = () => {
                     </MyFormItem>
                 </MyFormItemGroup>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px' }}>
-                    <Popconfirm
-                        title="确认取消？"
-                        description="取消后修改的配置将不会保存！"
-                        onConfirm={handleCancel}
-                        okText="确认"
-                        cancelText="继续编辑"
-                    >
-                        <Button type="dashed" disabled={loading}>取消</Button>
-                    </Popconfirm>
-                    <Button
-                        type="primary"
-                        htmlType="submit"
-                        loading={loading}
-                        style={{ backgroundColor: '#000000' }}
-                    >
-                        {loading ? '保存中...' : '保存'}
-                    </Button>
-                </div>
+                <FormActions 
+                    loading={loading} 
+                    onCancel={handleCancel}
+                />
             </Form>
         </>
     );

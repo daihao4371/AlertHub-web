@@ -1,22 +1,8 @@
-import React, { useState, useEffect, useContext, useMemo } from 'react';
-import { Form, Input, Button, Popconfirm, Radio, message, Typography, Collapse, Card, Descriptions } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Form, Input, Radio, message, Typography, Collapse, Card, Descriptions } from 'antd';
 import { getSystemSetting, saveSystemSetting } from "../../api/settings";
-
-// 表单上下文
-const MyFormItemContext = React.createContext([]);
-const toArr = (str) => (Array.isArray(str) ? str : [str]);
-
-const MyFormItemGroup = ({ prefix, children }) => {
-    const prefixPath = useContext(MyFormItemContext);
-    const concatPath = useMemo(() => [...prefixPath, ...toArr(prefix)], [prefixPath, prefix]);
-    return <MyFormItemContext.Provider value={concatPath}>{children}</MyFormItemContext.Provider>;
-};
-
-const MyFormItem = ({ name, ...props }) => {
-    const prefixPath = useContext(MyFormItemContext);
-    const concatName = name !== undefined ? [...prefixPath, ...toArr(name)] : undefined;
-    return <Form.Item name={concatName} {...props} />;
-};
+import { MyFormItemGroup, MyFormItem, radioOptions, helpTextStyle } from "./utils";
+import { FormActions } from "./FormActions";
 
 export const QuickActionSettings = () => {
     const [form] = Form.useForm();
@@ -65,7 +51,10 @@ export const QuickActionSettings = () => {
             };
 
             await saveSystemSetting(processedValues);
-            message.success('快捷操作配置保存成功');
+            message.success({
+                content: '快捷操作配置保存成功，且立即生效！',
+                duration: 3,
+            });
             loadSettings();
         } catch (error) {
             console.error("Failed to save quick action settings:", error);
@@ -74,8 +63,6 @@ export const QuickActionSettings = () => {
             setLoading(false);
         }
     };
-
-    const handleSave = (values) => saveSettings(values);
 
     // 取消修改
     const handleCancel = () => {
@@ -90,13 +77,6 @@ export const QuickActionSettings = () => {
         setEnableQuickAction(enabled);
         form.setFieldValue(['quickActionConfig', 'enabled'], enabled);
     };
-
-    const radioOptions = [
-        { label: '启用', value: true },
-        { label: '禁用', value: false },
-    ];
-
-    const helpTextStyle = { fontSize: '12px', color: '#7f838a', marginBottom: '16px' };
 
     return (
         <>
@@ -163,7 +143,7 @@ export const QuickActionSettings = () => {
                 }]}
             />
             
-            <Form form={form} name="quickActionForm" layout="vertical" onFinish={handleSave}>
+            <Form form={form} name="quickActionForm" layout="vertical" onFinish={saveSettings}>
                 <MyFormItemGroup prefix={['quickActionConfig']}>
                     <MyFormItem name="enabled">
                         <Radio.Group
@@ -219,25 +199,10 @@ export const QuickActionSettings = () => {
                     )}
                 </MyFormItemGroup>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px' }}>
-                    <Popconfirm
-                        title="确认取消？"
-                        description="取消后修改的配置将不会保存！"
-                        onConfirm={handleCancel}
-                        okText="确认"
-                        cancelText="继续编辑"
-                    >
-                        <Button type="dashed" disabled={loading}>取消</Button>
-                    </Popconfirm>
-                    <Button
-                        type="primary"
-                        htmlType="submit"
-                        loading={loading}
-                        style={{ backgroundColor: '#000000' }}
-                    >
-                        {loading ? '保存中...' : '保存'}
-                    </Button>
-                </div>
+                <FormActions 
+                    loading={loading} 
+                    onCancel={handleCancel}
+                />
             </Form>
         </>
     );
