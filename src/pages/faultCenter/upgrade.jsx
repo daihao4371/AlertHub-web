@@ -160,7 +160,7 @@ export const AlarmUpgrade = () => {
                                     icon={<SaveOutlined />}
                                     onClick={handleSave}
                                     loading={saving}
-                                    style={{ marginRight: '8px', backgroundColor: '#000', borderColor: '#000' }}
+                                    style={{ marginRight: '8px' }}
                                 >
                                     保存
                                 </Button>

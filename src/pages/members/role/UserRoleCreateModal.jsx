@@ -173,9 +173,6 @@ const UserRoleCreateModal = ({ visible, onClose, selectedRow, type, handleList }
                     <Button
                         type="primary"
                         htmlType="submit"
-                        style={{
-                            backgroundColor: '#000000'
-                        }}
                     >
                         提交
                     </Button>

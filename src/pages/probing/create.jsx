@@ -763,9 +763,6 @@ export const CreateProbingRule = ({ type }) => {
                         type="primary"
                         htmlType="submit"
                         loading={submitLoading}
-                        style={{
-                            backgroundColor: "#000000",
-                        }}
                     >
                         提交
                     </Button>

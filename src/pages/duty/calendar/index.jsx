@@ -515,7 +515,6 @@ export const CalendarApp = ({ tenantId }) => {
                         <Button
                             type="primary"
                             size="default"
-                            style={{ backgroundColor: '#000000' }}
                             onClick={() => setCreateCalendarModal(true)}
                             icon={<PlusOutlined />}
                         >

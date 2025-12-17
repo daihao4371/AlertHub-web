@@ -274,9 +274,6 @@ export const TenantUsers = ({ tenantInfo }) => {
                         <Button
                             type="primary"
                             htmlType="submit"
-                            style={{
-                                backgroundColor: '#000000'
-                            }}
                         >
                             提交
                         </Button>

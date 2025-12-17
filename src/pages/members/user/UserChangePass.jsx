@@ -69,9 +69,6 @@ const UserChangePass = ({ visible, onClose, userid, username }) => {
                         <Button
                             type="primary"
                             htmlType="submit"
-                            style={{
-                                backgroundColor: '#000000'
-                            }}
                         >
                             提交
                         </Button>

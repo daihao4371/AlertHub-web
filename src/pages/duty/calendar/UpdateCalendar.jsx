@@ -156,7 +156,6 @@ export const UpdateCalendarModal = ({ visible, onClose, time, tenantId, dutyId, 
                     htmlType="submit"
                     onClick={handleFormSubmit}
                     style={{
-                        backgroundColor: "#000000",
                         width: "100%",
                     }}
                 >

@@ -225,7 +225,6 @@ export const FaultCenterNotify = () => {
                                     icon={<CheckOutlined />}
                                     onClick={handleSave}
                                     loading={saving}
-                                    style={{ backgroundColor: '#000', borderColor: '#000' }}
                                 >
                                     保存
                                 </Button>

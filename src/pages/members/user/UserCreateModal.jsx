@@ -191,7 +191,7 @@ const UserCreateModal = ({ visible, onClose, selectedRow, type, handleList }) =>
 
                 <Form.Item wrapperCol={{ offset: 6, span: 18 }}>
                     <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                        <Button type="primary" htmlType="submit" style={{ backgroundColor: "#000000" }}>
+                        <Button type="primary" htmlType="submit">
                             提交
                         </Button>
                     </div>

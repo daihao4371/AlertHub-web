@@ -147,9 +147,6 @@ export const CreateDutyModal = ({ visible, onClose, handleList, selectedRow, typ
                     <Button
                         type="primary"
                         htmlType="submit"
-                        style={{
-                            backgroundColor: '#000000'
-                        }}
                     >
                         提交
                     </Button>
