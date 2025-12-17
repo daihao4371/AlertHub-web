@@ -1,4 +1,4 @@
-name: CI
+name: Release CI
 
 on:
   push:
@@ -59,12 +59,12 @@ jobs:
 
           # 根据是否有凭证设置镜像标签
           if [ "${HAS_CREDS}" == "true" ]; then
-            echo "IMAGE_TAG_LATEST=${ACR_REGISTRY}/${ACR_NAMESPACE}/watchalert-web:latest" >> $GITHUB_ENV
-            echo "IMAGE_TAG_VERSION=${ACR_REGISTRY}/${ACR_NAMESPACE}/watchalert-web:${TAG_NAME}" >> $GITHUB_ENV
+            echo "IMAGE_TAG_LATEST=${ACR_REGISTRY}/${ACR_NAMESPACE}/alerthub-web:latest" >> $GITHUB_ENV
+            echo "IMAGE_TAG_VERSION=${ACR_REGISTRY}/${ACR_NAMESPACE}/alerthub-web:${TAG_NAME}" >> $GITHUB_ENV
           else
             # 如果没有凭证，使用本地标签，避免推送到未认证的注册表
-            echo "IMAGE_TAG_LATEST=watchalert-web:latest" >> $GITHUB_ENV
-            echo "IMAGE_TAG_VERSION=watchalert-web:${TAG_NAME}" >> $GITHUB_ENV
+            echo "IMAGE_TAG_LATEST=alerthub-web:latest" >> $GITHUB_ENV
+            echo "IMAGE_TAG_VERSION=alerthub-web:${TAG_NAME}" >> $GITHUB_ENV
           fi
 
       - name: Build and push
