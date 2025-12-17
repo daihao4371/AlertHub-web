@@ -255,17 +255,44 @@ export const useMetricsExplorer = () => {
 
             // 调用 Prometheus Series API 查询匹配的时间序列
             const response = await getPrometheusSeries(selectedDatasource, matchers, start, end);
+            
+            console.log('Series API 响应:', response);
 
             // 从返回的时间序列中提取所有唯一的指标名称
             const matchedMetrics = new Set();
-            const series = extractResponseData(response);
+            
+            // 处理响应数据格式
+            // 后端返回格式: { code: 200, data: { status: "success", data: [...] }, msg: "success" }
+            let series = [];
+            if (response?.data) {
+                // 如果 data 是对象且包含 status 和 data 字段
+                if (response.data.status === 'success' && response.data.data) {
+                    series = response.data.data;
+                } 
+                // 如果 data 直接是数组
+                else if (Array.isArray(response.data)) {
+                    series = response.data;
+                }
+                // 如果 data 是对象且直接包含数组
+                else if (response.data.data && Array.isArray(response.data.data)) {
+                    series = response.data.data;
+                }
+            }
+            
+            console.log('提取的 series 数据:', series);
             
             // 遍历所有时间序列，提取 __name__ 标签的值（指标名称）
             series.forEach((seriesItem) => {
-                if (seriesItem && typeof seriesItem === 'object' && seriesItem.__name__) {
-                    matchedMetrics.add(seriesItem.__name__);
+                if (seriesItem && typeof seriesItem === 'object') {
+                    // 提取 __name__ 标签的值（指标名称）
+                    const metricName = seriesItem.__name__ || seriesItem['__name__'];
+                    if (metricName && typeof metricName === 'string') {
+                        matchedMetrics.add(metricName);
+                    }
                 }
             });
+            
+            console.log('匹配的指标名称:', Array.from(matchedMetrics));
 
             // 将 Set 转换为数组并排序
             let metricsArray = Array.from(matchedMetrics).sort();
@@ -273,18 +300,23 @@ export const useMetricsExplorer = () => {
             // 精准匹配：如果选择的标签键是业务相关的（非通用标签），则只保留包含该标签键的指标
             // 例如：选择 cpu="0" 时，只显示指标名称中包含 "cpu" 的指标
             // 通用标签（如 job, instance, __name__）不参与指标名称过滤
-            const commonLabels = ['job', 'instance', '__name__', 'id', 'name', 'namespace', 'pod', 'container'];
+            const commonLabels = ['job', 'instance', '__name__', 'id', 'name', 'namespace', 'pod', 'container', 'exported_instance', 'exported_job'];
             const businessLabelKeys = validLabels
                 .map(label => label.labelKey.toLowerCase())
-                .filter(key => !commonLabels.includes(key));
+                .filter(key => !commonLabels.includes(key.toLowerCase()));
             
             if (businessLabelKeys.length > 0) {
                 metricsArray = metricsArray.filter(metric => {
                     const metricLower = metric.toLowerCase();
-                    // 检查指标名称是否包含任何一个业务标签键
+                    // 精准匹配：检查指标名称是否包含任何一个业务标签键
                     // 这样可以确保只显示与标签键相关的指标
                     // 例如：cpu="0" 只显示 node_cpu_* 等 CPU 相关指标，不显示 node_schedstat_* 等调度器指标
-                    return businessLabelKeys.some(key => metricLower.includes(key));
+                    // 使用单词边界匹配，确保更精准（例如 cpu 匹配 node_cpu_seconds_total，但不匹配 node_scrape_*）
+                    return businessLabelKeys.some(key => {
+                        // 检查指标名称中是否包含标签键（作为单词的一部分）
+                        // 例如：cpu 匹配 node_cpu_seconds_total, cpu_usage 等
+                        return metricLower.includes(key);
+                    });
                 });
             }
 
@@ -305,8 +337,14 @@ export const useMetricsExplorer = () => {
                 );
             }
 
+            // 清空之前的图表数据和查询队列，准备加载新的指标数据
+            setChartData(new Map());
+            setQueryQueue(new Set());
+            
             // 更新指标列表 - 这会触发 useEffect 自动查询
             setFilteredMetrics(finalMetrics);
+            
+            console.log('设置的指标列表:', finalMetrics);
             
             // 显示成功消息
             if (finalMetrics.length > MAX_RENDER_COUNT) {
@@ -314,9 +352,6 @@ export const useMetricsExplorer = () => {
             } else {
                 message.success(`找到 ${finalMetrics.length} 个匹配的指标`);
             }
-
-            // 清空之前的图表数据，准备加载新的指标数据
-            // useEffect 会自动处理查询队列
         } catch (error) {
             message.error(`查询失败: ${error.message || '未知错误'}`);
             console.error('查询指标失败:', error);

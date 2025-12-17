@@ -244,9 +244,6 @@ export const ExporterMonitorConfig = () => {
           icon={<SaveOutlined />}
           onClick={handleSave}
           loading={saving}
-          style={{
-            backgroundColor: '#000000'
-          }}
         >
           保存配置
         </Button>

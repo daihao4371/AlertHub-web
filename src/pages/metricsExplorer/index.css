@@ -41,16 +41,16 @@
   gap: 8px;
 }
 
-/* 按钮样式优化 - 参考数据源页面 */
+/* 按钮样式优化 - 使用蓝色主题 */
 .metrics-explorer__toolbar .ant-btn-primary {
-  background-color: #000000 !important;
-  border-color: #000000 !important;
+  background-color: #1677ff !important;
+  border-color: #1677ff !important;
   transition: all 0.2s;
 }
 
 .metrics-explorer__toolbar .ant-btn-primary:hover:not(:disabled) {
-  background-color: #333333 !important;
-  border-color: #333333 !important;
+  background-color: #4096ff !important;
+  border-color: #4096ff !important;
 }
 
 .metrics-explorer__toolbar .ant-btn-primary:disabled {
