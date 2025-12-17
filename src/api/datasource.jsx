@@ -71,14 +71,24 @@ async function deleteDatasource(params) {
 async function DatasourcePing(params) {
     try {
         const res = await http('post', `/api/w8t/datasource/dataSourcePing`, params);
-        message.open({
-            type: 'success',
-            content: '数据源测试通过',
-        });
-        return res;
+        return { success: true, data: res };
     } catch (error) {
-        HandleApiError(error)
-        return error
+        // 提取详细错误信息但不直接显示消息
+        let errorMessage = "连接测试失败";
+        
+        if (error.response && error.response.data) {
+            if (error.response.data.data) {
+                errorMessage = error.response.data.data;
+            } else if (error.response.data.message) {
+                errorMessage = error.response.data.message;
+            } else if (error.response.data.msg) {
+                errorMessage = error.response.data.msg;
+            }
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        
+        return { success: false, error: errorMessage };
     }
 }
 

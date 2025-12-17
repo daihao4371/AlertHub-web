@@ -48,7 +48,7 @@ jobs:
             echo "is_tag=true" >> $GITHUB_OUTPUT
             echo "version=${TAG_NAME}" >> $GITHUB_OUTPUT
             echo "✅ Tag推送: ${TAG_NAME}"
-            
+          
             # 验证tag格式
             if [[ ! "${TAG_NAME}" =~ ^v[0-9] ]]; then
               echo "❌ 错误: tag格式不对: ${TAG_NAME}"
