@@ -392,9 +392,6 @@ export const RuleTemplate = () => {
                         size="default"
                         icon={<ImportOutlined />}
                         onClick={handleImportClick}
-                        style={{
-                            backgroundColor: "#000000",
-                        }}
                     >
                         导入
                     </Button>
@@ -410,9 +407,6 @@ export const RuleTemplate = () => {
                         type="primary"
                         onClick={() => setVisible(true)}
                         icon={<PlusOutlined />}
-                        style={{
-                            backgroundColor: "#000000",
-                        }}
                     >
                         创建
                     </Button>
@@ -465,9 +459,6 @@ export const RuleTemplate = () => {
                             <Button
                                 type="primary"
                                 onClick={handleSubmitUseTmplToRule}
-                                style={{
-                                    backgroundColor: "#000000",
-                                }}
                             >
                                 提交
                             </Button>

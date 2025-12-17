@@ -773,9 +773,6 @@ export const AlertRuleList = () => {
                         size="default"
                         icon={<ImportOutlined />}
                         onClick={handleImportClick}
-                        style={{
-                            backgroundColor: "#000000",
-                        }}
                     >
                         导入
                     </Button>
@@ -784,9 +781,6 @@ export const AlertRuleList = () => {
                         <Button
                             type="primary"
                             size="default"
-                            style={{
-                                backgroundColor: "#000000",
-                            }}
                             icon={<PlusOutlined />}
                         >
                             创建
@@ -823,9 +817,6 @@ export const AlertRuleList = () => {
                 footer={
                     <div style={{ justifyContent: "space-between" }}>
                         <Button
-                            style={{
-                                backgroundColor: "#000000",
-                            }}
                             type="primary"
                             onClick={() => {
                                 handleConfirmImport()

@@ -1071,7 +1071,7 @@ export const AlertRule = ({ type }) => {
                                             </MyFormItem>
                                             <Button
                                                 type="primary"
-                                                style={{backgroundColor: '#000', borderColor: '#000', color: '#fff', height: '32px', flexShrink: 0}}
+                                                style={{height: '32px', flexShrink: 0}}
                                                 onClick={() => {
                                                     if (selectedItems.length === 0) {
                                                         message.error("请先选择数据源")
@@ -1716,7 +1716,7 @@ export const AlertRule = ({ type }) => {
                                         </MyFormItem>
                                         <Button
                                             type="primary"
-                                            style={{backgroundColor: '#000', borderColor: '#000', marginTop: '5px'}}
+                                            style={{marginTop: '5px'}}
                                             onClick={() => {
                                                 if (selectedItems.length === 0) {
                                                     message.error("请先选择数据源")
@@ -2045,9 +2045,6 @@ export const AlertRule = ({ type }) => {
                     <Button
                         type="primary"
                         htmlType="submit"
-                        style={{
-                            backgroundColor: '#000000'
-                        }}
                     >
                         提交
                     </Button>

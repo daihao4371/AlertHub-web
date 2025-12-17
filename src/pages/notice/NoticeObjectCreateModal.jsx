@@ -288,7 +288,6 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                         htmlType="submit"
                         loading={submitLoading}
                         onClick={handleSubmit}
-                        style={{ backgroundColor: '#000000' }}
                     >
                         提交
                     </Button>

@@ -104,9 +104,6 @@ export const AlertRuleGroupCreateModal = ({ visible, onClose, selectedRow, type,
                     <Button
                         type="primary"
                         htmlType="submit"
-                        style={{
-                            backgroundColor: '#000000'
-                        }}
                     >
                         提交
                     </Button>
