@@ -194,9 +194,6 @@ export const Subscribe = () => {
                         <Button
                             type="primary"
                             icon={<PlusOutlined />}
-                            style={{
-                                backgroundColor: '#000000'
-                            }}
                         > 创建 </Button>
                     </Link>
                 </div>

@@ -271,9 +271,6 @@ export const Datasources = () => {
                     <Button
                         type="primary"
                         onClick={() => setVisible(true)}
-                        style={{
-                            backgroundColor: '#000000'
-                        }}
                         icon={<PlusOutlined />}
                     >
                         创建

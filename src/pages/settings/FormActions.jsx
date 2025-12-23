@@ -23,7 +23,6 @@ export const FormActions = ({ loading, onCancel, saveText = '保存', cancelText
                 type="primary"
                 htmlType="submit"
                 loading={loading}
-                style={{ backgroundColor: '#000000' }}
             >
                 {loading ? '保存中...' : saveText}
             </Button>

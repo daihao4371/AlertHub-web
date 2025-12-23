@@ -293,9 +293,6 @@ export const RuleTemplateGroup = () => {
                         type="primary"
                         icon={<PlusOutlined />}
                         onClick={() => setVisible(true)}
-                        style={{
-                            backgroundColor: "#000000",
-                        }}
                     >
                         创建
                     </Button>

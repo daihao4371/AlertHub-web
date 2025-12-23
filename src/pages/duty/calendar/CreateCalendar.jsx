@@ -400,9 +400,6 @@ export const CreateCalendarModal = ({ visible, onClose,onSuccess, dutyId }) => {
                 <Button
                     type="primary"
                     onClick={generateCalendar}
-                    style={{
-                        backgroundColor: "#000000",
-                    }}
                 >
                     提交
                 </Button>

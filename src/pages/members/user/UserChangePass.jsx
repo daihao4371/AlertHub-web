@@ -30,11 +30,11 @@ const UserChangePass = ({ visible, onClose, userid, username }) => {
             <Form name="password_form" onFinish={handleFormSubmit} style={{ marginTop: '30px' }}>
                 <Form.Item
                     name="password"
-                    label="Password"
+                    label="密码"
                     rules={[
                         {
                             required: true,
-                            message: 'Please input your password!',
+                            message: '请输入密码！',
                         },
                     ]}
                     hasFeedback
@@ -44,20 +44,20 @@ const UserChangePass = ({ visible, onClose, userid, username }) => {
 
                 <Form.Item
                     name="confirm"
-                    label="Confirm Password"
+                    label="确认密码"
                     dependencies={['password']}
                     hasFeedback
                     rules={[
                         {
                             required: true,
-                            message: 'Please confirm your password!',
+                            message: '请确认密码！',
                         },
                         ({ getFieldValue }) => ({
                             validator(_, value) {
                                 if (!value || getFieldValue('password') === value) {
                                     return Promise.resolve()
                                 }
-                                return Promise.reject(new Error('The new password that you entered do not match!'))
+                                return Promise.reject(new Error('两次输入的密码不一致！'))
                             },
                         }),
                     ]}
@@ -69,9 +69,6 @@ const UserChangePass = ({ visible, onClose, userid, username }) => {
                         <Button
                             type="primary"
                             htmlType="submit"
-                            style={{
-                                backgroundColor: '#000000'
-                            }}
                         >
                             提交
                         </Button>

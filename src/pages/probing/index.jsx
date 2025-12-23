@@ -587,9 +587,8 @@ export const Probing = () => {
 
                 <div style={{display: 'flex', gap: '10px'}}>
                     <Button
-                        type="primary"
                         size="default"
-                        style={{ marginLeft: 'auto', backgroundColor: '#000000' }}
+                        style={{ marginLeft: 'auto', color: '#1677ff' }}
                         onClick={() => {
                             handleList(probingType)
                         }}
@@ -599,9 +598,6 @@ export const Probing = () => {
                     <Link to={`/probing/create?type=${probingType}`}>
                         <Button
                             type="primary"
-                            style={{
-                                backgroundColor: '#000000'
-                            }}
                             icon={<PlusOutlined />}
                         > 创建 </Button>
                     </Link>

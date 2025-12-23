@@ -606,9 +606,6 @@ export const MetricsExplorer = () => {
                         onClick={handleQuery}
                         disabled={!selectedDatasource || getValidLabels().length === 0}
                         size="small"
-                        style={{ 
-                            backgroundColor: '#000000'
-                        }}
                     >
                         查询
                     </Button>

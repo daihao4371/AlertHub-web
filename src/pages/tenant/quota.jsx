@@ -101,9 +101,6 @@ export const TenantQuota = ({tenantInfo})=>{
                 <Button
                     type="primary"
                     htmlType="submit"
-                    style={{
-                        backgroundColor: '#000000'
-                    }}
                 >
                     保存
                 </Button>

@@ -151,7 +151,7 @@ export const FaultCenter = () => {
                     </div>
 
                     <div>
-                        <Button type="primary" style={{ backgroundColor: "#000000" }} onClick={() => setVisible(true)} icon={<PlusOutlined />}>
+                        <Button type="primary" onClick={() => setVisible(true)} icon={<PlusOutlined />}>
                             创建
                         </Button>
                     </div>

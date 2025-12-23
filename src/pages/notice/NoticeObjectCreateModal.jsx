@@ -1,4 +1,4 @@
-import {Modal, Form, Input, Button, Select, Card, Drawer, Divider} from 'antd'
+import {Modal, Form, Input, Button, Select, Card, Drawer, Divider, message} from 'antd'
 import React, { useState, useEffect } from 'react'
 import { createNotice, updateNotice } from '../../api/notice'
 import { getDutyManagerList } from '../../api/duty'
@@ -196,13 +196,34 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
     }
 
     const handleGetNoticeTmpl = async () => {
-        const params = { noticeType: noticeType }
-        const res = await getNoticeTmplList(params)
-        const newData = res.data.map((item) => ({
-            label: item.name,
-            value: item.id
-        }))
-        setNoticeTmplItems(newData)
+        try {
+            const params = { noticeType: noticeType }
+            const res = await getNoticeTmplList(params)
+            
+            // 修复：检查权限错误
+            if (res.code === 403) {
+                message.warning('无权限访问通知模版列表')
+                setNoticeTmplItems([])
+                return
+            }
+            
+            // 修复：添加空值检查，防止访问 undefined 的 map 方法
+            if (!res || !res.data || !Array.isArray(res.data)) {
+                console.warn('获取通知模版列表失败或数据格式不正确:', res)
+                setNoticeTmplItems([])
+                return
+            }
+            
+            const newData = res.data.map((item) => ({
+                label: item.name,
+                value: item.id
+            }))
+            setNoticeTmplItems(newData)
+        } catch (error) {
+            console.error('获取通知模版列表失败:', error)
+            message.error('获取通知模版列表失败')
+            setNoticeTmplItems([])
+        }
     }
 
     const handleSelectChangeTo = (value) => {
@@ -288,7 +309,6 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                         htmlType="submit"
                         loading={submitLoading}
                         onClick={handleSubmit}
-                        style={{ backgroundColor: '#000000' }}
                     >
                         提交
                     </Button>

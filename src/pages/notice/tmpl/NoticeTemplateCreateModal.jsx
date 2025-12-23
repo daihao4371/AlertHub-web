@@ -218,9 +218,6 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
                     type="primary"
                     htmlType="submit"
                     onClick={handleSubmit}
-                    style={{
-                        backgroundColor: '#000',
-                    }}
                 >
                     提交
                 </Button>

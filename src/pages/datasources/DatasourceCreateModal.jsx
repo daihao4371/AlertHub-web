@@ -1,12 +1,12 @@
 import { createDatasource, DatasourcePing, updateDatasource } from "../../api/datasource"
-import {Form, Input, Button, Checkbox, Alert, Drawer, Steps, Card, Row, Col, Typography, Divider, Radio} from "antd"
+import {Form, Input, Button, Checkbox, Alert, Drawer, Steps, Card, Row, Col, Typography, Divider, Radio, App} from "antd"
 import React, { useState, useEffect } from "react"
 import {
     MinusCircleOutlined,
     PlusOutlined,
     DatabaseOutlined,
     CloudOutlined,
-    ApartmentOutlined, CloseOutlined, CheckOutlined,
+    ApartmentOutlined,
 } from "@ant-design/icons"
 import VSCodeEditor from "../../utils/VSCodeEditor";
 const { TextArea } = Input
@@ -94,6 +94,7 @@ const datasourceTypes = [
 ]
 
 export const CreateDatasourceModal = ({ visible, onClose, selectedRow, type, handleList }) => {
+    const { message } = App.useApp(); // 使用 Antd v5 的 useApp hook 获取 message API
     const [form] = Form.useForm()
     const [enabled, setEnabled] = useState(true)
     const [selectedType, setSelectedType] = useState(null)
@@ -103,6 +104,7 @@ export const CreateDatasourceModal = ({ visible, onClose, selectedRow, type, han
     const [spaceValue, setSpaceValue] = useState("")
     const [disableStep, setDisableStep] = useState(false)
     const [authState, setAuthState] = useState("Off")
+    const [writeState, setWriteState] = useState("Off")
 
     const handleInputChange = (e) => {
         const newValue = e.target.value.replace(/\s/g, "")
@@ -128,8 +130,12 @@ export const CreateDatasourceModal = ({ visible, onClose, selectedRow, type, han
                 type: selectedRow.type,
                 labels: labelsArray,
                 http: {
-                    url: selectedRow.http.url,
-                    timeout: Number(selectedRow.http.timeout)
+                    url: selectedRow.http?.url || '',
+                    timeout: Number(selectedRow.http?.timeout || 10)
+                },
+                write: {
+                    enabled: selectedRow.write?.enabled || false,
+                    url: selectedRow.write?.url || '',
                 },
                 alicloudEndpoint: selectedRow.alicloudEndpoint,
                 alicloudAk: selectedRow.alicloudAk,
@@ -181,12 +187,16 @@ export const CreateDatasourceModal = ({ visible, onClose, selectedRow, type, han
             ...values,
             labels: formattedLabels,
             clickhouseConfig: {
-                addr: values?.clickhouseConfig?.addr,
-                timeout: Number(values?.clickhouseConfig?.timeout),
+                addr: values?.clickhouseConfig?.addr || '',
+                timeout: Number(values?.clickhouseConfig?.timeout || 10),
             },
             http: {
-                url: values?.http?.url,
-                timeout: Number(values?.http?.timeout),
+                url: values?.http?.url || '',
+                timeout: Number(values?.http?.timeout || 10),
+            },
+            write: {
+                enabled: writeState === "On",
+                url: values?.write?.url || '',
             },
             enabled: enabled,
         }
@@ -219,37 +229,57 @@ export const CreateDatasourceModal = ({ visible, onClose, selectedRow, type, han
 
     const handleTestConnection = async () => {
         setTestLoading(true)
-        const values = await form.validateFields().catch((err) => null)
-        if (!values) {
-            setTestLoading(false)
-            return
-        }
-
-        const formattedLabels = values.labels?.reduce((acc, { key, value }) => {
-            if (key) {
-                acc[key] = value
-            }
-            return acc
-        }, {})
-
+        
         try {
+            // 先验证表单
+            const values = await form.validateFields()
+            
+            const formattedLabels = values.labels?.reduce((acc, { key, value }) => {
+                if (key) {
+                    acc[key] = value
+                }
+                return acc
+            }, {})
+
             const params = {
                 ...values,
                 labels: formattedLabels,
                 clickhouseConfig: {
-                    addr: values?.clickhouseConfig?.addr,
-                    timeout: Number(values?.clickhouseConfig?.timeout),
+                    addr: values?.clickhouseConfig?.addr || '',
+                    timeout: Number(values?.clickhouseConfig?.timeout || 10),
                 },
                 http: {
-                    url: values?.http?.url,
-                    timeout: Number(values?.http?.timeout),
+                    url: values?.http?.url || '',
+                    timeout: Number(values?.http?.timeout || 10),
                 },
             }
-            await DatasourcePing(params)
+            
+            console.log("开始连接测试，参数:", params)
+            
+            // 调用API测试连接
+            const result = await DatasourcePing(params)
+            console.log("连接测试结果:", result)
+            
+            if (result.success) {
+                message.success('数据源连接测试成功！')
+                console.log("显示成功消息")
+            } else {
+                message.error(`连接测试失败: ${result.error}`)
+                console.log("显示失败消息:", result.error)
+            }
+            
         } catch (error) {
-            console.error("连接测试失败:", error)
+            console.error("连接测试过程中出错:", error)
+            // 处理表单验证错误
+            if (error.errorFields && error.errorFields.length > 0) {
+                message.error('表单验证失败，请检查必填项')
+            } else {
+                // 处理其他意外错误
+                message.error('连接测试出现意外错误，请重试')
+            }
+        } finally {
+            setTestLoading(false)
         }
-        setTestLoading(false)
     }
 
     const handlePrevStep = () => {
@@ -266,6 +296,18 @@ export const CreateDatasourceModal = ({ visible, onClose, selectedRow, type, han
             value: 'Off',
         },
     ];
+
+    const writeRadioOptions = [
+        {
+            label: '启用',
+            value: 'On',
+        },
+        {
+            label: '禁用',
+            value: 'Off',
+        },
+    ];
+
 
     // 渲染数据源类型选择卡片
     const renderDatasourceTypeCards = () => {
@@ -501,6 +543,44 @@ export const CreateDatasourceModal = ({ visible, onClose, selectedRow, type, han
                                 </>
                             )}
                         </MyFormItemGroup>
+
+                        {(selectedType === "Prometheus" || selectedType === "VictoriaMetrics") && (
+                            <MyFormItemGroup prefix={["write"]}>
+                                <Divider orientation="left">Write</Divider>
+                                <Alert
+                                    message="提示：用于拨测任务向该数据源写入指标数据。"
+                                    type="info"
+                                    showIcon
+                                    style={{ marginBottom: 20, marginTop: "10px" }}
+                                />
+                                <Radio.Group
+                                    block
+                                    options={writeRadioOptions}
+                                    defaultValue="Off"
+                                    value={writeState}
+                                    onChange={(e)=>setWriteState(e.target.value)}
+                                />
+                                {writeState === "On" && (
+                                    <>
+                                        <MyFormItem
+                                            name="url"
+                                            label="URL"
+                                            rules={[
+                                                {
+                                                    required: true,
+                                                },
+                                                {
+                                                    pattern: /^(http|https):\/\/.*[^/]$/,
+                                                    message: '请输入正确的URL格式，且结尾不应包含"/"',
+                                                },
+                                            ]}
+                                        >
+                                            <Input placeholder="例如: http://localhost:9090/api/v1/write"/>
+                                        </MyFormItem>
+                                    </>
+                                )}
+                            </MyFormItemGroup>
+                        )}
                     </>
                 )}
 
@@ -620,9 +700,6 @@ export const CreateDatasourceModal = ({ visible, onClose, selectedRow, type, han
                         onChange={(e) => setEnabled(e.target.checked)}
                     />
                 </div>
-                {/* <MyFormItem name="enabled" label={"状态"} tooltip="启用/禁用" valuePropName="checked">
-                    <Switch checked={enabled} onChange={setEnabled} />
-                </MyFormItem> */}
             </Form>
         )
     }

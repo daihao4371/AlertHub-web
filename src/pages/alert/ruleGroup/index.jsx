@@ -226,8 +226,7 @@ export const AlertRuleGroup = ({ }) => {
                         type="primary"
                         onClick={() => setCreateModalVisible(true)}
                         style={{
-                            marginLeft: 'auto',
-                            backgroundColor: '#000000'
+                            marginLeft: 'auto'
                         }}
                         icon={<PlusOutlined />}
                     >

@@ -68,6 +68,9 @@ export const ProfileEditModal = ({ visible, onClose, userInfo, type, onSuccess }
             cancelText="取消"
             width={500}
             destroyOnClose
+            okButtonProps={{
+                type: 'primary'
+            }}
         >
             <Form
                 form={form}

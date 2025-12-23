@@ -1,4 +1,4 @@
-import {Button, Input, Table, Popconfirm, Space, Tooltip, Tag} from 'antd';
+import {Button, Input, Table, Popconfirm, Space, Tooltip, Tag, message} from 'antd';
 import React, { useState, useEffect } from 'react';
 import NoticeTemplateCreateModal from './NoticeTemplateCreateModal';
 import { getNoticeTmplList, deleteNoticeTmpl } from '../../../api/noticeTmpl';
@@ -188,8 +188,29 @@ export const NoticeTemplate = () => {
     }, []);
 
     const handleList = async () => {
-        const res = await getNoticeTmplList();
-        setList(res.data);
+        try {
+            const res = await getNoticeTmplList();
+            
+            // 修复：检查权限错误
+            if (res.code === 403) {
+                message.warning('无权限访问通知模版列表')
+                setList([])
+                return
+            }
+            
+            // 修复：添加空值检查，防止访问 undefined 的 data
+            if (!res || !res.data || !Array.isArray(res.data)) {
+                console.warn('获取通知模版列表失败或数据格式不正确:', res)
+                setList([])
+                return
+            }
+            
+            setList(res.data);
+        } catch (error) {
+            console.error('获取通知模版列表失败:', error)
+            message.error('获取通知模版列表失败')
+            setList([])
+        }
     };
 
     const handleDelete = async (record) => {
@@ -223,9 +244,26 @@ export const NoticeTemplate = () => {
                 query: value,
             };
             const res = await getNoticeTmplList(params);
+            
+            // 修复：检查权限错误
+            if (res.code === 403) {
+                message.warning('无权限访问通知模版列表')
+                setList([])
+                return
+            }
+            
+            // 修复：添加空值检查，防止访问 undefined 的 data
+            if (!res || !res.data || !Array.isArray(res.data)) {
+                console.warn('搜索通知模版失败或数据格式不正确:', res)
+                setList([])
+                return
+            }
+            
             setList(res.data);
         } catch (error) {
-            console.error(error);
+            console.error('搜索通知模版失败:', error)
+            message.error('搜索通知模版失败')
+            setList([])
         }
     };
 
@@ -244,9 +282,6 @@ export const NoticeTemplate = () => {
                     <Button
                         type="primary"
                         onClick={() => setVisible(true)}
-                        style={{
-                            backgroundColor: '#000000'
-                        }}
                         icon={<PlusOutlined />}
                     >
                         创建

@@ -1,18 +1,20 @@
-import {Input, Table, Button, Popconfirm, Tooltip, Space} from 'antd';
+import {Table, Button, Popconfirm, Tooltip, Space, message} from 'antd';
 import React, { useState, useEffect } from 'react';
 import UserRoleCreateModal from './UserRoleCreateModal';
-import { deleteRole, getRoleList } from '../../../api/role';
-import {CopyOutlined, DeleteOutlined, EditOutlined, PlusOutlined} from "@ant-design/icons";
+import { deleteRole, getRoleList, getRolePermissions } from '../../../api/role';
+import {CopyOutlined, DeleteOutlined, EditOutlined, PlusOutlined, SafetyOutlined} from "@ant-design/icons";
 import {HandleShowTotal} from "../../../utils/lib";
 import {copyToClipboard} from "../../../utils/copyToClipboard";
-
-const { Search } = Input;
+import { PermissionViewModal } from '../../../components/PermissionViewModal';
 
 export const UserRole = () => {
     const [selectedRow, setSelectedRow] = useState(null);
     const [updateVisible, setUpdateVisible] = useState(false);
     const [visible, setVisible] = useState(false);
     const [list, setList] = useState([]);
+    const [permissionVisible, setPermissionVisible] = useState(false);
+    const [rolePermissions, setRolePermissions] = useState([]);
+    const [loadingPermissions, setLoadingPermissions] = useState(false);
 
     // 表头
     const columns = [
@@ -71,11 +73,19 @@ export const UserRole = () => {
             title: '操作',
             dataIndex: 'operation',
             fixed: 'right',
-            width: 120,
+            width: 180,
             render: (_, record) =>
                 list.length >= 1 ? (
                     <Space size="middle">
-                        <Tooltip title="更新">
+                        <Tooltip title="查看权限">
+                            <Button
+                                type="text"
+                                icon={<SafetyOutlined />}
+                                onClick={() => handleViewPermissions(record)}
+                                style={{ color: "#1677ff" }}
+                            />
+                        </Tooltip>
+                        <Tooltip title="编辑角色">
                             <Button
                                 type="text"
                                 icon={<EditOutlined />}
@@ -117,8 +127,19 @@ export const UserRole = () => {
     }, []);
 
     const handleList = async () => {
-        const res = await getRoleList();
-        setList(res.data);
+        try {
+            const res = await getRoleList();
+            // 修复：添加空值检查
+            if (res && res.data && Array.isArray(res.data)) {
+                setList(res.data);
+            } else {
+                setList([]);
+            }
+        } catch (error) {
+            console.error('获取角色列表失败:', error);
+            message.error('获取角色列表失败');
+            setList([]);
+        }
     };
 
     const handleDelete = async (record) => {
@@ -142,6 +163,44 @@ export const UserRole = () => {
         setUpdateVisible(true);
     };
 
+    // 查看角色权限
+    const handleViewPermissions = async (record) => {
+        setSelectedRow(record);
+        setPermissionVisible(true);
+        setLoadingPermissions(true);
+        setRolePermissions([]);
+        
+        try {
+            const res = await getRolePermissions({ roleId: record.id });
+            
+            // 检查权限错误
+            if (res.code === 403) {
+                message.warning('无权限查看角色权限');
+                setRolePermissions([]);
+                return;
+            }
+            
+            // 处理权限数据
+            if (res && res.data && Array.isArray(res.data)) {
+                setRolePermissions(res.data);
+            } else {
+                setRolePermissions([]);
+            }
+        } catch (error) {
+            console.error('获取角色权限失败:', error);
+            message.error('获取角色权限失败');
+            setRolePermissions([]);
+        } finally {
+            setLoadingPermissions(false);
+        }
+    };
+
+    // 刷新权限数据
+    const handleRefreshPermissions = async () => {
+        if (!selectedRow) return;
+        await handleViewPermissions(selectedRow);
+    };
+
     useEffect(() => {
         handleList();
     }, []);
@@ -152,9 +211,6 @@ export const UserRole = () => {
                 <Button
                     type="primary"
                     onClick={() => setVisible(true)}
-                    style={{
-                        backgroundColor: '#000000'
-                    }}
                     icon={<PlusOutlined />}
                 >
                     创建
@@ -191,6 +247,20 @@ export const UserRole = () => {
                     rowKey={(record) => record.id} // 设置行唯一键
                 />
             </div>
+
+            {/* 查看权限弹窗 */}
+            <PermissionViewModal
+                visible={permissionVisible}
+                onClose={() => {
+                    setPermissionVisible(false);
+                    setRolePermissions([]);
+                }}
+                title={`查看角色权限 - ${selectedRow?.name || ''}`}
+                mode="permissionsOnly"
+                permissions={rolePermissions}
+                loading={loadingPermissions}
+                onRefresh={handleRefreshPermissions}
+            />
         </>
     );
 };
