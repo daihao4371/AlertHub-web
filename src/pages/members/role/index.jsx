@@ -1,10 +1,11 @@
-import {Table, Button, Popconfirm, Tooltip, Space, Modal, Tag, message} from 'antd';
+import {Table, Button, Popconfirm, Tooltip, Space, message} from 'antd';
 import React, { useState, useEffect } from 'react';
 import UserRoleCreateModal from './UserRoleCreateModal';
 import { deleteRole, getRoleList, getRolePermissions } from '../../../api/role';
-import {CopyOutlined, DeleteOutlined, EditOutlined, PlusOutlined, EyeOutlined} from "@ant-design/icons";
+import {CopyOutlined, DeleteOutlined, EditOutlined, PlusOutlined, SafetyOutlined} from "@ant-design/icons";
 import {HandleShowTotal} from "../../../utils/lib";
 import {copyToClipboard} from "../../../utils/copyToClipboard";
+import { PermissionViewModal } from '../../../components/PermissionViewModal';
 
 export const UserRole = () => {
     const [selectedRow, setSelectedRow] = useState(null);
@@ -79,7 +80,7 @@ export const UserRole = () => {
                         <Tooltip title="查看权限">
                             <Button
                                 type="text"
-                                icon={<EyeOutlined />}
+                                icon={<SafetyOutlined />}
                                 onClick={() => handleViewPermissions(record)}
                                 style={{ color: "#1677ff" }}
                             />
@@ -167,6 +168,7 @@ export const UserRole = () => {
         setSelectedRow(record);
         setPermissionVisible(true);
         setLoadingPermissions(true);
+        setRolePermissions([]);
         
         try {
             const res = await getRolePermissions({ roleId: record.id });
@@ -191,6 +193,12 @@ export const UserRole = () => {
         } finally {
             setLoadingPermissions(false);
         }
+    };
+
+    // 刷新权限数据
+    const handleRefreshPermissions = async () => {
+        if (!selectedRow) return;
+        await handleViewPermissions(selectedRow);
     };
 
     useEffect(() => {
@@ -241,75 +249,18 @@ export const UserRole = () => {
             </div>
 
             {/* 查看权限弹窗 */}
-            <Modal
-                title={`查看角色权限 - ${selectedRow?.name || ''}`}
+            <PermissionViewModal
                 visible={permissionVisible}
-                onCancel={() => {
+                onClose={() => {
                     setPermissionVisible(false);
                     setRolePermissions([]);
                 }}
-                footer={[
-                    <Button key="close" onClick={() => {
-                        setPermissionVisible(false);
-                        setRolePermissions([]);
-                    }}>
-                        关闭
-                    </Button>
-                ]}
-                width={800}
-            >
-                <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-                    {loadingPermissions ? (
-                        <div style={{ textAlign: 'center', padding: '40px' }}>
-                            加载中...
-                        </div>
-                    ) : rolePermissions.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
-                            该角色暂无权限
-                        </div>
-                    ) : (
-                        <Table
-                            columns={[
-                                {
-                                    title: 'API 路径',
-                                    dataIndex: 'path',
-                                    key: 'path',
-                                    width: '40%',
-                                },
-                                {
-                                    title: 'HTTP 方法',
-                                    dataIndex: 'method',
-                                    key: 'method',
-                                    width: '15%',
-                                    render: (method) => (
-                                        <Tag color={method === 'GET' ? 'blue' : method === 'POST' ? 'green' : method === 'PUT' ? 'orange' : 'red'}>
-                                            {method}
-                                        </Tag>
-                                    ),
-                                },
-                                {
-                                    title: 'API 分组',
-                                    dataIndex: 'apiGroup',
-                                    key: 'apiGroup',
-                                    width: '20%',
-                                    render: (text) => text || '-',
-                                },
-                                {
-                                    title: '描述',
-                                    dataIndex: 'description',
-                                    key: 'description',
-                                    width: '25%',
-                                    render: (text) => text || '-',
-                                },
-                            ]}
-                            dataSource={rolePermissions}
-                            pagination={false}
-                            rowKey={(record) => `${record.path}-${record.method}`}
-                            size="small"
-                        />
-                    )}
-                </div>
-            </Modal>
+                title={`查看角色权限 - ${selectedRow?.name || ''}`}
+                mode="permissionsOnly"
+                permissions={rolePermissions}
+                loading={loadingPermissions}
+                onRefresh={handleRefreshPermissions}
+            />
         </>
     );
 };

@@ -1,14 +1,14 @@
-import {Input, Table, Button, Popconfirm, Tooltip, Space, Modal, Tag, message, Tabs} from 'antd';
+import {Input, Table, Button, Popconfirm, Tooltip, Space, message} from 'antd';
 import React, { useState, useEffect } from 'react';
 import UserCreateModal from './UserCreateModal';
 import UserChangePass from './UserChangePass';
 import { deleteUser, getUserList } from '../../../api/user';
-import { getUserRoles, checkUserPermission } from '../../../api/role';
+import { getUserRoles } from '../../../api/role';
 import { getUserPermissions } from '../../../api/casbinPermission';
-import {CopyOutlined, DeleteOutlined, EditOutlined, PlusOutlined, EyeOutlined, SafetyOutlined} from "@ant-design/icons";
+import {CopyOutlined, DeleteOutlined, EditOutlined, PlusOutlined, SafetyOutlined} from "@ant-design/icons";
 import {HandleShowTotal} from "../../../utils/lib";
-import {Link} from "react-router-dom";
 import {copyToClipboard} from "../../../utils/copyToClipboard";
+import { PermissionViewModal, enrichPermissionsWithGroups } from '../../../components/PermissionViewModal';
 
 const { Search } = Input;
 
@@ -105,7 +105,7 @@ export const User = () => {
                                     type="text"
                                     icon={<SafetyOutlined />}
                                     onClick={() => handleViewUserPermissions(record)}
-                                    style={{ color: "#52c41a" }}
+                                    style={{ color: "#1677ff" }}
                                 />
                             </Tooltip>
                             <Tooltip title="更新">
@@ -124,7 +124,7 @@ export const User = () => {
                                     cancelText="取消"
                                     placement="left"
                                 >
-                                    <Button type="text" icon={<DeleteOutlined />} style={{ color: "#ff4d4f" }} />
+                                    <Button type="text" icon={<DeleteOutlined />} style={{ color: "#1677ff" }} />
                                 </Popconfirm>
                             </Tooltip>
                         </Space>
@@ -245,8 +245,13 @@ export const User = () => {
                     setUserPermissions([]);
                 } else if (permsRes.data) {
                     // 确保 data 是数组
-                    const permsData = Array.isArray(permsRes.data) ? permsRes.data : [];
+                    let permsData = Array.isArray(permsRes.data) ? permsRes.data : [];
+                    
+                    // 使用公共函数补充分组信息
+                    permsData = await enrichPermissionsWithGroups(permsData);
+                    
                     setUserPermissions(permsData);
+                    
                     if (permsData.length === 0) {
                         console.log('用户权限列表为空');
                     }
@@ -274,6 +279,12 @@ export const User = () => {
         } finally {
             setLoadingPermissions(false);
         }
+    };
+
+    // 刷新权限数据
+    const handleRefreshPermissions = async () => {
+        if (!selectedRow) return;
+        await handleViewUserPermissions(selectedRow);
     };
 
     // 搜索用户
@@ -362,140 +373,20 @@ export const User = () => {
             </div>
 
             {/* 查看用户权限弹窗 */}
-            <Modal
-                title={`查看用户权限 - ${selectedRow?.username || ''}`}
+            <PermissionViewModal
                 visible={permissionVisible}
-                onCancel={() => {
+                onClose={() => {
                     setPermissionVisible(false);
                     setUserRoles([]);
                     setUserPermissions([]);
                 }}
-                footer={[
-                    <Button key="close" onClick={() => {
-                        setPermissionVisible(false);
-                        setUserRoles([]);
-                        setUserPermissions([]);
-                    }}>
-                        关闭
-                    </Button>
-                ]}
-                width={900}
-            >
-                <Tabs defaultActiveKey="roles" items={[
-                    {
-                        key: 'roles',
-                        label: '用户角色',
-                        children: (
-                            <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-                                {loadingPermissions ? (
-                                    <div style={{ textAlign: 'center', padding: '40px' }}>
-                                        加载中...
-                                    </div>
-                                ) : userRoles.length === 0 ? (
-                                    <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
-                                        该用户暂无角色
-                                    </div>
-                                ) : (
-                                    <Table
-                                        columns={[
-                                            {
-                                                title: '角色ID',
-                                                dataIndex: 'id',
-                                                key: 'id',
-                                                width: '30%',
-                                            },
-                                            {
-                                                title: '角色名称',
-                                                dataIndex: 'name',
-                                                key: 'name',
-                                                width: '25%',
-                                            },
-                                            {
-                                                title: '描述',
-                                                dataIndex: 'description',
-                                                key: 'description',
-                                                width: '25%',
-                                                render: (text) => text || '-',
-                                            },
-                                            {
-                                                title: '状态',
-                                                dataIndex: 'enabled',
-                                                key: 'enabled',
-                                                width: '20%',
-                                                render: (enabled, record) => {
-                                                    // 安全处理 enabled 字段（可能是布尔值、null 或 undefined）
-                                                    const isEnabled = enabled !== null && enabled !== undefined 
-                                                        ? Boolean(enabled) 
-                                                        : true; // 默认启用
-                                                    return (
-                                                        <Tag color={isEnabled ? 'green' : 'red'}>
-                                                            {isEnabled ? '启用' : '禁用'}
-                                                        </Tag>
-                                                    );
-                                                },
-                                            },
-                                        ]}
-                                        dataSource={userRoles}
-                                        pagination={false}
-                                        rowKey="id"
-                                        size="small"
-                                    />
-                                )}
-                            </div>
-                        ),
-                    },
-                    {
-                        key: 'permissions',
-                        label: '用户权限',
-                        children: (
-                            <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-                                {loadingPermissions ? (
-                                    <div style={{ textAlign: 'center', padding: '40px' }}>
-                                        加载中...
-                                    </div>
-                                ) : userPermissions.length === 0 ? (
-                                    <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
-                                        该用户暂无权限
-                                    </div>
-                                ) : (
-                                    <Table
-                                        columns={[
-                                            {
-                                                title: 'API 路径',
-                                                dataIndex: 'path',
-                                                key: 'path',
-                                                width: '40%',
-                                            },
-                                            {
-                                                title: 'HTTP 方法',
-                                                dataIndex: 'method',
-                                                key: 'method',
-                                                width: '15%',
-                                                render: (method) => (
-                                                    <Tag color={method === 'GET' ? 'blue' : method === 'POST' ? 'green' : method === 'PUT' ? 'orange' : 'red'}>
-                                                        {method}
-                                                    </Tag>
-                                                ),
-                                            },
-                                            {
-                                                title: '分组',
-                                                dataIndex: 'group',
-                                                key: 'group',
-                                                width: '20%',
-                                                render: (text) => text || '-',
-                                            },
-                                        ]}
-                                        dataSource={userPermissions}
-                                        pagination={false}
-                                        rowKey={(record, index) => `${record.path}-${record.method}-${index}`}
-                                        size="small"
-                                    />
-                                )}
-                            </div>
-                        ),
-                    },
-                ]} />
-            </Modal>
+                title={`查看用户权限 - ${selectedRow?.username || ''}`}
+                mode="rolesAndPermissions"
+                permissions={userPermissions}
+                roles={userRoles}
+                loading={loadingPermissions}
+                onRefresh={handleRefreshPermissions}
+            />
         </>
     );
 };
