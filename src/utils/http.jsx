@@ -43,9 +43,14 @@ axios.interceptors.response.use(
                 window.localStorage.removeItem('Authorization');
                 window.history.replaceState(null, '', '/login');
                 // window.location.reload();
+                break;
             case 403:
-                message.error("无权限访问!")
-                window.history.replaceState(null, '', '/');
+                // 修复：403 错误不跳转，只显示提示（让调用方处理）
+                // message.error("无权限访问!")
+                // window.history.replaceState(null, '', '/');
+                break;
+            default:
+                break;
         }
 
         return Promise.reject(error);
@@ -135,11 +140,31 @@ export function put(url, data = {}) {
     });
 }
 
+/**
+ * 封装delete请求
+ * @param url
+ * @param data
+ * @returns {Promise}
+ */
+export function del(url, data = {}) {
+    return new Promise((resolve, reject) => {
+        axios.delete(url, { data: data }).then(
+            (response) => {
+                resolve(response.data);
+            },
+            (err) => {
+                msag(err);
+                reject(err);
+            }
+        );
+    });
+}
+
 //统一接口处理，返回数据
 // eslint-disable-next-line import/no-anonymous-default-export
 export default function (method, url, param) {
     return new Promise((resolve, reject) => {
-        switch (method) {
+        switch (method.toLowerCase()) {
             case 'get':
                 get(url, param)
                     .then(function (response) {
@@ -155,11 +180,31 @@ export default function (method, url, param) {
                         resolve(response);
                     })
                     .catch(function (error) {
-                        console.error('get request POST failed.', error);
+                        console.error('POST request failed.', error);
+                        reject(error);
+                    });
+                break;
+            case 'delete':
+            case 'del':
+                del(url, param)
+                    .then(function (response) {
+                        resolve(response);
+                    })
+                    .catch(function (error) {
+                        console.error('DELETE request failed.', error);
                         reject(error);
                     });
                 break;
             default:
+                console.warn(`Unsupported HTTP method: ${method}, falling back to POST`);
+                post(url, param)
+                    .then(function (response) {
+                        resolve(response);
+                    })
+                    .catch(function (error) {
+                        console.error('Request failed.', error);
+                        reject(error);
+                    });
                 break;
         }
     });

@@ -7,6 +7,7 @@ import { DutyManage } from "../pages/duty";
 import { Home } from "../pages/home";
 import { UserRole } from "../pages/members/role";
 import { User } from "../pages/members/user";
+import { ApiManagement } from "../pages/members/api";
 import { NoticeObjects } from "../pages/notice";
 import { NoticeTemplate } from "../pages/notice/tmpl";
 import { Silences } from "../pages/silence";
@@ -105,6 +106,10 @@ export default [
     {
         path: '/userRole',
         element: <ComponentsContent name="角色管理" c={<UserRole />} />
+    },
+    {
+        path: '/api',
+        element: <ComponentsContent name="API 管理" c={<ApiManagement />} />
     },
     {
         path: '/tenants',

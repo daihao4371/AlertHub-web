@@ -8,6 +8,7 @@ import './index.css'
 import { AppContextProvider } from './context/RuleContext';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // 全局配置 dayjs 使用中文 locale
 dayjs.locale('zh-cn');
@@ -17,15 +18,17 @@ export default function App() {
     const title = "AlertHub";
 
     return (
-        <AppContextProvider>
-            <ConfigProvider locale={zhCN} theme={{ algorithm: theme.defaultAlgorithm }}>
-                <AntdApp>
-                    <Helmet>
-                        <title>{title}</title>
-                    </Helmet>
-                    {element}
-                </AntdApp>
-            </ConfigProvider>
-        </AppContextProvider>
+        <ErrorBoundary>
+            <AppContextProvider>
+                <ConfigProvider locale={zhCN} theme={{ algorithm: theme.defaultAlgorithm }}>
+                    <AntdApp>
+                        <Helmet>
+                            <title>{title}</title>
+                        </Helmet>
+                        {element}
+                    </AntdApp>
+                </ConfigProvider>
+            </AppContextProvider>
+        </ErrorBoundary>
     );
 }
