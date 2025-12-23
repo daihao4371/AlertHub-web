@@ -196,9 +196,6 @@ export const DashboardFolder = () => {
                     <Button
                         type="primary"
                         onClick={() => { setCreateModalVisible(true) }}
-                        style={{
-                            backgroundColor: '#000000'
-                        }}
                         icon={<PlusOutlined />}
                     >
                         创建
