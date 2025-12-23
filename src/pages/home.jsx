@@ -8,6 +8,7 @@ import { FaultCenterList } from "../api/faultCenter"
 import { noticeRecordMetric } from "../api/notice"
 import { AlertTriangle, BarChart2, Users, Bell, Activity, Server } from "lucide-react"
 import { NoticeMetricChart } from "./chart/noticeMetricChart"
+import { safeGet, safeLength, safeIsEmpty } from "../utils/safeAccess"
 
 const { Option } = Select
 const { Title, Text } = Typography
@@ -25,13 +26,21 @@ export const Home = () => {
     try {
       setLoading(true)
       const res = await FaultCenterList()
-      setFaultCenters(res.data)
-      if (res.data.length > 0) {
-        setSelectedFaultCenter(res.data[0].id)
+      // 安全处理返回数据，避免权限错误导致页面崩溃
+      const faultCenterData = safeGet(res, 'data', [])
+      setFaultCenters(Array.isArray(faultCenterData) ? faultCenterData : [])
+      if (safeLength(faultCenterData) > 0) {
+        setSelectedFaultCenter(faultCenterData[0]?.id)
       }
     } catch (error) {
       console.error(error)
-      message.error("获取故障中心列表失败")
+      // 如果是权限错误，显示友好提示
+      if (error?.response?.status === 403 || error?.code === 403) {
+        message.warning("您没有权限访问故障中心列表")
+      } else {
+        message.error("获取故障中心列表失败")
+      }
+      setFaultCenters([])
     } finally {
       setLoading(false)
     }
@@ -44,10 +53,18 @@ export const Home = () => {
       setLoading(true)
       const params = { faultCenterId }
       const res = await getDashboardInfo(params)
-      setDashboardInfo(res.data)
+      // 安全处理返回数据，避免权限错误导致页面崩溃
+      const dashboardData = safeGet(res, 'data', {})
+      setDashboardInfo(typeof dashboardData === 'object' && dashboardData !== null ? dashboardData : {})
     } catch (error) {
       console.error(error)
-      message.error("获取仪表盘数据失败")
+      // 如果是权限错误，显示友好提示
+      if (error?.response?.status === 403 || error?.code === 403) {
+        message.warning("您没有权限访问仪表盘数据")
+      } else {
+        message.error("获取仪表盘数据失败")
+      }
+      setDashboardInfo({})
     } finally {
       setLoading(false)
     }
@@ -57,10 +74,18 @@ export const Home = () => {
   const fetchMetricData = async () => {
     try {
       const res = await noticeRecordMetric()
-      setMetricData(res.data)
+      // 安全处理返回数据，避免权限错误导致页面崩溃
+      const metricDataResult = safeGet(res, 'data', {})
+      setMetricData(typeof metricDataResult === 'object' && metricDataResult !== null ? metricDataResult : {})
     } catch (error) {
-      message.error("加载图表数据失败")
       console.error("Failed to load metric data:", error)
+      // 如果是权限错误，显示友好提示
+      if (error?.response?.status === 403 || error?.code === 403) {
+        message.warning("您没有权限访问图表数据")
+      } else {
+        message.error("加载图表数据失败")
+      }
+      setMetricData({})
     }
   }
 
@@ -312,7 +337,7 @@ export const Home = () => {
         </div>
         <div style={{ padding: "24px", marginTop: "-16px" }}>
           <Spin spinning={loading}>
-            {metricData.date && metricData.date.length > 0 ? (
+            {!safeIsEmpty(safeGet(metricData, 'date')) ? (
               <NoticeMetricChart data={metricData} />
             ) : (
               <div style={{ textAlign: "center", padding: "80px 0" }}>
@@ -357,18 +382,18 @@ export const Home = () => {
                 popupMatchSelectWidth={false}
                 listHeight={400}
               >
-                {faultCenters.length === 0 && <Option disabled>暂无可用故障中心</Option>}
+                {safeIsEmpty(faultCenters) && <Option disabled>暂无可用故障中心</Option>}
                 {faultCenters.map((center) => (
-                  <Option key={center.id} value={center.id}>
-                    {center.name}
+                  <Option key={center?.id} value={center?.id}>
+                    {center?.name || '-'}
                   </Option>
                 ))}
               </Select>
             </div>
             <Spin spinning={loading}>
-              {dashboardInfo.curAlertList?.length > 0 ? (
+              {!safeIsEmpty(safeGet(dashboardInfo, 'curAlertList')) ? (
                 <List
-                  dataSource={dashboardInfo.curAlertList ?? []}
+                  dataSource={safeGet(dashboardInfo, 'curAlertList', [])}
                   style={{
                     height: "350px",
                     overflow: "auto",
@@ -388,7 +413,7 @@ export const Home = () => {
                           width: "100%",
                         }}
                       >
-                        {getSeverityBadge(item.severity, item.ruleName, item.faultCenterId)}
+                        {getSeverityBadge(item?.severity, item?.ruleName, item?.faultCenterId)}
                       </div>
                     </List.Item>
                   )}
@@ -433,10 +458,10 @@ export const Home = () => {
                 popupMatchSelectWidth={false}
                 listHeight={400}
               >
-                {faultCenters.length === 0 && <Option disabled>暂无可用故障中心</Option>}
+                {safeIsEmpty(faultCenters) && <Option disabled>暂无可用故障中心</Option>}
                 {faultCenters.map((center) => (
-                  <Option key={center.id} value={center.id}>
-                    {center.name}
+                  <Option key={center?.id} value={center?.id}>
+                    {center?.name || '-'}
                   </Option>
                 ))}
               </Select>
