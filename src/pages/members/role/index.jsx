@@ -81,7 +81,7 @@ export const UserRole = () => {
                                 type="text"
                                 icon={<EyeOutlined />}
                                 onClick={() => handleViewPermissions(record)}
-                                style={{ color: "#52c41a" }}
+                                style={{ color: "#1677ff" }}
                             />
                         </Tooltip>
                         <Tooltip title="更新">

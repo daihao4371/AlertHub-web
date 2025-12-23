@@ -103,15 +103,38 @@ async function checkUserPermission(params) {
 async function getUserRoles(params) {
     try {
         const res = await http('get', `/api/w8t/role/getUserRoles`, params);
-        // 修复：确保返回的数据格式正确
-        if (!res || !res.data) {
-            return { data: [], code: res?.code || 400, message: res?.message || '获取用户角色列表失败' };
+        console.log('getUserRoles API 响应:', res);
+        
+        // 后端返回格式: { code: 200, data: [...], msg: "success" }
+        if (!res) {
+            return { data: [], code: 400, message: '获取用户角色列表失败：响应为空' };
         }
-        return res;
+        
+        // 检查错误码
+        if (res.code !== 200) {
+            return { 
+                data: [], 
+                code: res.code || 400, 
+                message: res.msg || res.message || '获取用户角色列表失败' 
+            };
+        }
+        
+        // 确保 data 是数组
+        const data = res.data || [];
+        return { 
+            data: Array.isArray(data) ? data : [], 
+            code: res.code || 200, 
+            message: res.msg || 'success' 
+        };
     } catch (error) {
-        HandleApiError(error)
+        console.error('getUserRoles API 错误:', error);
+        HandleApiError(error);
         // 修复：返回统一的错误格式
-        return { data: [], code: error?.response?.status || 400, message: error?.message || '获取用户角色列表失败' };
+        return { 
+            data: [], 
+            code: error?.response?.status || error?.code || 400, 
+            message: error?.message || '获取用户角色列表失败' 
+        };
     }
 }
 

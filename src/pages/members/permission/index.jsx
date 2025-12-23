@@ -1,5 +1,5 @@
-import { Table, Button, Card, Space, Tag, Input, message, Modal, Form, Select, Alert } from 'antd';
-import React, { useState, useEffect } from 'react';
+import { Table, Button, Card, Space, Tag, Input, message, Modal, Form, Select, Alert, Tree, Tabs } from 'antd';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
     getApiPermissions, 
     getRolePermissions, 
@@ -25,6 +25,8 @@ export const PermissionManagement = () => {
     const [checkModalVisible, setCheckModalVisible] = useState(false);
     const [checkResult, setCheckResult] = useState(null);
     const [initModalVisible, setInitModalVisible] = useState(false);
+    const [checkedKeys, setCheckedKeys] = useState([]); // 选中的 API 节点
+    const [expandedKeys, setExpandedKeys] = useState([]); // 展开的节点
 
     // 加载所有 API 权限列表
     const loadApiList = async () => {
@@ -68,6 +70,100 @@ export const PermissionManagement = () => {
     useEffect(() => {
         loadApiList();
     }, []);
+
+    // 将 API 列表转换为树形结构数据（用于可选择的树形展示）
+    const treeData = useMemo(() => {
+        if (!apiList || apiList.length === 0) {
+            return [];
+        }
+
+        // 按分组归类 API
+        const groupMap = new Map();
+        apiList.forEach(api => {
+            const group = api.apiGroup || '未分组';
+            if (!groupMap.has(group)) {
+                groupMap.set(group, []);
+            }
+            groupMap.get(group).push(api);
+        });
+
+        // 转换为树形结构
+        const treeNodes = [];
+        groupMap.forEach((apis, groupName) => {
+            const children = apis.map(api => ({
+                title: (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <Tag color={
+                            api.method === 'GET' ? 'blue' : 
+                            api.method === 'POST' ? 'green' : 
+                            api.method === 'PUT' ? 'orange' : 
+                            api.method === 'DELETE' ? 'red' : 
+                            api.method === 'PATCH' ? 'purple' : 'default'
+                        }>
+                            {api.method}
+                        </Tag>
+                        <span style={{ fontWeight: 500, color: '#1890ff', marginRight: '8px' }}>
+                            {api.path}
+                        </span>
+                        {api.description && (
+                            <span style={{ color: '#8c8c8c', fontSize: '12px' }}>
+                                {api.description}
+                            </span>
+                        )}
+                    </div>
+                ),
+                key: `api-${api.id}`,
+                isLeaf: true,
+                apiData: api,
+            }));
+
+            treeNodes.push({
+                title: (
+                    <span style={{ fontWeight: 600, fontSize: '14px' }}>
+                        {groupName}
+                        <span style={{ marginLeft: '8px', color: '#8c8c8c', fontSize: '12px', fontWeight: 400 }}>
+                            ({apis.length})
+                        </span>
+                    </span>
+                ),
+                key: `group-${groupName}`,
+                children: children,
+            });
+        });
+
+        // 按分组名称排序
+        treeNodes.sort((a, b) => {
+            const aName = a.key.replace('group-', '');
+            const bName = b.key.replace('group-', '');
+            return aName.localeCompare(bName, 'zh-CN');
+        });
+
+        return treeNodes;
+    }, [apiList]);
+
+    // 处理树节点选择变化
+    const onCheck = (checkedKeysValue, info) => {
+        // 只保留 API 节点的 key（过滤掉 group 节点的 key）
+        const apiKeys = checkedKeysValue.filter(key => key.toString().startsWith('api-'));
+        setCheckedKeys(apiKeys);
+    };
+
+    // 处理树节点展开/收起
+    const onExpand = (expandedKeysValue) => {
+        setExpandedKeys(expandedKeysValue);
+    };
+
+    // 全选/取消全选
+    const handleSelectAll = () => {
+        if (checkedKeys.length === apiList.length) {
+            // 取消全选
+            setCheckedKeys([]);
+        } else {
+            // 全选所有 API
+            const allApiKeys = apiList.map(api => `api-${api.id}`);
+            setCheckedKeys(allApiKeys);
+        }
+    };
 
     // 表格列定义
     const columns = [
@@ -132,11 +228,76 @@ export const PermissionManagement = () => {
 
     return (
         <div>
+            {/* API 树形选择展示 */}
             <Card
                 title={
                     <Space>
                         <SafetyOutlined />
-                        <span>API 权限管理</span>
+                        <span>API 权限树形选择</span>
+                        <span style={{ color: '#8c8c8c', fontSize: '12px', fontWeight: 400 }}>
+                            （已选择 {checkedKeys.length} / {apiList.length} 个 API）
+                        </span>
+                    </Space>
+                }
+                extra={
+                    <Space>
+                        <Button
+                            onClick={handleSelectAll}
+                            disabled={apiList.length === 0}
+                        >
+                            {checkedKeys.length === apiList.length ? '取消全选' : '全选'}
+                        </Button>
+                        <Button
+                            icon={<ReloadOutlined />}
+                            onClick={loadApiList}
+                            loading={loading}
+                        >
+                            刷新
+                        </Button>
+                    </Space>
+                }
+                style={{ marginBottom: 16 }}
+            >
+                {loading ? (
+                    <div style={{ textAlign: 'center', padding: '40px' }}>
+                        加载中...
+                    </div>
+                ) : treeData.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
+                        暂无 API 数据
+                    </div>
+                ) : (
+                    <div style={{ 
+                        maxHeight: '60vh', 
+                        overflowY: 'auto',
+                        padding: '16px',
+                        backgroundColor: '#fff',
+                        borderRadius: '8px',
+                        border: '1px solid #f0f0f0'
+                    }}>
+                        <Tree
+                            checkable
+                            showLine={{ showLeafIcon: false }}
+                            checkedKeys={checkedKeys}
+                            expandedKeys={expandedKeys}
+                            onCheck={onCheck}
+                            onExpand={onExpand}
+                            treeData={treeData}
+                            style={{
+                                backgroundColor: 'transparent',
+                            }}
+                            checkStrictly={false}
+                        />
+                    </div>
+                )}
+            </Card>
+
+            {/* API 权限列表表格 */}
+            <Card
+                title={
+                    <Space>
+                        <SafetyOutlined />
+                        <span>API 权限列表</span>
                     </Space>
                 }
                 extra={

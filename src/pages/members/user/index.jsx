@@ -184,20 +184,93 @@ export const User = () => {
         try {
             // 获取用户角色列表
             const rolesRes = await getUserRoles({ userId: record.userid });
-            if (rolesRes && rolesRes.data && Array.isArray(rolesRes.data)) {
-                setUserRoles(rolesRes.data);
+            console.log('获取用户角色响应:', rolesRes);
+            
+            // 处理角色数据
+            if (rolesRes) {
+                // 检查是否有错误码
+                if (rolesRes.code === 403) {
+                    message.warning('无权限查看用户角色');
+                    setUserRoles([]);
+                } else if (rolesRes.code && rolesRes.code !== 200) {
+                    message.warning(rolesRes.message || rolesRes.msg || '获取用户角色失败');
+                    setUserRoles([]);
+                } else if (rolesRes.data !== undefined) {
+                    // 确保 data 是数组
+                    let rolesData = [];
+                    if (Array.isArray(rolesRes.data)) {
+                        rolesData = rolesRes.data;
+                    } else if (rolesRes.data && typeof rolesRes.data === 'object') {
+                        // 如果 data 是单个对象，转换为数组
+                        rolesData = [rolesRes.data];
+                    }
+                    
+                    // 处理 enabled 字段，确保是布尔值
+                    rolesData = rolesData.map(role => ({
+                        ...role,
+                        enabled: role.enabled !== null && role.enabled !== undefined 
+                            ? (typeof role.enabled === 'boolean' ? role.enabled : Boolean(role.enabled))
+                            : true // 默认启用
+                    }));
+                    
+                    console.log('处理后的用户角色数据:', rolesData);
+                    setUserRoles(rolesData);
+                    
+                    if (rolesData.length === 0) {
+                        console.log('用户角色列表为空，原始响应:', rolesRes);
+                    }
+                } else {
+                    // 如果返回格式不符合预期，尝试直接使用 res
+                    const rolesData = Array.isArray(rolesRes) ? rolesRes : [];
+                    console.log('使用备用方式处理角色数据:', rolesData);
+                    setUserRoles(rolesData);
+                }
+            } else {
+                console.log('角色响应为空');
+                setUserRoles([]);
             }
             
             // 获取用户权限列表（Casbin 方式）
             const permsRes = await getUserPermissions({ userId: record.userid });
-            if (permsRes && permsRes.data && Array.isArray(permsRes.data)) {
-                setUserPermissions(permsRes.data);
-            } else if (permsRes.code === 403) {
-                message.warning('无权限查看用户权限');
+            console.log('获取用户权限响应:', permsRes);
+            
+            // 处理权限数据
+            if (permsRes) {
+                // 检查是否有错误码
+                if (permsRes.code === 403) {
+                    message.warning('无权限查看用户权限');
+                    setUserPermissions([]);
+                } else if (permsRes.code && permsRes.code !== 200) {
+                    message.warning(permsRes.message || '获取用户权限失败');
+                    setUserPermissions([]);
+                } else if (permsRes.data) {
+                    // 确保 data 是数组
+                    const permsData = Array.isArray(permsRes.data) ? permsRes.data : [];
+                    setUserPermissions(permsData);
+                    if (permsData.length === 0) {
+                        console.log('用户权限列表为空');
+                    }
+                } else {
+                    // 如果返回格式不符合预期，尝试直接使用 res
+                    const permsData = Array.isArray(permsRes) ? permsRes : [];
+                    setUserPermissions(permsData);
+                }
+            } else {
+                setUserPermissions([]);
             }
         } catch (error) {
             console.error('获取用户权限失败:', error);
-            message.error('获取用户权限失败');
+            // 区分不同类型的错误
+            if (error?.response?.status === 403) {
+                message.warning('无权限查看用户权限信息');
+            } else if (error?.response?.status === 404) {
+                message.warning('用户不存在或接口未找到');
+            } else {
+                message.error('获取用户权限失败: ' + (error?.message || '未知错误'));
+            }
+            // 确保设置空数组，避免显示错误
+            setUserRoles([]);
+            setUserPermissions([]);
         } finally {
             setLoadingPermissions(false);
         }
@@ -349,11 +422,17 @@ export const User = () => {
                                                 dataIndex: 'enabled',
                                                 key: 'enabled',
                                                 width: '20%',
-                                                render: (enabled) => (
-                                                    <Tag color={enabled ? 'green' : 'red'}>
-                                                        {enabled ? '启用' : '禁用'}
-                                                    </Tag>
-                                                ),
+                                                render: (enabled, record) => {
+                                                    // 安全处理 enabled 字段（可能是布尔值、null 或 undefined）
+                                                    const isEnabled = enabled !== null && enabled !== undefined 
+                                                        ? Boolean(enabled) 
+                                                        : true; // 默认启用
+                                                    return (
+                                                        <Tag color={isEnabled ? 'green' : 'red'}>
+                                                            {isEnabled ? '启用' : '禁用'}
+                                                        </Tag>
+                                                    );
+                                                },
                                             },
                                         ]}
                                         dataSource={userRoles}
