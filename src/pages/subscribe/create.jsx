@@ -1,4 +1,4 @@
-import {Form, Input, Button, Select, Alert, Card} from 'antd'
+import {Form, Input, Button, Select, Alert, Card, message} from 'antd'
 import React, { useState, useEffect } from 'react'
 import { createSilence, updateSilence } from '../../api/silence'
 import { getRuleList } from "../../api/rule";
@@ -168,15 +168,36 @@ export const CreateSubscribeModel = ({ visible, onClose, selectedRow, type, hand
     };
 
     const handleNoticeTemplate = async() => {
-        const params = {
-            noticeType: "Email",
+        try {
+            const params = {
+                noticeType: "Email",
+            }
+            const res = await getNoticeTmplList(params)
+            
+            // 修复：检查权限错误
+            if (res.code === 403) {
+                message.warning('无权限访问通知模版列表')
+                setNoticeTmplItems([])
+                return
+            }
+            
+            // 修复：添加空值检查，防止访问 undefined 的 map 方法
+            if (!res || !res.data || !Array.isArray(res.data)) {
+                console.warn('获取通知模版列表失败或数据格式不正确:', res)
+                setNoticeTmplItems([])
+                return
+            }
+            
+            const newData = res.data.map((item) => ({
+                label: item.name,
+                value: item.id
+            }))
+            setNoticeTmplItems(newData)
+        } catch (error) {
+            console.error('获取通知模版列表失败:', error)
+            message.error('获取通知模版列表失败')
+            setNoticeTmplItems([])
         }
-        const res =  await getNoticeTmplList(params)
-        const newData = res.data.map((item) => ({
-            label: item.name,
-            value: item.id
-        }))
-        setNoticeTmplItems(newData)
     }
 
     const handleSelectedSeverityItem = (ids,info) =>{
