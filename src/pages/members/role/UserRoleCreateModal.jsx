@@ -1,8 +1,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { Modal, Form, Input, Button, Transfer, message } from 'antd'
-import React, { useEffect, useState } from 'react'
+import { Modal, Form, Input, Button, Tree, Tag, message, Space } from 'antd'
+import React, { useEffect, useState, useMemo } from 'react'
 import { createRole, updateRole, setRolePermissions, getRolePermissions } from '../../../api/role'
-import { getPermissionsList } from '../../../api/permissions'
+import { getApiPermissions } from '../../../api/casbinPermission'
 const MyFormItemContext = React.createContext([])
 
 function toArr(str) {
@@ -19,8 +19,9 @@ const MyFormItem = ({ name, ...props }) => {
 // 函数组件
 const UserRoleCreateModal = ({ visible, onClose, selectedRow, type, handleList }) => {
     const [form] = Form.useForm()
-    const [mockData, setMockData] = useState([])
-    const [targetKeys, setTargetKeys] = useState([])
+    const [apiList, setApiList] = useState([])
+    const [checkedKeys, setCheckedKeys] = useState([])
+    const [expandedKeys, setExpandedKeys] = useState([])
     const [disabledPermission, setDisabledPermission] = useState(false)
 
     // 禁止输入空格
@@ -49,24 +50,24 @@ const UserRoleCreateModal = ({ visible, onClose, selectedRow, type, handleList }
             // 检查权限错误
             if (res.code === 403) {
                 message.warning('无权限查看角色权限')
-                setTargetKeys([])
+                setCheckedKeys([])
                 return
             }
             
             // 处理权限数据：SysApi 数组，提取 ID
             if (res && res.data && Array.isArray(res.data)) {
-                const permissionIds = res.data.map(api => api.id).filter(Boolean)
-                setTargetKeys(permissionIds)
+                const permissionIds = res.data.map(api => api.id).filter(Boolean).map(id => `api-${id}`)
+                setCheckedKeys(permissionIds)
                 form.setFieldsValue({
-                    permissions: permissionIds,
+                    permissions: permissionIds.map(key => key.replace('api-', '')),
                 })
             } else {
-                setTargetKeys([])
+                setCheckedKeys([])
             }
         } catch (error) {
             console.error('获取角色权限失败:', error)
             message.error('获取角色权限失败')
-            setTargetKeys([])
+            setCheckedKeys([])
         }
     }
 
@@ -90,7 +91,8 @@ const UserRoleCreateModal = ({ visible, onClose, selectedRow, type, handleList }
             loadRolePermissions(selectedRow.id)
         } else {
             // 清空表单
-            setTargetKeys([])
+            setCheckedKeys([])
+            setExpandedKeys([])
             form.resetFields()
         }
     }, [selectedRow, form])
@@ -115,7 +117,7 @@ const UserRoleCreateModal = ({ visible, onClose, selectedRow, type, handleList }
                 // 通过回调获取列表，查找刚创建的角色
                 // 注意：由于 handleList 是异步的，我们需要等待它完成
                 // 如果用户选择了权限，提示需要稍后编辑设置
-                if (Array.isArray(targetKeys) && targetKeys.length > 0) {
+                if (Array.isArray(checkedKeys) && checkedKeys.length > 0) {
                     message.warning('角色创建成功，请稍后编辑角色以设置权限')
                 }
             }
@@ -132,8 +134,11 @@ const UserRoleCreateModal = ({ visible, onClose, selectedRow, type, handleList }
                 
                 // 设置角色权限（更新时）
                 if (roleId) {
-                    const apiIds = Array.isArray(targetKeys) 
-                        ? targetKeys.map(id => Number(id)).filter(id => !isNaN(id))
+                    const apiIds = Array.isArray(checkedKeys) 
+                        ? checkedKeys
+                            .filter(key => key.toString().startsWith('api-'))
+                            .map(key => Number(key.toString().replace('api-', '')))
+                            .filter(id => !isNaN(id))
                         : []
                     
                     const permissionParams = {
@@ -155,80 +160,143 @@ const UserRoleCreateModal = ({ visible, onClose, selectedRow, type, handleList }
         }
     }
 
-    const fetchData = async () => {
+    // 加载 API 列表
+    const fetchApiList = async () => {
         try {
-            const response = await getPermissionsList()
-            // 修复：添加空值检查，防止访问 undefined 的 data
-            const data = (response && Array.isArray(response.data)) ? response.data : []
-            // 传递当前的 targetKeys 给 formatData
-            formatData(data, targetKeys) // 格式化数据
+            const response = await getApiPermissions()
+            if (response && response.data && Array.isArray(response.data)) {
+                setApiList(response.data)
+            } else {
+                setApiList([])
+            }
         } catch (error) {
             console.error("获取权限列表失败:", error)
-            // 确保即使出错也设置空数组
-            setMockData([])
+            setApiList([])
         }
     }
 
     useEffect(() => {
-        fetchData()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        fetchApiList()
     }, [])
 
-    // 当 selectedRow 变化时，如果已有 mockData，重新加载权限数据
-    useEffect(() => {
-        if (selectedRow && mockData.length > 0) {
-            // 重新加载角色权限数据
-            loadRolePermissions(selectedRow.id)
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedRow])
-
-    const formatData = (data, currentTargetKeys = []) => {
-        // 修复：确保 data 是数组
-        if (!Array.isArray(data)) {
-            setMockData([])
-            return
+    // 将 API 列表转换为树形结构数据（用于可选择的树形展示）
+    const treeData = useMemo(() => {
+        if (!apiList || apiList.length === 0) {
+            return [];
         }
 
-        const tempTargetKeys = []
-        // 修复：使用新的数据格式，SysApi 使用 id 而不是 key
-        const tempMockData = data.map((item) => {
-            // 新格式：SysApi 有 id, path, method, apiGroup, description
-            const apiId = item.id
-            const keysToCheck = Array.isArray(currentTargetKeys) ? currentTargetKeys : (Array.isArray(targetKeys) ? targetKeys : [])
-            const isChosen = keysToCheck.includes(apiId)
-            
-            if (isChosen) {
-                tempTargetKeys.push(apiId)
+        // 按分组归类 API
+        const groupMap = new Map();
+        apiList.forEach(api => {
+            const group = api.apiGroup || '未分组';
+            if (!groupMap.has(group)) {
+                groupMap.set(group, []);
             }
-            
-            // 构建显示标题：使用 path + method 或 description
-            const title = item.description || `${item.path} [${item.method}]`
-            
-            return {
-                key: apiId, // Transfer 组件需要 key
-                id: apiId,
-                path: item.path,
-                method: item.method,
-                apiGroup: item.apiGroup,
-                description: item.description,
-                title: title,
-                chosen: isChosen,
-            }
-        })
+            groupMap.get(group).push(api);
+        });
 
-        setMockData(tempMockData)
-        // 只在编辑模式下且 currentTargetKeys 有值时更新 targetKeys
-        if (selectedRow && currentTargetKeys.length > 0) {
-            setTargetKeys(tempTargetKeys)
-        }
-    }
+        // 转换为树形结构
+        const treeNodes = [];
+        groupMap.forEach((apis, groupName) => {
+            const children = apis.map(api => ({
+                title: (
+                    <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '8px', 
+                        flexWrap: 'wrap',
+                        padding: '4px 0'
+                    }}>
+                        {/* HTTP 方法标签 */}
+                        <Tag color={
+                            api.method === 'GET' ? 'blue' : 
+                            api.method === 'POST' ? 'green' : 
+                            api.method === 'PUT' ? 'orange' : 
+                            api.method === 'DELETE' ? 'red' : 
+                            api.method === 'PATCH' ? 'purple' : 'default'
+                        }>
+                            {api.method}
+                        </Tag>
+                        {/* API 路径 */}
+                        <span style={{ 
+                            fontWeight: 500, 
+                            color: '#1890ff', 
+                            marginRight: '8px',
+                            fontFamily: 'monospace'
+                        }}>
+                            {api.path}
+                        </span>
+                        {/* 描述 */}
+                        {api.description && (
+                            <span style={{ 
+                                color: '#8c8c8c', 
+                                fontSize: '12px'
+                            }}>
+                                {api.description}
+                            </span>
+                        )}
+                    </div>
+                ),
+                key: `api-${api.id}`, // 使用 API ID 作为 key
+                isLeaf: true,
+            }));
 
-    const handleOnChange = (keys) => {
-        // 修复：新权限系统只需要 ID 数组，不需要对象数组
-        // keys 已经是 ID 数组，直接设置
-        setTargetKeys(Array.isArray(keys) ? keys : [])
-    }
+            treeNodes.push({
+                title: (
+                    <span style={{ fontWeight: 600, fontSize: '14px' }}>
+                        {groupName}
+                        <span style={{ 
+                            marginLeft: '8px', 
+                            color: '#8c8c8c', 
+                            fontSize: '12px', 
+                            fontWeight: 400 
+                        }}>
+                            ({apis.length})
+                        </span>
+                    </span>
+                ),
+                key: `group-${groupName}`,
+                children: children,
+            });
+        });
+
+        // 按分组名称排序
+        treeNodes.sort((a, b) => {
+            const aName = a.key.replace('group-', '');
+            const bName = b.key.replace('group-', '');
+            return aName.localeCompare(bName, 'zh-CN');
+        });
+
+        return treeNodes;
+    }, [apiList]);
+
+    // 处理树节点选择变化
+    const onCheck = (checkedKeysValue) => {
+        // 只保留 API 节点的 key（过滤掉 group 节点的 key）
+        const apiKeys = checkedKeysValue.filter(key => key.toString().startsWith('api-'));
+        setCheckedKeys(apiKeys);
+        // 更新表单值
+        const apiIds = apiKeys.map(key => key.toString().replace('api-', ''));
+        form.setFieldsValue({
+            permissions: apiIds,
+        });
+    };
+
+    // 处理树节点展开/收起
+    const onExpand = (expandedKeysValue) => {
+        setExpandedKeys(expandedKeysValue);
+    };
+
+    // 展开所有节点
+    const expandAll = () => {
+        const allKeys = treeData.map(node => node.key);
+        setExpandedKeys(allKeys);
+    };
+
+    // 收起所有节点
+    const collapseAll = () => {
+        setExpandedKeys([]);
+    };
 
     return (
         <Modal visible={visible} onCancel={onClose} footer={null} width={690}>
@@ -253,16 +321,52 @@ const UserRoleCreateModal = ({ visible, onClose, selectedRow, type, handleList }
                 </MyFormItem>
 
                 <MyFormItem name="permissions" label="选择权限">
-                    <Transfer
-                        showSearch
-                        dataSource={mockData}
-                        // 修复：targetKeys 现在直接是 ID 数组
-                        targetKeys={Array.isArray(targetKeys) ? targetKeys : []}
-                        onChange={(keys) => handleOnChange(keys)}
-                        render={(item) => item.title || `${item.path} [${item.method}]`}
-                        listStyle={{ height: 300, width: 300 }} // 设置列表样式
-                        disabled={disabledPermission}
-                    />
+                    <div style={{ 
+                        border: '1px solid #d9d9d9',
+                        borderRadius: '4px',
+                        padding: '16px',
+                        backgroundColor: '#fafafa',
+                        maxHeight: '400px',
+                        overflowY: 'auto'
+                    }}>
+                        <Space style={{ marginBottom: '12px' }}>
+                            <Button
+                                size="small"
+                                onClick={expandAll}
+                                disabled={treeData.length === 0 || disabledPermission}
+                            >
+                                展开全部
+                            </Button>
+                            <Button
+                                size="small"
+                                onClick={collapseAll}
+                                disabled={treeData.length === 0 || disabledPermission}
+                            >
+                                收起全部
+                            </Button>
+                            <span style={{ 
+                                color: '#8c8c8c', 
+                                fontSize: '12px',
+                                marginLeft: '8px'
+                            }}>
+                                已选择 {checkedKeys.filter(key => key.toString().startsWith('api-')).length} / {apiList.length} 个 API
+                            </span>
+                        </Space>
+                        <Tree
+                            checkable
+                            showLine={{ showLeafIcon: false }}
+                            checkedKeys={checkedKeys}
+                            expandedKeys={expandedKeys}
+                            onCheck={onCheck}
+                            onExpand={onExpand}
+                            treeData={treeData}
+                            disabled={disabledPermission}
+                            style={{
+                                backgroundColor: 'transparent',
+                            }}
+                            checkStrictly={false}
+                        />
+                    </div>
                 </MyFormItem>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>

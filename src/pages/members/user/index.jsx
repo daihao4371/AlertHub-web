@@ -124,7 +124,7 @@ export const User = () => {
                                     cancelText="取消"
                                     placement="left"
                                 >
-                                    <Button type="text" icon={<DeleteOutlined />} style={{ color: "#1677ff" }} />
+                                    <Button type="text" icon={<DeleteOutlined />} style={{ color: "#ff4d4f" }} />
                                 </Popconfirm>
                             </Tooltip>
                         </Space>

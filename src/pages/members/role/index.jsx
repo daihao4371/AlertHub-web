@@ -85,7 +85,7 @@ export const UserRole = () => {
                                 style={{ color: "#1677ff" }}
                             />
                         </Tooltip>
-                        <Tooltip title="更新">
+                        <Tooltip title="编辑角色">
                             <Button
                                 type="text"
                                 icon={<EditOutlined />}
