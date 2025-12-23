@@ -93,7 +93,8 @@ const adminMenuItems = [
         label: '用户与权限',
         children: [
             { key: '9-1', path: '/user', label: '用户管理' },
-            { key: '9-2', path: '/userRole', label: '角色管理' }
+            { key: '9-2', path: '/userRole', label: '角色管理' },
+            { key: '9-3', path: '/api', label: 'API 管理' }
         ]
     },
     { key: '10', path: '/tenants', icon: <DeploymentUnitOutlined />, label: '租户管理' },
