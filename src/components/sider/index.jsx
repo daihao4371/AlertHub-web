@@ -28,7 +28,7 @@ const { Sider } = Layout;
 // 管理员菜单 - 按使用频率和业务逻辑排序
 const adminMenuItems = [
     // 1. 概览 - 首页入口
-    { key: '1', path: '/', icon: <AreaChartOutlined />, label: '概览' },
+    { key: '1', path: '/', icon: <AreaChartOutlined />, label: '首页' },
     
     // 2. 仪表盘 - 可视化分析（高频使用）
     { key: '2', path: '/folders', icon: <DashboardOutlined />, label: '仪表盘' },

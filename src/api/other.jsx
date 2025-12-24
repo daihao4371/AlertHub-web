@@ -1,5 +1,4 @@
 import http from '../utils/http';
-import { message } from 'antd';
 import {HandleApiError} from "../utils/lib";
 
 async function getDashboardInfo(params) {
@@ -56,10 +55,27 @@ async function getPromLabelValues(params) {
     }
 }
 
+/**
+ * 获取首页统计数据
+ * @param {Object} params - 请求参数
+ * @param {string} params.faultCenterId - 故障中心ID（可选）
+ * @returns {Promise} 返回统计数据，包括今日告警、过去7天数据及环比数据
+ */
+async function getDashboardStatistics(params) {
+    try {
+        const res = await http('get', '/api/system/getDashboardStatistics', params);
+        return res;
+    } catch (error) {
+        HandleApiError(error);
+        return error;
+    }
+}
+
 export {
     getDashboardInfo,
     getJaegerService,
     queryPromMetrics,
     queryRangePromMetrics,
-    getPromLabelValues
+    getPromLabelValues,
+    getDashboardStatistics
 }
