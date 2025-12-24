@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react"
 import ReactECharts from "echarts-for-react"
-import { List, Row, Col, Statistic, Select, message, Typography, Badge, Spin, Empty, Tag } from "antd"
+import { List, Row, Col, Select, message, Typography, Badge, Spin, Empty, Tag } from "antd"
 import { getDashboardInfo, getDashboardStatistics } from "../api/other"
 import { FaultCenterList } from "../api/faultCenter"
 import { noticeRecordMetric } from "../api/notice"
-import { AlertTriangle, BarChart2, Users, Bell, Activity, Server } from "lucide-react"
+import { BarChart2, Bell, Activity } from "lucide-react"
 import { NoticeMetricChart } from "./chart/noticeMetricChart"
 import { MiniLineChart } from "../components/MiniLineChart"
 import { safeGet, safeLength, safeIsEmpty } from "../utils/safeAccess"
@@ -418,108 +418,6 @@ export const Home = () => {
           })}
         </div>
       </div>
-
-      <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
-        <Col xs={24} sm={12} md={8}>
-          <div
-            style={{
-              backgroundColor: "#ffffff",
-              border: "1px solid #e8e8e8",
-              borderRadius: "12px",
-              padding: "24px",
-              height: "100%",
-              transition: "box-shadow 0.3s",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", marginBottom: "20px" }}>
-              <div
-                style={{
-                  backgroundColor: "#000000",
-                  borderRadius: "8px",
-                  padding: "10px",
-                  marginRight: "16px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <AlertTriangle size={20} color="#ffffff" strokeWidth={2} />
-              </div>
-              <Text style={{ color: "#8c8c8c", fontSize: "14px" }}>当前规则总数</Text>
-            </div>
-            <Statistic
-              value={dashboardInfo?.countAlertRules || 0}
-              valueStyle={{ fontSize: "32px", fontWeight: "600", color: "#000000" }}
-            />
-          </div>
-        </Col>
-        <Col xs={24} sm={12} md={8}>
-          <div
-            style={{
-              backgroundColor: "#ffffff",
-              border: "1px solid #e8e8e8",
-              borderRadius: "12px",
-              padding: "24px",
-              height: "100%",
-              transition: "box-shadow 0.3s",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", marginBottom: "20px" }}>
-              <div
-                style={{
-                  backgroundColor: "#000000",
-                  borderRadius: "8px",
-                  padding: "10px",
-                  marginRight: "16px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Server size={20} color="#ffffff" strokeWidth={2} />
-              </div>
-              <Text style={{ color: "#8c8c8c", fontSize: "14px" }}>故障中心总数</Text>
-            </div>
-            <Statistic
-              value={dashboardInfo?.faultCenterNumber || 0}
-              valueStyle={{ fontSize: "32px", fontWeight: "600", color: "#000000" }}
-            />
-          </div>
-        </Col>
-        <Col xs={24} sm={12} md={8}>
-          <div
-            style={{
-              backgroundColor: "#ffffff",
-              border: "1px solid #e8e8e8",
-              borderRadius: "12px",
-              padding: "24px",
-              height: "100%",
-              transition: "box-shadow 0.3s",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", marginBottom: "20px" }}>
-              <div
-                style={{
-                  backgroundColor: "#000000",
-                  borderRadius: "8px",
-                  padding: "10px",
-                  marginRight: "16px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Users size={20} color="#ffffff" strokeWidth={2} />
-              </div>
-              <Text style={{ color: "#8c8c8c", fontSize: "14px" }}>系统用户总数</Text>
-            </div>
-            <Statistic
-              value={dashboardInfo?.userNumber || 0}
-              valueStyle={{ fontSize: "32px", fontWeight: "600", color: "#000000" }}
-            />
-          </div>
-        </Col>
-      </Row>
 
       <div
         style={{
