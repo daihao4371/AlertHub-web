@@ -1,4 +1,4 @@
-import {Modal, Form, Input, Button, Select, Card, Drawer, Divider, message} from 'antd'
+import {Modal, Form, Input, Button, Select, Card, Drawer, Divider, App} from 'antd'
 import React, { useState, useEffect } from 'react'
 import { createNotice, updateNotice } from '../../api/notice'
 import { getDutyManagerList } from '../../api/duty'
@@ -8,6 +8,7 @@ import DingDingImg from "./img/dingding.svg";
 import WeChatImg from "./img/qywechat.svg"
 import SlackImg from "./img/slack.svg"
 import CustomHook from "./img/customhook.svg"
+import SmsImg from "./img/message.png"
 import {MinusCircleOutlined, PlusOutlined} from "@ant-design/icons";
 import {getNoticeTmplList} from "../../api/noticeTmpl";
 import {getUserList} from "../../api/user";
@@ -32,6 +33,7 @@ const MyFormItem = ({ name, ...props }) => {
 }
 
 export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, handleList }) => {
+    const { message } = App.useApp(); // 使用 Antd v5 的 useApp hook 获取 message API
     const { Option } = Select
     const [form] = Form.useForm()
     const [dutyList, setDutyList] = useState([])
@@ -47,6 +49,17 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
     const [selectedCcItems, setSelectedCcItems] = useState([])
     const [filteredOptions, setFilteredOptions] = useState([])
     const [spaceValue, setSpaceValue] = useState('')
+    // 短信配置状态
+    const [smsConfig, setSmsConfig] = useState({
+        provider: 'tencent',
+        accessKeyId: '',
+        accessKeySecret: '',
+        sdkAppId: '',
+        templateId: '',
+        templateCode: '',
+        signName: ''
+    })
+    const [phoneNumbers, setPhoneNumbers] = useState([])
 
     const PRIORITY_OPTIONS = [
         { label: 'P0 紧急', value: 'P0' },
@@ -67,6 +80,7 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
         { imgSrc: WeChatImg, text: '企业微信', value: 'WeChat' },
         { imgSrc: SlackImg, text: 'Slack', value: 'Slack' },
         { imgSrc: CustomHook, text: '自定义Hook', value: 'CustomHook' },
+        { imgSrc: SmsImg, text: '短信', value: 'SMS' },
     ]
 
     const handleInputEmailChange = (name, value) => {
@@ -120,6 +134,28 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
             setSelectedNoticeCard(cardIndex)
             setNoticeType(selectedRow.noticeType)
             setSelectNoticeTmpl(selectedRow.noticeTmplId)
+            
+            // 如果是短信类型，解析hook字段中的配置
+            if (selectedRow.noticeType === 'SMS') {
+                try {
+                    const hookConfig = selectedRow.hook ? JSON.parse(selectedRow.hook) : {}
+                    setSmsConfig({
+                        provider: hookConfig.provider || 'tencent',
+                        accessKeyId: hookConfig.accessKeyId || '',
+                        accessKeySecret: hookConfig.accessKeySecret || '',
+                        sdkAppId: hookConfig.sdkAppId || '',
+                        templateId: hookConfig.templateId || '',
+                        templateCode: hookConfig.templateCode || '',
+                        signName: hookConfig.signName || ''
+                    })
+                } catch (e) {
+                    console.error('解析短信配置失败:', e)
+                }
+                // 设置手机号
+                if (selectedRow.phoneNumber && Array.isArray(selectedRow.phoneNumber)) {
+                    setPhoneNumbers(selectedRow.phoneNumber)
+                }
+            }
         }
     }, [selectedRow, form])
 
@@ -138,14 +174,22 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
 
     const handleCreate = async (data) => {
         try {
+            let hookValue = data.hook
+            // 如果是短信类型，将配置序列化为JSON存储到hook字段
+            if (noticeType === 'SMS') {
+                hookValue = JSON.stringify(smsConfig)
+            }
+            
             const params = {
                 ...data,
                 noticeType: noticeType,
+                hook: hookValue,
                 email: {
                     subject: subjectValue,
                     to: selectedToItems,
                     cc: selectedCcItems,
-                }
+                },
+                phoneNumber: noticeType === 'SMS' ? phoneNumbers : undefined
             }
             await createNotice(params)
             handleList()
@@ -156,16 +200,24 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
 
     const handleUpdate = async (data) => {
         try {
+            let hookValue = data.hook
+            // 如果是短信类型，将配置序列化为JSON存储到hook字段
+            if (noticeType === 'SMS') {
+                hookValue = JSON.stringify(smsConfig)
+            }
+            
             const params = {
                 ...data,
                 noticeType: noticeType,
                 tenantId: selectedRow.tenantId,
                 uuid: selectedRow.uuid,
+                hook: hookValue,
                 email: {
                     subject: subjectValue,
                     to: selectedToItems,
                     cc: selectedCcItems,
-                }
+                },
+                phoneNumber: noticeType === 'SMS' ? phoneNumbers : undefined
             }
             await updateNotice(params)
             handleList()
@@ -242,7 +294,8 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
             const res = await getUserList(params)
             const options = res.data.map((item) => ({
                 userName: item.username,
-                userEmail: item.email
+                userEmail: item.email,
+                userPhone: item.phone || ''
             }))
             setFilteredOptions(options)
         } catch (error) {
@@ -264,16 +317,41 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
 
     const handleTestNotice = async () => {
         setTestLoading(true)
+        const formValues = form.getFieldsValue()
+        let hookValue = formValues.hook
+        // 如果是短信类型，将配置序列化为JSON存储到hook字段
+        if (noticeType === 'SMS') {
+            hookValue = JSON.stringify(smsConfig)
+        }
+        
         const params = {
-            ...form.getFieldsValue(),
-            noticeType: noticeType
+            ...formValues,
+            noticeType: noticeType,
+            hook: hookValue,
+            phoneNumber: noticeType === 'SMS' ? phoneNumbers : undefined
         }
         try {
-            const res = await noticeTest(params);
+            // 调用API测试通知
+            const result = await noticeTest(params);
+            
+            if (result.success) {
+                // 测试成功，显示成功提示
+                message.success('通知测试发送成功！')
+            } else {
+                // 测试失败，显示错误提示
+                message.error(result.error || '通知测试发送失败，请检查配置')
+            }
         } catch (error) {
-            console.log(error)
+            // 处理表单验证错误或其他意外错误
+            if (error.errorFields && error.errorFields.length > 0) {
+                message.error('表单验证失败，请检查必填项')
+            } else {
+                message.error('通知测试出现意外错误，请重试')
+            }
+            console.error('通知测试过程中出错:', error)
+        } finally {
+            setTestLoading(false)
         }
-        setTestLoading(false)
     };
 
     const getAvailablePriorityOptions = (fields) => {
@@ -290,7 +368,7 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
             title="创建通知对象"
             open={visible}
             onClose={onClose}
-            width={820}
+            width={1200}
             footer={
                 <div style={{
                     display: 'flex',
@@ -443,6 +521,120 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                                 </Select>
                             </MyFormItem>
                         </MyFormItemGroup>
+                    ) : noticeType === "SMS" ? (
+                        <>
+                            <MyFormItem
+                                label="服务商"
+                                rules={[{ required: true, message: '请选择短信服务商' }]}
+                            >
+                                <Select
+                                    value={smsConfig.provider}
+                                    onChange={(value) => setSmsConfig({...smsConfig, provider: value})}
+                                    style={{ width: '100%' }}
+                                >
+                                    <Option value="tencent">腾讯云</Option>
+                                    <Option value="aliyun">阿里云</Option>
+                                </Select>
+                            </MyFormItem>
+
+                            <MyFormItem
+                                label="AccessKeyId"
+                                rules={[{ required: true, message: '请输入AccessKeyId' }]}
+                            >
+                                <Input
+                                    value={smsConfig.accessKeyId}
+                                    onChange={(e) => setSmsConfig({...smsConfig, accessKeyId: e.target.value})}
+                                    placeholder="请输入访问密钥ID"
+                                />
+                            </MyFormItem>
+
+                            <MyFormItem
+                                label="AccessKeySecret"
+                                rules={[{ required: true, message: '请输入AccessKeySecret' }]}
+                            >
+                                <Input.Password
+                                    value={smsConfig.accessKeySecret}
+                                    onChange={(e) => setSmsConfig({...smsConfig, accessKeySecret: e.target.value})}
+                                    placeholder="请输入访问密钥Secret"
+                                />
+                            </MyFormItem>
+
+                            <MyFormItem
+                                label="短信签名"
+                                rules={[{ required: true, message: '请输入短信签名' }]}
+                            >
+                                <Input
+                                    value={smsConfig.signName}
+                                    onChange={(e) => setSmsConfig({...smsConfig, signName: e.target.value})}
+                                    placeholder="请输入短信签名"
+                                />
+                            </MyFormItem>
+
+                            {smsConfig.provider === 'tencent' ? (
+                                <>
+                                    <MyFormItem
+                                        label="SdkAppId"
+                                        rules={[{ required: true, message: '请输入SdkAppId' }]}
+                                    >
+                                        <Input
+                                            value={smsConfig.sdkAppId}
+                                            onChange={(e) => setSmsConfig({...smsConfig, sdkAppId: e.target.value})}
+                                            placeholder="请输入腾讯云应用ID"
+                                        />
+                                    </MyFormItem>
+                                    <MyFormItem
+                                        label="TemplateId"
+                                        rules={[{ required: true, message: '请输入TemplateId' }]}
+                                    >
+                                        <Input
+                                            value={smsConfig.templateId}
+                                            onChange={(e) => setSmsConfig({...smsConfig, templateId: e.target.value})}
+                                            placeholder="请输入腾讯云模板ID"
+                                        />
+                                    </MyFormItem>
+                                </>
+                            ) : (
+                                <MyFormItem
+                                    label="TemplateCode"
+                                    rules={[{ required: true, message: '请输入TemplateCode' }]}
+                                >
+                                    <Input
+                                        value={smsConfig.templateCode}
+                                        onChange={(e) => setSmsConfig({...smsConfig, templateCode: e.target.value})}
+                                        placeholder="请输入阿里云模板代码"
+                                    />
+                                </MyFormItem>
+                            )}
+
+                            <MyFormItem
+                                label="手机号"
+                                rules={[{ required: true, message: '请至少选择一个用户' }]}
+                            >
+                                <Select
+                                    mode="multiple"
+                                    value={phoneNumbers}
+                                    onChange={setPhoneNumbers}
+                                    placeholder="请选择需要通知的用户"
+                                    style={{ width: '100%' }}
+                                    filterOption={(input, option) => {
+                                        const label = option?.label || ''
+                                        return label.toLowerCase().includes(input.toLowerCase())
+                                    }}
+                                >
+                                    {filteredOptions
+                                        .filter(item => item.userPhone && item.userPhone.trim() !== '')
+                                        .map((item) => (
+                                            <Option
+                                                key={item.userName}
+                                                value={item.userPhone}
+                                                label={`${item.userName} (${item.userPhone})`}
+                                            >
+                                                {item.userName} ({item.userPhone})
+                                            </Option>
+                                        ))}
+                                </Select>
+                            </MyFormItem>
+                        </>
                     ) : (
                         <MyFormItem
                             name="hook"
@@ -470,7 +662,7 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                     </MyFormItem>
                 )}
 
-                {selectedNoticeCard !== 5 && (
+                {selectedNoticeCard !== 5 && selectedNoticeCard !== 6 && (
                     <MyFormItem
                         name="noticeTmplId"
                         label="通知模版"
@@ -550,7 +742,20 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                                         >
                                             <div style={{display: 'flex', gap: 8}}>
                                                 <div style={{width: '100%'}}>
-                                                    {selectedNoticeCard !== 1 && (
+                                                    {selectedNoticeCard === 6 ? (
+                                                        <Form.Item
+                                                            {...restField}
+                                                            name={[name, "hook"]}
+                                                            label="短信配置(JSON)"
+                                                            rules={[{required: true}]}
+                                                            tooltip="请输入短信配置的JSON字符串，格式与默认配置相同"
+                                                        >
+                                                            <Input.TextArea 
+                                                                rows={4}
+                                                                placeholder='{"provider":"tencent","accessKeyId":"...","accessKeySecret":"...","sdkAppId":"...","templateId":"...","signName":"..."}'
+                                                            />
+                                                        </Form.Item>
+                                                    ) : selectedNoticeCard !== 1 ? (
                                                         <Form.Item
                                                             {...restField}
                                                             name={[name, "hook"]}
@@ -559,7 +764,7 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                                                         >
                                                             <Input placeholder="http(s)://xxx.xxx"/>
                                                         </Form.Item>
-                                                    ) || (
+                                                    ) : (
                                                         <>
                                                             <Form.Item
                                                                 {...restField}

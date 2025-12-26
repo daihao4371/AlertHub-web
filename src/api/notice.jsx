@@ -78,14 +78,40 @@ async function noticeRecordMetric() {
 async function noticeTest(params) {
     try {
         const res = await http('post', '/api/w8t/notice/noticeTest', params);
-        message.open({
-            type: 'success',
-            content: '测试消息发送成功!',
-        });
-        return res;
+        return { success: true, data: res };
     } catch (error) {
-        HandleApiError(error)
-        return error
+        // 提取详细错误信息但不直接显示消息
+        let errorMessage = "通知测试发送失败";
+        
+        if (error.response && error.response.data) {
+            if (error.response.data.data) {
+                // 后端可能返回 JSON 字符串格式的错误列表
+                try {
+                    const errorData = typeof error.response.data.data === 'string' 
+                        ? JSON.parse(error.response.data.data) 
+                        : error.response.data.data;
+                    
+                    if (Array.isArray(errorData) && errorData.length > 0) {
+                        // 如果是错误数组，提取第一个错误的详细信息
+                        const firstError = errorData[0];
+                        errorMessage = firstError.Error || firstError.error || errorMessage;
+                    } else if (typeof errorData === 'string') {
+                        errorMessage = errorData;
+                    }
+                } catch (parseError) {
+                    // 如果解析失败，使用原始数据
+                    errorMessage = error.response.data.data;
+                }
+            } else if (error.response.data.message) {
+                errorMessage = error.response.data.message;
+            } else if (error.response.data.msg) {
+                errorMessage = error.response.data.msg;
+            }
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        
+        return { success: false, error: errorMessage };
     }
 }
 
