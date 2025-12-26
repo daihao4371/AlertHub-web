@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react"
 import ReactECharts from "echarts-for-react"
-import { List, Row, Col, Statistic, Select, message, Typography, Badge, Spin, Empty, Tag } from "antd"
-import { getDashboardInfo } from "../api/other"
+import { List, Row, Col, Select, message, Typography, Badge, Spin, Empty, Tag } from "antd"
+import { getDashboardInfo, getDashboardStatistics } from "../api/other"
 import { FaultCenterList } from "../api/faultCenter"
 import { noticeRecordMetric } from "../api/notice"
-import { AlertTriangle, BarChart2, Users, Bell, Activity, Server } from "lucide-react"
+import { BarChart2, Bell, Activity } from "lucide-react"
 import { NoticeMetricChart } from "./chart/noticeMetricChart"
+import { MiniLineChart } from "../components/MiniLineChart"
 import { safeGet, safeLength, safeIsEmpty } from "../utils/safeAccess"
 
 const { Option } = Select
@@ -20,6 +21,7 @@ export const Home = () => {
   const [selectedFaultCenter, setSelectedFaultCenter] = useState(undefined)
   const [loading, setLoading] = useState(true)
   const [metricData, setMetricData] = useState({})
+  const [statisticsData, setStatisticsData] = useState({})
 
   // 获取故障中心列表
   const fetchFaultCenters = async () => {
@@ -89,6 +91,26 @@ export const Home = () => {
     }
   }
 
+  // 获取首页统计数据
+  const fetchDashboardStatistics = async (faultCenterId) => {
+    try {
+      const params = faultCenterId ? { faultCenterId } : {}
+      const res = await getDashboardStatistics(params)
+      // 安全处理返回数据
+      const statisticsResult = safeGet(res, 'data', {})
+      setStatisticsData(typeof statisticsResult === 'object' && statisticsResult !== null ? statisticsResult : {})
+    } catch (error) {
+      console.error("Failed to load statistics data:", error)
+      // 如果是权限错误，显示友好提示
+      if (error?.response?.status === 403 || error?.code === 403) {
+        message.warning("您没有权限访问统计数据")
+      } else {
+        message.error("加载统计数据失败")
+      }
+      setStatisticsData({})
+    }
+  }
+
   // 初始化加载
   useEffect(() => {
     fetchFaultCenters()
@@ -96,10 +118,13 @@ export const Home = () => {
 
   useEffect(() => {
     fetchDashboardInfo(selectedFaultCenter)
+    fetchDashboardStatistics(selectedFaultCenter)
   }, [selectedFaultCenter])
 
   useEffect(() => {
     fetchMetricData()
+    // 移除重复的fetchDashboardStatistics调用，避免全局查询覆盖故障中心数据
+    // fetchDashboardStatistics() - 这行导致显示全局统计而非故障中心统计
   }, [])
 
   // 告警等级颜色
@@ -212,107 +237,187 @@ export const Home = () => {
         backgroundColor: "#fafafa",
       }}
     >
-      <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
-        <Col xs={24} sm={12} md={8}>
-          <div
-            style={{
-              backgroundColor: "#ffffff",
-              border: "1px solid #e8e8e8",
-              borderRadius: "12px",
-              padding: "24px",
-              height: "100%",
-              transition: "box-shadow 0.3s",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", marginBottom: "20px" }}>
+      {/* 顶部5等份卡片 */}
+      <div
+        style={{
+          backgroundColor: "#ffffff",
+          border: "1px solid #e8e8e8",
+          borderRadius: "12px",
+          padding: "24px",
+          marginBottom: "24px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 0,
+          }}
+        >
+          {[
+            {
+              title: "今日告警",
+              isCombined: true,
+              mainValue: safeGet(statisticsData, 'todayMainAlerts', 0),
+              mainLabel: "今日主告警",
+              allValue: safeGet(statisticsData, 'todayNewAlerts', 0),
+              allLabel: "今日所有告警",
+              compareRatio: safeGet(statisticsData, 'todayNewAlertsCompareRatio', 0), // 使用今日所有告警的环比
+              color: '#ff4d4f',
+            },
+              {
+                title: "过去7天所有事件",
+                value: safeGet(statisticsData, 'past7DaysAllEvents', 0),
+                compareRatio: safeGet(statisticsData, 'past7DaysAllEventsCompareRatio', 0),
+                color: '#1890ff',
+                suffix: '',
+              },
+              {
+                title: "过去7天主告警",
+                value: safeGet(statisticsData, 'past7DaysMainAlerts', 0),
+                compareRatio: safeGet(statisticsData, 'past7DaysMainAlertsCompareRatio', 0),
+                color: '#722ed1',
+                suffix: '',
+              },
+              {
+                title: "过去7天MTTA",
+                value: Math.round(safeGet(statisticsData, 'past7DaysMTTA', 0) * 10) / 10, // 保留1位小数
+                compareRatio: safeGet(statisticsData, 'past7DaysMTTACompareRatio', 0),
+                color: '#13c2c2',
+                suffix: 'min',
+              },
+              {
+                title: "过去7天MTTR",
+                value: Math.round(safeGet(statisticsData, 'past7DaysMTTR', 0) * 10) / 10, // 保留1位小数
+                compareRatio: safeGet(statisticsData, 'past7DaysMTTRCompareRatio', 0),
+                color: '#52c41a',
+                suffix: 'min',
+              },
+            ].map((partition, index) => {
+            const compareRatio = partition.compareRatio || 0
+            
+            // 如果是合并展示的分区（今日告警）
+            if (partition.isCombined) {
+              const mainValue = partition.mainValue || 0
+              const allValue = partition.allValue || 0
+              // 使用主告警的值生成趋势图
+              const trendData = Array.from({ length: 7 }, (_, i) => {
+                const baseValue = typeof mainValue === 'number' ? mainValue : 0
+                if (baseValue === 0) {
+                  return 0
+                }
+                const previousValue = compareRatio === 0 
+                  ? baseValue 
+                  : baseValue / (1 + compareRatio / 100)
+                const step = (baseValue - previousValue) / 6
+                return Math.max(0, previousValue + step * i)
+              })
+              
+              return (
+                <div
+                  key={index}
+                  style={{
+                    flex: "1 1 0",
+                    minWidth: "120px",
+                    padding: "16px",
+                    borderRight: index < 4 ? "1px solid #f0f0f0" : "none",
+                    textAlign: "center",
+                  }}
+                >
+                  <Text style={{ color: "#8c8c8c", fontSize: "14px", display: "block", marginBottom: "12px" }}>
+                    {partition.title}
+                  </Text>
+                  <div style={{ marginBottom: "8px" }}>
+                    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: "8px", marginBottom: "4px" }}>
+                      <Text style={{ color: "#8c8c8c", fontSize: "12px" }}>{partition.mainLabel}:</Text>
+                      <Text
+                        style={{
+                          fontSize: "24px",
+                          fontWeight: "600",
+                          color: "#000000",
+                        }}
+                      >
+                        {mainValue}
+                      </Text>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: "8px" }}>
+                      <Text style={{ color: "#8c8c8c", fontSize: "12px" }}>{partition.allLabel}:</Text>
+                      <Text
+                        style={{
+                          fontSize: "24px",
+                          fontWeight: "600",
+                          color: "#000000",
+                        }}
+                      >
+                        {allValue}
+                      </Text>
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: "12px", height: "40px" }}>
+                    <MiniLineChart data={trendData} color={partition.color} height={40} />
+                  </div>
+                </div>
+              )
+            }
+            
+            // 普通分区展示
+            const value = partition.value
+            const trendData = Array.from({ length: 7 }, (_, i) => {
+              const baseValue = typeof value === 'number' ? value : 0
+              if (baseValue === 0) {
+                return 0
+              }
+              const previousValue = compareRatio === 0 
+                ? baseValue 
+                : baseValue / (1 + compareRatio / 100)
+              const step = (baseValue - previousValue) / 6
+              return Math.max(0, previousValue + step * i)
+            })
+            
+            return (
               <div
+                key={index}
                 style={{
-                  backgroundColor: "#000000",
-                  borderRadius: "8px",
-                  padding: "10px",
-                  marginRight: "16px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  flex: "1 1 0",
+                  minWidth: "120px",
+                  padding: "16px",
+                  borderRight: index < 4 ? "1px solid #f0f0f0" : "none",
+                  textAlign: "center",
                 }}
               >
-                <AlertTriangle size={20} color="#ffffff" strokeWidth={2} />
+                <Text style={{ color: "#8c8c8c", fontSize: "14px", display: "block", marginBottom: "12px" }}>
+                  {partition.title}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: "32px",
+                    fontWeight: "600",
+                    color: "#000000",
+                    display: "block",
+                    marginBottom: "12px",
+                  }}
+                >
+                  {typeof value === 'number' 
+                    ? (partition.suffix === 's' 
+                        ? Math.round(value).toString() 
+                        : value.toString())
+                    : value}
+                  {partition.suffix}
+                </Text>
+                <div style={{ marginBottom: "12px", height: "40px" }}>
+                  <MiniLineChart data={trendData} color={partition.color} height={40} />
+                </div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "4px", flexWrap: "wrap" }}>
+                  <Text style={{ color: "#8c8c8c", fontSize: "12px" }}>环比</Text>
+                  <Text style={{ color: "#8c8c8c", fontSize: "12px" }}>
+                    {compareRatio >= 0 ? '+' : ''}{compareRatio.toFixed(2)} %
+                  </Text>
+                </div>
               </div>
-              <Text style={{ color: "#8c8c8c", fontSize: "14px" }}>当前规则总数</Text>
-            </div>
-            <Statistic
-              value={dashboardInfo?.countAlertRules || 0}
-              valueStyle={{ fontSize: "32px", fontWeight: "600", color: "#000000" }}
-            />
-          </div>
-        </Col>
-        <Col xs={24} sm={12} md={8}>
-          <div
-            style={{
-              backgroundColor: "#ffffff",
-              border: "1px solid #e8e8e8",
-              borderRadius: "12px",
-              padding: "24px",
-              height: "100%",
-              transition: "box-shadow 0.3s",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", marginBottom: "20px" }}>
-              <div
-                style={{
-                  backgroundColor: "#000000",
-                  borderRadius: "8px",
-                  padding: "10px",
-                  marginRight: "16px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Server size={20} color="#ffffff" strokeWidth={2} />
-              </div>
-              <Text style={{ color: "#8c8c8c", fontSize: "14px" }}>故障中心总数</Text>
-            </div>
-            <Statistic
-              value={dashboardInfo?.faultCenterNumber || 0}
-              valueStyle={{ fontSize: "32px", fontWeight: "600", color: "#000000" }}
-            />
-          </div>
-        </Col>
-        <Col xs={24} sm={12} md={8}>
-          <div
-            style={{
-              backgroundColor: "#ffffff",
-              border: "1px solid #e8e8e8",
-              borderRadius: "12px",
-              padding: "24px",
-              height: "100%",
-              transition: "box-shadow 0.3s",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", marginBottom: "20px" }}>
-              <div
-                style={{
-                  backgroundColor: "#000000",
-                  borderRadius: "8px",
-                  padding: "10px",
-                  marginRight: "16px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Users size={20} color="#ffffff" strokeWidth={2} />
-              </div>
-              <Text style={{ color: "#8c8c8c", fontSize: "14px" }}>系统用户总数</Text>
-            </div>
-            <Statistic
-              value={dashboardInfo?.userNumber || 0}
-              valueStyle={{ fontSize: "32px", fontWeight: "600", color: "#000000" }}
-            />
-          </div>
-        </Col>
-      </Row>
+            )
+          })}
+        </div>
+      </div>
 
       <div
         style={{
