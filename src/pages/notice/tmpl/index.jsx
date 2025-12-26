@@ -7,6 +7,7 @@ import { ReactComponent as DingdingIcon } from '../img/dingding.svg';
 import { ReactComponent as EmailIcon } from '../img/Email.svg';
 import { ReactComponent as WeChatIcon } from '../img/qywechat.svg'
 import { ReactComponent as SlackIcon } from '../img/slack.svg'
+import SmsIconImg from '../img/message.png'
 import {CopyOutlined, DeleteOutlined, EditOutlined, PlusOutlined} from "@ant-design/icons";
 import {copyToClipboard} from "../../../utils/copyToClipboard";
 import {HandleShowTotal} from "../../../utils/lib";
@@ -90,6 +91,13 @@ export const NoticeTemplate = () => {
                         <div style={{ display: 'flex' }}>
                             <SlackIcon style={{ height: '25px', width: '25px' }} />
                             <div style={{ marginLeft: '5px', marginTop: '5px', fontSize: '12px' }}>Slack</div>
+                        </div>
+                    );
+                } else if (record.noticeType === 'SMS') {
+                    return (
+                        <div style={{ display: 'flex' }}>
+                            <img src={SmsIconImg} alt="短信" style={{ height: '25px', width: '25px' }} />
+                            <div style={{ marginLeft: '5px', marginTop: '5px', fontSize: '12px' }}>短信</div>
                         </div>
                     );
                 }
