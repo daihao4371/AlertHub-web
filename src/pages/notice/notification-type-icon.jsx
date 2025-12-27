@@ -4,32 +4,44 @@ import { ReactComponent as EmailIcon } from "./img/Email.svg"
 import { ReactComponent as WeChatIcon } from "./img/qywechat.svg"
 import { ReactComponent as CustomHookIcon } from "./img/customhook.svg"
 import { ReactComponent as SlackIcon } from "./img/slack.svg"
+import SmsIconImg from "./img/message.png"
 
 
 const NOTIFICATION_TYPES = {
     FeiShu: {
         icon: FeiShuIcon,
         label: "飞书",
+        isSvg: true,
     },
     DingDing: {
         icon: DingdingIcon,
         label: "钉钉",
+        isSvg: true,
     },
     Email: {
         icon: EmailIcon,
         label: "邮件",
+        isSvg: true,
     },
     WeChat: {
         icon: WeChatIcon,
         label: "企业微信",
+        isSvg: true,
     },
     CustomHook: {
         icon: CustomHookIcon,
         label: "自定义Hook",
+        isSvg: true,
     },
     Slack: {
         icon: SlackIcon,
-        label: "Slack"
+        label: "Slack",
+        isSvg: true,
+    },
+    SMS: {
+        icon: SmsIconImg,
+        label: "短信",
+        isSvg: false,
     }
 }
 
@@ -44,7 +56,11 @@ export const NotificationTypeIcon = ({ type }) => {
 
     return (
         <div style={{ display: "flex", alignItems: "center" }}>
-            <IconComponent style={{ height: "25px", width: "25px" }} />
+            {notificationType.isSvg ? (
+                <IconComponent style={{ height: "25px", width: "25px" }} />
+            ) : (
+                <img src={IconComponent} alt={notificationType.label} style={{ height: "25px", width: "25px" }} />
+            )}
             <div style={{ marginLeft: "5px", fontSize: "12px" }}>{notificationType.label}</div>
         </div>
     )
