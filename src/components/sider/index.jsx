@@ -14,7 +14,8 @@ import {
     ApiOutlined,
     TeamOutlined,
     DownOutlined,
-    LogoutOutlined
+    LogoutOutlined,
+    BulbOutlined
 } from '@ant-design/icons';
 import {Link, useNavigate} from 'react-router-dom';
 import {Menu, Layout, Typography, Dropdown, message, Spin, theme, Popover, Avatar} from 'antd';
@@ -48,68 +49,88 @@ const adminMenuItems = [
     // 4. 故障中心 - 告警处理
     { key: '4', path: '/faultCenter', icon: <ExceptionOutlined />, label: '故障中心' },
     
-    // 5. 通知配置 - 通知相关设置
+    // 5. 智能告警系统 - AI智能分析
     {
         key: '5',
+        icon: <BulbOutlined />,
+        label: '智能告警系统',
+        children: [
+            { key: '5-1', path: '/intelligent/basic', label: '基本信息' },
+            { key: '5-2', path: '/intelligent/process', label: '处理记录' },
+            { key: '5-3', path: '/intelligent/related', label: '关联告警' },
+            { key: '5-4', path: '/intelligent/analysis', label: '智能分析' },
+            { key: '5-5', path: '/intelligent/config', label: 'AI配置' },
+            { key: '5-6', path: '/intelligent/correlation', label: '关联分析' },
+            { key: '5-7', path: '/intelligent/learning', label: '持续学习' },
+            { key: '5-8', path: '/intelligent/training', label: '模型训练' },
+            { key: '5-9', path: '/intelligent/integration', label: '系统集成' },
+            { key: '5-10', path: '/intelligent/monitoring', label: '监控指标' },
+            { key: '5-11', path: '/intelligent/context', label: '上下文感知' },
+        ]
+    },
+    
+    // 6. 通知配置 - 通知相关设置
+    {
+        key: '6',
         icon: <NotificationOutlined />,
         label: '通知配置',
         children: [
-            { key: '5-1', path: '/noticeObjects', label: '通知对象' },
-            { key: '5-2', path: '/noticeTemplate', label: '通知模板' },
-            { key: '5-3', path: '/noticeRecords', label: '通知记录' }
+            { key: '6-1', path: '/noticeObjects', label: '通知对象' },
+            { key: '6-2', path: '/noticeTemplate', label: '通知模板' },
+            { key: '6-3', path: '/noticeRecords', label: '通知记录' }
         ]
     },
     
-    // 6. 数据源管理 - 数据源配置
+    // 7. 数据源管理 - 数据源配置
     {
-        key: '6',
+        key: '7',
         icon: <PieChartOutlined />,
         label: '数据源管理',
         children: [
-            { key: '6-1', path: '/datasource', label: '数据源' },
-            { key: '6-2', path: '/exporterMonitor', label: 'Exporter监控' },
-            { key: '6-3', path: '/metricsExplorer', label: '指标查询' }
+            { key: '7-1', path: '/datasource', label: '数据源' },
+            { key: '7-2', path: '/exporterMonitor', label: 'Exporter监控' },
+            { key: '7-3', path: '/metricsExplorer', label: '指标查询' }
         ]
     },
     
-    // 7. 网络监控 - 拨测相关
+    // 8. 网络监控 - 拨测相关
     {
-        key: '7',
+        key: '8',
         icon: <ApiOutlined />,
         label: '网络监控',
         children: [
-            { key: '7-1', path: '/probing', label: '拨测任务' },
-            { key: '7-2', path: '/onceProbing', label: '即时拨测' }
+            { key: '8-1', path: '/probing', label: '拨测任务' },
+            { key: '8-2', path: '/onceProbing', label: '即时拨测' }
         ]
     },
     
-    // 8. 值班管理 - 运营管理
-    { key: '8', path: '/dutyManage', icon: <CalendarOutlined />, label: '值班管理' },
+    // 9. 值班管理 - 运营管理
+    { key: '9', path: '/dutyManage', icon: <CalendarOutlined />, label: '值班管理' },
     
-    // 9. 系统管理 - 系统配置（管理员专用）
+    // 10. 系统管理 - 系统配置（管理员专用）
     {
-        key: '9',
+        key: '10',
         icon: <UserOutlined />,
         label: '用户与权限',
         children: [
-            { key: '9-1', path: '/user', label: '用户管理' },
-            { key: '9-2', path: '/userRole', label: '角色管理' },
-            { key: '9-3', path: '/api', label: 'API 管理' }
+            { key: '10-1', path: '/user', label: '用户管理' },
+            { key: '10-2', path: '/userRole', label: '角色管理' },
+            { key: '10-3', path: '/api', label: 'API 管理' }
         ]
     },
-    { key: '10', path: '/tenants', icon: <DeploymentUnitOutlined />, label: '租户管理' },
-    { key: '11', path: '/auditLog', icon: <FileDoneOutlined />, label: '审计日志' },
+    { key: '11', path: '/tenants', icon: <DeploymentUnitOutlined />, label: '租户管理' },
+    { key: '12', path: '/auditLog', icon: <FileDoneOutlined />, label: '审计日志' },
     {
-        key: '12',
+        key: '13',
         path: '/settings',
         icon: <SettingOutlined />,
         label: '系统设置',
         children: [
-            { key: '12-1', path: '/settings/email', label: '邮箱配置' },
-            { key: '12-2', path: '/settings/ai', label: 'AI能力' },
-            { key: '12-3', path: '/settings/auth', label: '认证配置' },
-            { key: '12-4', path: '/settings/quick-action', label: '快捷操作' },
-            { key: '12-5', path: '/settings/version', label: '系统版本' }
+            { key: '13-1', path: '/settings/email', label: '邮箱配置' },
+            { key: '13-2', path: '/settings/ai', label: 'AI能力' },
+            { key: '13-3', path: '/settings/auth', label: '认证配置' },
+            { key: '13-4', path: '/settings/quick-action', label: '快捷操作' },
+            { key: '13-5', path: '/settings/version', label: '系统版本' }
         ]
     }
 ];
@@ -137,43 +158,63 @@ const userMenuItems = [
     // 4. 故障中心 - 告警处理
     { key: '4', path: '/faultCenter', icon: <ExceptionOutlined />, label: '故障中心' },
     
-    // 5. 通知配置 - 通知相关设置
+    // 5. 智能告警系统 - AI智能分析
     {
         key: '5',
+        icon: <BulbOutlined />,
+        label: '智能告警系统',
+        children: [
+            { key: '5-1', path: '/intelligent/basic', label: '基本信息' },
+            { key: '5-2', path: '/intelligent/process', label: '处理记录' },
+            { key: '5-3', path: '/intelligent/related', label: '关联告警' },
+            { key: '5-4', path: '/intelligent/analysis', label: '智能分析' },
+            { key: '5-5', path: '/intelligent/config', label: 'AI配置' },
+            { key: '5-6', path: '/intelligent/correlation', label: '关联分析' },
+            { key: '5-7', path: '/intelligent/learning', label: '持续学习' },
+            { key: '5-8', path: '/intelligent/training', label: '模型训练' },
+            { key: '5-9', path: '/intelligent/integration', label: '系统集成' },
+            { key: '5-10', path: '/intelligent/monitoring', label: '监控指标' },
+            { key: '5-11', path: '/intelligent/context', label: '上下文感知' },
+        ]
+    },
+    
+    // 6. 通知配置 - 通知相关设置
+    {
+        key: '6',
         icon: <NotificationOutlined />,
         label: '通知配置',
         children: [
-            { key: '5-1', path: '/noticeObjects', label: '通知对象' },
-            { key: '5-2', path: '/noticeTemplate', label: '通知模板' },
-            { key: '5-3', path: '/noticeRecords', label: '通知记录' }
+            { key: '6-1', path: '/noticeObjects', label: '通知对象' },
+            { key: '6-2', path: '/noticeTemplate', label: '通知模板' },
+            { key: '6-3', path: '/noticeRecords', label: '通知记录' }
         ]
     },
     
-    // 6. 数据源管理 - 数据源配置
+    // 7. 数据源管理 - 数据源配置
     {
-        key: '6',
+        key: '7',
         icon: <PieChartOutlined />,
         label: '数据源管理',
         children: [
-            { key: '6-1', path: '/datasource', label: '数据源' },
-            { key: '6-2', path: '/exporterMonitor', label: 'Exporter监控' },
-            { key: '6-3', path: '/metricsExplorer', label: '指标查询' }
+            { key: '7-1', path: '/datasource', label: '数据源' },
+            { key: '7-2', path: '/exporterMonitor', label: 'Exporter监控' },
+            { key: '7-3', path: '/metricsExplorer', label: '指标查询' }
         ]
     },
     
-    // 7. 网络监控 - 拨测相关
+    // 8. 网络监控 - 拨测相关
     {
-        key: '7',
+        key: '8',
         icon: <ApiOutlined />,
         label: '网络监控',
         children: [
-            { key: '7-1', path: '/probing', label: '拨测任务' },
-            { key: '7-2', path: '/onceProbing', label: '即时拨测' }
+            { key: '8-1', path: '/probing', label: '拨测任务' },
+            { key: '8-2', path: '/onceProbing', label: '即时拨测' }
         ]
     },
     
-    // 8. 值班管理 - 运营管理
-    { key: '8', path: '/dutyManage', icon: <CalendarOutlined />, label: '值班管理' }
+    // 9. 值班管理 - 运营管理
+    { key: '9', path: '/dutyManage', icon: <CalendarOutlined />, label: '值班管理' }
 ];
 
 export const ComponentSider = () => {
