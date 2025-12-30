@@ -33,7 +33,13 @@ async function getHisEventList(params) {
 }
 
 async function ProcessAlertEvent(params) {
-    return await http('post', `/api/w8t/event/processAlertEvent`,params);
+    try {
+        const res = await http('post', `/api/w8t/event/processAlertEvent`, params);
+        return res;
+    } catch (error) {
+        HandleApiError(error, '处理告警事件失败');
+        throw error;
+    }
 }
 
 async function ListEventComments(params) {

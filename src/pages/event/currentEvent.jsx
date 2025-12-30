@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useRef } from "react"
+import React, { useRef, useCallback } from "react"
 import { useState, useEffect } from "react"
 import {
     Table,
@@ -447,7 +447,10 @@ export const AlertCurrentEvent = (props) => {
                     {
                         key: 'claim',
                         label: '去认领',
-                        onClick: () => handleClaimOne(record),
+                        // 直接使用箭头函数，确保事件能正确触发
+                        onClick: () => {
+                            handleClaimOne(record);
+                        },
                     },
                     ...(record.status !== "silenced" ? [{
                         key: 'silence',
@@ -774,8 +777,8 @@ export const AlertCurrentEvent = (props) => {
             content: `确定要认领选中的 ${selectedRowKeys.length} 个事件吗？`,
             onOk: async () => {
                 try {
+                    // 根据后端接口定义，移除 state 字段，后端不需要
                     const params = {
-                        state: 1,
                         faultCenterId: id,
                         fingerprints: selectedRowKeys
                     }
@@ -798,36 +801,33 @@ export const AlertCurrentEvent = (props) => {
         })
     }
 
-    // 单条去认领
-    const handleClaimOne = (record) => {
-        Modal.confirm({
-            title: "确认认领",
-            content: `确定要认领规则 "${record.rule_name}" 的事件吗？`,
-            onOk: async () => {
-                try {
-                    setBatchProcessing(true)
-                    const params = {
-                        state: 1,
-                        faultCenterId: id,
-                        fingerprints: [record.fingerprint],
-                    }
-                    await ProcessAlertEvent(params)
-                    message.success("认领成功")
-                    // 如果当前打开了抽屉且是认领的事件，关闭抽屉以便用户看到列表更新
-                    if (drawerOpen && selectedEvent && selectedEvent.fingerprint === record.fingerprint) {
-                        setDrawerOpen(false)
-                    }
-                    // 延迟刷新列表，确保后端数据已更新
-                    setTimeout(() => {
-                        handleCurrentEventList(currentPagination.pageIndex, currentPagination.pageSize)
-                    }, 300)
-                } catch (error) {
-                    message.error("认领失败: " + error.message)
-                } finally {
-                    setBatchProcessing(false)
-                }
-            },
-        })
+    // 单条去认领 - 直接执行认领操作，不显示确认对话框（参考静默规则的实现方式）
+    const handleClaimOne = async (record) => {
+        try {
+            setBatchProcessing(true)
+            // 根据后端接口定义，移除 state 字段，后端不需要
+            const params = {
+                faultCenterId: id,
+                fingerprints: [record.fingerprint],
+            }
+            
+            await ProcessAlertEvent(params)
+            
+            message.success("认领成功")
+            // 如果当前打开了抽屉且是认领的事件，关闭抽屉以便用户看到列表更新
+            if (drawerOpen && selectedEvent && selectedEvent.fingerprint === record.fingerprint) {
+                setDrawerOpen(false)
+            }
+            // 延迟刷新列表，确保后端数据已更新
+            setTimeout(() => {
+                handleCurrentEventList(currentPagination.pageIndex, currentPagination.pageSize)
+            }, 300)
+        } catch (error) {
+            const errorMsg = error?.response?.data?.data || error?.message || '认领失败，请稍后重试';
+            message.error(errorMsg);
+        } finally {
+            setBatchProcessing(false)
+        }
     }
 
     // 清除所有过滤条件
@@ -886,7 +886,6 @@ export const AlertCurrentEvent = (props) => {
     }
 
     async function handleExportClick() {
-        console.log("123")
         if (currentEventList.length === 0) {
             message.warning("当前告警列表中没有事件!")
             return
@@ -923,22 +922,30 @@ export const AlertCurrentEvent = (props) => {
         setExportModalVisible(false)
     }
 
-    const handleListComments = async () => {
-        if (!selectedEvent) {
+    // 使用 useRef 存储 selectedEvent，避免 useCallback 依赖整个对象
+    const selectedEventRef = useRef(selectedEvent);
+    useEffect(() => {
+        selectedEventRef.current = selectedEvent;
+    }, [selectedEvent]);
+
+    // 使用 useCallback 稳定函数引用，避免无限循环
+    const handleListComments = useCallback(async () => {
+        const currentEvent = selectedEventRef.current;
+        if (!currentEvent) {
             return;
         }
 
         try {
             const comment = {
-                tenantId: selectedEvent.tenantId,
-                fingerprint: selectedEvent.fingerprint,
+                tenantId: currentEvent.tenantId,
+                fingerprint: currentEvent.fingerprint,
             };
             const res = await ListEventComments(comment);
             setComments(res.data);
         } catch (error) {
             HandleApiError(error)
         }
-    };
+    }, []); // 空依赖数组，因为使用 ref 访问最新值
 
     // 新增评论
     const handleAddComment = async () => {
@@ -988,34 +995,59 @@ export const AlertCurrentEvent = (props) => {
         }
     }
 
-    useEffect(() => {
-        if (drawerOpen && selectedEvent) {
-            handleListComments();
-            fetchMetricData();
+    // 使用 useCallback 稳定函数引用，避免无限循环
+    const fetchMetricData = useCallback(async () => {
+        const currentEvent = selectedEventRef.current;
+        // 如果没有选中事件，直接返回
+        if (!currentEvent) {
+            return;
         }
-    }, [drawerOpen, selectedEvent]);
-
-    // 获取图表数据
-    const fetchMetricData = async () => {
+        
         // 拨测类型的告警没有查询语句,跳过图表数据获取
-        if (selectedEvent.datasource_id === "probing") {
+        if (currentEvent.datasource_id === "probing") {
             return;
         }
 
         try {
             const parmas = {
-                datasourceIds: selectedEvent.datasource_id,
-                query: selectedEvent.searchQL,
-                startTime: selectedEvent.first_trigger_time - 300,
+                datasourceIds: currentEvent.datasource_id,
+                query: currentEvent.searchQL,
+                startTime: currentEvent.first_trigger_time - 300,
                 step: 10,
             }
             const res = await queryRangePromMetrics(parmas)
             setMetricData(res)
         } catch (error) {
             message.error("加载图表数据失败")
-            console.error("Failed to load metric data:", error)
         }
-    }
+    }, []); // 空依赖数组，因为使用 ref 访问最新值
+
+    // 使用 useRef 来跟踪是否已经加载过，避免重复调用
+    const hasLoadedRef = useRef(false);
+    const lastFingerprintRef = useRef(null);
+
+    useEffect(() => {
+        // 只有当抽屉打开且有选中事件，且 fingerprint 发生变化时才加载数据
+        if (drawerOpen && selectedEvent?.fingerprint) {
+            const currentFingerprint = selectedEvent.fingerprint;
+            
+            // 如果 fingerprint 没有变化且已经加载过，则跳过
+            if (lastFingerprintRef.current === currentFingerprint && hasLoadedRef.current) {
+                return;
+            }
+            
+            // 更新引用
+            lastFingerprintRef.current = currentFingerprint;
+            hasLoadedRef.current = true;
+            
+            handleListComments();
+            fetchMetricData();
+        } else if (!drawerOpen) {
+            // 抽屉关闭时重置状态
+            hasLoadedRef.current = false;
+            lastFingerprintRef.current = null;
+        }
+    }, [drawerOpen, selectedEvent?.fingerprint, handleListComments, fetchMetricData]);
 
     // 获取通知记录
     const fetchNoticeRecords = async (eventId, pageIndex = 1, pageSize = 10) => {
