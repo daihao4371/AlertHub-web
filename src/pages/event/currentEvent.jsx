@@ -803,31 +803,31 @@ export const AlertCurrentEvent = (props) => {
 
     // 单条去认领 - 直接执行认领操作，不显示确认对话框（参考静默规则的实现方式）
     const handleClaimOne = async (record) => {
-        try {
-            setBatchProcessing(true)
+                try {
+                    setBatchProcessing(true)
             // 根据后端接口定义，移除 state 字段，后端不需要
-            const params = {
-                faultCenterId: id,
-                fingerprints: [record.fingerprint],
-            }
+                    const params = {
+                        faultCenterId: id,
+                        fingerprints: [record.fingerprint],
+                    }
             
-            await ProcessAlertEvent(params)
+                    await ProcessAlertEvent(params)
             
-            message.success("认领成功")
-            // 如果当前打开了抽屉且是认领的事件，关闭抽屉以便用户看到列表更新
-            if (drawerOpen && selectedEvent && selectedEvent.fingerprint === record.fingerprint) {
-                setDrawerOpen(false)
-            }
-            // 延迟刷新列表，确保后端数据已更新
-            setTimeout(() => {
-                handleCurrentEventList(currentPagination.pageIndex, currentPagination.pageSize)
-            }, 300)
-        } catch (error) {
+                    message.success("认领成功")
+                    // 如果当前打开了抽屉且是认领的事件，关闭抽屉以便用户看到列表更新
+                    if (drawerOpen && selectedEvent && selectedEvent.fingerprint === record.fingerprint) {
+                        setDrawerOpen(false)
+                    }
+                    // 延迟刷新列表，确保后端数据已更新
+                    setTimeout(() => {
+                        handleCurrentEventList(currentPagination.pageIndex, currentPagination.pageSize)
+                    }, 300)
+                } catch (error) {
             const errorMsg = error?.response?.data?.data || error?.message || '认领失败，请稍后重试';
             message.error(errorMsg);
-        } finally {
-            setBatchProcessing(false)
-        }
+                } finally {
+                    setBatchProcessing(false)
+                }
     }
 
     // 清除所有过滤条件
