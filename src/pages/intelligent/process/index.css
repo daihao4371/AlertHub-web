@@ -1,0 +1,45 @@
+/* 处理流程状态标签基础样式 */
+.process-status-tag {
+    border: none;
+    font-weight: 500;
+    padding: 2px 12px;
+    font-size: 12px;
+    color: #fff;
+}
+
+/* 已检测状态 - 蓝色渐变 */
+.process-status-tag-detected {
+    background: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%);
+    box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+}
+
+/* 分析中状态 - 青色渐变 */
+.process-status-tag-analyzing {
+    background: linear-gradient(135deg, #36cfc9 0%, #13c2c2 100%);
+    box-shadow: 0 2px 8px rgba(19, 194, 194, 0.3);
+}
+
+/* 关联分析状态 - 橙色渐变 */
+.process-status-tag-correlated {
+    background: linear-gradient(135deg, #ffc53d 0%, #faad14 100%);
+    box-shadow: 0 2px 8px rgba(250, 173, 20, 0.3);
+}
+
+/* 处理中状态 - 橙红色渐变 */
+.process-status-tag-processing {
+    background: linear-gradient(135deg, #ffa940 0%, #fa8c16 100%);
+    box-shadow: 0 2px 8px rgba(250, 140, 22, 0.3);
+}
+
+/* 验证中状态 - 天蓝色渐变 */
+.process-status-tag-validated {
+    background: linear-gradient(135deg, #5cdbd3 0%, #2db7f5 100%);
+    box-shadow: 0 2px 8px rgba(45, 183, 245, 0.3);
+}
+
+/* 已完成状态 - 绿色渐变 */
+.process-status-tag-completed {
+    background: linear-gradient(135deg, #73d13d 0%, #52c41a 100%);
+    box-shadow: 0 2px 8px rgba(82, 196, 26, 0.3);
+}
+

@@ -3,9 +3,14 @@ import {
     Input, Select, Space, Button, Modal, Form, Drawer, 
     Spin, Timeline, Divider, Tag, Empty, Typography, Card, Row, Col, Statistic
 } from 'antd';
-import { ReloadOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons';
+import { 
+    ReloadOutlined, SearchOutlined, EditOutlined,
+    CheckCircleOutlined, ClockCircleOutlined, SyncOutlined,
+    WarningOutlined, PlayCircleOutlined, CheckOutlined
+} from '@ant-design/icons';
 import { ResponsiveContainer, PieChart, Pie, Cell, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useProcessStatus } from './hooks';
+import './index.css';
 
 const { Option } = Select;
 const { Text } = Typography;
@@ -14,19 +19,56 @@ const { TextArea } = Input;
 // ==================== 工具函数 ====================
 
 /**
- * 格式化处理状态
+ * 格式化处理状态 - 参考exporterMonitor的样式
  */
 export const formatStatus = (status) => {
     const statusMap = {
-        detected: { text: '已检测', color: 'blue' },
-        analyzing: { text: '分析中', color: 'processing' },
-        correlated: { text: '关联分析', color: 'warning' },
-        processing: { text: '处理中', color: 'orange' },
-        validated: { text: '验证中', color: 'cyan' },
-        completed: { text: '已完成', color: 'success' },
+        detected: { 
+            text: '已检测', 
+            icon: <CheckCircleOutlined />,
+            className: 'process-status-tag process-status-tag-detected'
+        },
+        analyzing: { 
+            text: '分析中', 
+            icon: <SyncOutlined spin />,
+            className: 'process-status-tag process-status-tag-analyzing'
+        },
+        correlated: { 
+            text: '关联分析', 
+            icon: <WarningOutlined />,
+            className: 'process-status-tag process-status-tag-correlated'
+        },
+        processing: { 
+            text: '处理中', 
+            icon: <PlayCircleOutlined />,
+            className: 'process-status-tag process-status-tag-processing'
+        },
+        validated: { 
+            text: '验证中', 
+            icon: <ClockCircleOutlined />,
+            className: 'process-status-tag process-status-tag-validated'
+        },
+        completed: { 
+            text: '已完成', 
+            icon: <CheckOutlined />,
+            className: 'process-status-tag process-status-tag-completed'
+        },
     };
-    const statusInfo = statusMap[status] || { text: status, color: 'default' };
-    return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
+    
+    const statusInfo = statusMap[status] || { 
+        text: status, 
+        icon: null,
+        className: 'process-status-tag' 
+    };
+    
+    return (
+        <Tag 
+            icon={statusInfo.icon}
+            className={statusInfo.className}
+        >
+            {statusInfo.text}
+        </Tag>
+    );
 };
 
 /**
