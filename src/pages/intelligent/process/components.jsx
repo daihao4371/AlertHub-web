@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { 
-    Input, Select, Space, Button, Modal, Form, Drawer, Descriptions, 
-    Spin, Timeline, Divider, Tag, Empty, Typography 
+    Input, Select, Space, Button, Modal, Form, Drawer, 
+    Spin, Timeline, Divider, Tag, Empty, Typography, Card, Row, Col, Statistic
 } from 'antd';
 import { ReloadOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons';
-import { useProcessStatus, useProcessStep } from './hooks';
+import { ResponsiveContainer, PieChart, Pie, Cell, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { useProcessStatus } from './hooks';
 
 const { Option } = Select;
 const { Text } = Typography;
@@ -125,6 +126,7 @@ export const StatusUpdateModal = ({
     onSuccess,
     currentStatus,
     eventId,
+    userList,
     onUpdateStatus,
 }) => {
     const [form] = Form.useForm();
@@ -136,14 +138,9 @@ export const StatusUpdateModal = ({
     const handleOk = async () => {
         try {
             const values = await form.validateFields();
-            const { status } = values;
-
-            if (status === currentStatus) {
-                return;
-            }
-
+            
             setLoading(true);
-            const success = await onUpdateStatus(eventId, status);
+            const success = await onUpdateStatus(eventId, values, currentStatus);
             
             if (success) {
                 form.resetFields();
@@ -174,11 +171,16 @@ export const StatusUpdateModal = ({
             confirmLoading={loading}
             okText="确认更新"
             cancelText="取消"
+            width="90%"
         >
             <Form
                 form={form}
                 layout="vertical"
-                initialValues={{ status: currentStatus }}
+                initialValues={{ 
+                    status: currentStatus,
+                    description: '',
+                    assignedUser: '',
+                }}
             >
                 <Form.Item
                     name="status"
@@ -193,90 +195,17 @@ export const StatusUpdateModal = ({
                         ))}
                     </Select>
                 </Form.Item>
-            </Form>
-        </Modal>
-    );
-};
-
-/**
- * 添加步骤模态框组件
- */
-export const AddStepModal = ({
-    visible,
-    onCancel,
-    onSuccess,
-    eventId,
-    userList,
-    onAddStep,
-}) => {
-    const [form] = Form.useForm();
-    const [loading, setLoading] = useState(false);
-
-    /**
-     * 处理确认添加
-     */
-    const handleOk = async () => {
-        try {
-            const values = await form.validateFields();
-            const { stepName, description, assignedUser } = values;
-
-            setLoading(true);
-            const success = await onAddStep(eventId, stepName, description, assignedUser || '');
-            
-            if (success) {
-                form.resetFields();
-                onSuccess?.();
-                onCancel();
-            }
-        } catch (error) {
-            console.error('表单验证失败:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    /**
-     * 处理取消
-     */
-    const handleCancel = () => {
-        form.resetFields();
-        onCancel();
-    };
-
-    return (
-        <Modal
-            title="添加处理步骤"
-            open={visible}
-            onOk={handleOk}
-            onCancel={handleCancel}
-            confirmLoading={loading}
-            okText="确认添加"
-            cancelText="取消"
-            width={600}
-        >
-            <Form
-                form={form}
-                layout="vertical"
-                initialValues={{ assignedUser: '' }}
-            >
-                <Form.Item
-                    name="stepName"
-                    label="步骤名称"
-                    rules={[{ required: true, message: '请输入步骤名称' }]}
-                >
-                    <Input placeholder="请输入步骤名称" />
-                </Form.Item>
 
                 <Form.Item
                     name="description"
                     label="步骤描述"
-                    rules={[{ required: true, message: '请输入步骤描述' }]}
+                    rules={[{ max: 500, message: '步骤描述不能超过500个字符' }]}
                 >
                     <TextArea
-                        placeholder="请输入步骤描述"
+                        placeholder="请输入步骤描述（可选）"
                         rows={4}
-                        showCount
                         maxLength={500}
+                        showCount
                     />
                 </Form.Item>
 
@@ -292,89 +221,14 @@ export const AddStepModal = ({
                         filterOption={(input, option) =>
                             (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
                         }
+                        style={{ width: '100%' }}
                     >
-                        {userList.map(user => (
+                        {userList?.map(user => (
                             <Option key={user.id || user.username} value={user.username || user.id}>
                                 {user.realName || user.username || user.id}
                             </Option>
                         ))}
                     </Select>
-                </Form.Item>
-            </Form>
-        </Modal>
-    );
-};
-
-/**
- * 完成步骤模态框组件
- */
-export const CompleteStepModal = ({
-    visible,
-    onCancel,
-    onSuccess,
-    stepName,
-    eventId,
-    onCompleteStep,
-}) => {
-    const [form] = Form.useForm();
-    const [loading, setLoading] = useState(false);
-
-    /**
-     * 处理确认完成
-     */
-    const handleOk = async () => {
-        try {
-            const values = await form.validateFields();
-            const { notes } = values;
-
-            setLoading(true);
-            const success = await onCompleteStep(eventId, stepName, notes || '');
-            
-            if (success) {
-                form.resetFields();
-                onSuccess?.();
-                onCancel();
-            }
-        } catch (error) {
-            console.error('表单验证失败:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    /**
-     * 处理取消
-     */
-    const handleCancel = () => {
-        form.resetFields();
-        onCancel();
-    };
-
-    return (
-        <Modal
-            title={`完成步骤: ${stepName}`}
-            open={visible}
-            onOk={handleOk}
-            onCancel={handleCancel}
-            confirmLoading={loading}
-            okText="确认完成"
-            cancelText="取消"
-        >
-            <Form
-                form={form}
-                layout="vertical"
-            >
-                <Form.Item
-                    name="notes"
-                    label="备注信息"
-                    rules={[{ max: 500, message: '备注信息不能超过500个字符' }]}
-                >
-                    <TextArea
-                        placeholder="请输入备注信息（可选）"
-                        rows={4}
-                        maxLength={500}
-                        showCount
-                    />
                 </Form.Item>
             </Form>
         </Modal>
@@ -393,54 +247,28 @@ export const ProcessDetailDrawer = ({
     faultCenterList,
     userList,
     onRefresh,
+    onStatisticsRefresh,
+    onListRefresh,
 }) => {
     const [statusModalVisible, setStatusModalVisible] = useState(false);
-    const [completeStepModalVisible, setCompleteStepModalVisible] = useState(false);
-    const [addStepModalVisible, setAddStepModalVisible] = useState(false);
-    const [selectedStep, setSelectedStep] = useState(null);
     const { handleUpdateStatus } = useProcessStatus();
-    const { handleCompleteStep, handleAddStep } = useProcessStep();
 
     /**
-     * 处理状态更新成功
+     * 处理操作成功后的刷新
      */
-    const handleStatusUpdateSuccess = () => {
+    const handleOperationSuccess = () => {
+        // 刷新详情数据
         if (processDetail?.eventId && onRefresh) {
             onRefresh(processDetail.eventId);
         }
-    };
-
-    /**
-     * 处理完成步骤成功
-     */
-    const handleCompleteStepSuccess = () => {
-        if (processDetail?.eventId && onRefresh) {
-            onRefresh(processDetail.eventId);
+        // 刷新统计数据（图表）
+        if (onStatisticsRefresh) {
+            onStatisticsRefresh();
         }
-    };
-
-    /**
-     * 处理添加步骤成功
-     */
-    const handleAddStepSuccess = () => {
-        if (processDetail?.eventId && onRefresh) {
-            onRefresh(processDetail.eventId);
+        // 刷新列表数据（表格）
+        if (onListRefresh) {
+            onListRefresh();
         }
-    };
-
-    /**
-     * 打开完成步骤模态框
-     */
-    const handleOpenCompleteStepModal = (step) => {
-        setSelectedStep(step);
-        setCompleteStepModalVisible(true);
-    };
-
-    /**
-     * 打开添加步骤模态框
-     */
-    const handleOpenAddStepModal = () => {
-        setAddStepModalVisible(true);
     };
 
     /**
@@ -469,7 +297,7 @@ export const ProcessDetailDrawer = ({
 
     /**
      * 将操作描述中的用户名替换为真实姓名
-     * 例如："添加处理步骤:测试,分配给:admin" -> "添加处理步骤:测试,分配给:超管"
+     * 例如："分配给:admin" -> "分配给:超管"
      */
     const formatOperationDesc = (operationDesc) => {
         if (!operationDesc || !userList || userList.length === 0) {
@@ -511,8 +339,6 @@ export const ProcessDetailDrawer = ({
         const typeMap = {
             'create_process': '创建处理流程',
             'update_status': '更新处理状态',
-            'add_step': '添加处理步骤',
-            'complete_step': '完成处理步骤',
             'update_ai_analysis': '更新AI分析',
             'claim': '认领告警',
             'assign': '分配处理人',
@@ -547,7 +373,7 @@ export const ProcessDetailDrawer = ({
                 placement="right"
                 onClose={onClose}
                 open={visible}
-                width={800}
+                width="90%"
                 styles={{
                     body: { padding: '16px' },
                 }}
@@ -555,162 +381,67 @@ export const ProcessDetailDrawer = ({
                 <Spin spinning={loading}>
                     {processDetail ? (
                         <>
-                            {/* 基本信息 */}
-                            <Descriptions
-                                bordered
-                                column={1}
-                                style={{ marginBottom: '24px' }}
-                                labelStyle={{ width: '120px' }}
-                                items={[
-                                    {
-                                        key: 'id',
-                                        label: '流程ID',
-                                        children: <Text copyable={{ text: processDetail.id }}>{processDetail.id}</Text>,
-                                    },
-                                    {
-                                        key: 'eventId',
-                                        label: '告警事件ID',
-                                        children: <Text copyable={{ text: processDetail.eventId }}>{processDetail.eventId}</Text>,
-                                    },
-                                    {
-                                        key: 'faultCenterId',
-                                        label: '故障中心',
-                                        children: (() => {
-                                            const center = faultCenterList.find(c => c.id === processDetail.faultCenterId);
-                                            return center ? center.name : processDetail.faultCenterId || '-';
-                                        })(),
-                                    },
-                                    {
-                                        key: 'currentStatus',
-                                        label: '当前状态',
-                                        children: formatStatus(processDetail.currentStatus),
-                                    },
-                                    {
-                                        key: 'assignedUser',
-                                        label: '分配处理人',
-                                        children: getUserDisplayName(processDetail.assignedUser),
-                                    },
-                                    {
-                                        key: 'startTime',
-                                        label: '开始时间',
-                                        children: processDetail.startTime ? new Date(processDetail.startTime * 1000).toLocaleString('zh-CN') : '-',
-                                    },
-                                    {
-                                        key: 'endTime',
-                                        label: '结束时间',
-                                        children: processDetail.endTime ? new Date(processDetail.endTime * 1000).toLocaleString('zh-CN') : '-',
-                                    },
-                                    {
-                                        key: 'totalDuration',
-                                        label: '处理时长',
-                                        children: formatDuration(processDetail.totalDuration || (processDetail.startTime ? (processDetail.endTime || Math.floor(Date.now() / 1000)) - processDetail.startTime : 0)),
-                                    },
-                                ]}
-                            />
-
-                            {/* 处理步骤 */}
-                            <div style={{ marginBottom: '24px', position: 'relative' }}>
-                                <Divider orientation="left">
-                                    <span>处理步骤</span>
-                                </Divider>
-                                {/* 添加步骤按钮 - 固定在右上角 */}
-                                <div style={{ position: 'absolute', top: '0', right: '0' }}>
-                                    <Button
-                                        type="primary"
-                                        size="small"
-                                        onClick={handleOpenAddStepModal}
-                                    >
-                                        添加步骤
-                                    </Button>
-                                </div>
-                                {processDetail.processSteps && Array.isArray(processDetail.processSteps) && processDetail.processSteps.length > 0 ? (
-                                    <Timeline
-                                        items={processDetail.processSteps.map((step) => ({
-                                            color: step.isCompleted ? 'green' : 'blue',
-                                            children: (
-                                                <div style={{ position: 'relative', paddingRight: '100px' }}>
-                                                    <div style={{ marginBottom: '8px' }}>
-                                                        <Text strong>{step.stepName}</Text>
-                                                        <Tag color={step.isCompleted ? 'success' : 'processing'} style={{ marginLeft: '8px' }}>
-                                                            {step.isCompleted ? '已完成' : '进行中'}
-                                                        </Tag>
-                                                        {formatStatus(step.status)}
-                                                    </div>
-                                                    {step.description && (
-                                                        <div style={{ color: '#666', marginBottom: '4px' }}>
-                                                            {step.description}
-                                                        </div>
-                                                    )}
-                                                    {step.assignedUser && (
-                                                        <div style={{ color: '#999', fontSize: '12px', marginBottom: '4px' }}>
-                                                            执行人: {getUserDisplayName(step.assignedUser)}
-                                                        </div>
-                                                    )}
-                                                    {step.notes && (
-                                                        <div style={{ color: '#666', fontSize: '12px', marginTop: '4px' }}>
-                                                            备注: {step.notes}
-                                                        </div>
-                                                    )}
-                                                    <div style={{ color: '#999', fontSize: '12px', marginTop: '4px' }}>
-                                                        {step.startTime && `开始: ${new Date(step.startTime * 1000).toLocaleString('zh-CN')}`}
-                                                        {step.endTime && ` | 结束: ${new Date(step.endTime * 1000).toLocaleString('zh-CN')}`}
-                                                        {step.duration && ` | 耗时: ${formatDuration(step.duration)}`}
-                                                    </div>
-                                                    {/* 完成步骤按钮 - 固定在右侧 */}
-                                                    {!step.isCompleted && (
-                                                        <div style={{ 
-                                                            position: 'absolute', 
-                                                            top: '0', 
-                                                            right: '0',
-                                                            whiteSpace: 'nowrap'
-                                                        }}>
-                                                            <Button
-                                                                type="primary"
-                                                                size="small"
-                                                                onClick={() => handleOpenCompleteStepModal(step)}
-                                                            >
-                                                                完成步骤
-                                                            </Button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ),
-                                        }))}
-                                    />
-                                ) : (
-                                    <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
-                                        暂无处理步骤
-                                    </div>
-                                )}
-                            </div>
-
                             {/* 操作日志 */}
                             {operationLogs.length > 0 && (
                                 <>
                                     <Divider orientation="left">操作日志</Divider>
                                     <Timeline
-                                        items={operationLogs.map((log) => ({
-                                            color: 'gray',
-                                            children: (
-                                                <div>
-                                                    <div style={{ marginBottom: '4px' }}>
-                                                        <Text strong>{formatOperationDesc(log.operationDesc) || getOperationTypeText(log.operationType)}</Text>
-                                                        {log.operationType && (
-                                                            <Tag style={{ marginLeft: '8px' }}>{getOperationTypeText(log.operationType)}</Tag>
+                                        items={operationLogs.map((log) => {
+                                            // 格式化时间戳为 HH:mm:ss 格式
+                                            const formatTime = (timestamp) => {
+                                                if (!timestamp) return '';
+                                                const date = new Date(timestamp * 1000);
+                                                const hours = String(date.getHours()).padStart(2, '0');
+                                                const minutes = String(date.getMinutes()).padStart(2, '0');
+                                                const seconds = String(date.getSeconds()).padStart(2, '0');
+                                                return `${hours}:${minutes}:${seconds}`;
+                                            };
+
+                                            // 获取操作描述文本
+                                            const description = formatOperationDesc(log.operationDesc) || getOperationTypeText(log.operationType);
+                                            
+                                            // 获取操作人显示名称
+                                            const operatorName = getOperatorDisplayName(log);
+
+                                            return {
+                                                color: 'blue',
+                                                children: (
+                                                    <div>
+                                                        {/* 时间戳 */}
+                                                        <div style={{ 
+                                                            color: '#666', 
+                                                            fontSize: '13px',
+                                                            fontWeight: '500',
+                                                            marginBottom: '8px',
+                                                        }}>
+                                                            {formatTime(log.operationTime)}
+                                                        </div>
+                                                        {/* 操作描述 */}
+                                                        <div style={{ 
+                                                            marginBottom: operatorName && operatorName !== '-' ? '4px' : '0',
+                                                            lineHeight: '1.6',
+                                                        }}>
+                                                            <Text style={{ 
+                                                                fontSize: '14px',
+                                                                color: '#333',
+                                                            }}>
+                                                                {description}
+                                                            </Text>
+                                                        </div>
+                                                        {/* 操作人 */}
+                                                        {operatorName && operatorName !== '-' && (
+                                                            <div style={{ 
+                                                                color: '#999', 
+                                                                fontSize: '12px',
+                                                                marginTop: '4px',
+                                                            }}>
+                                                                {operatorName}
+                                                            </div>
                                                         )}
                                                     </div>
-                                                    {(log.operatorName || log.operator) && (
-                                                        <div style={{ color: '#999', fontSize: '12px', marginBottom: '4px' }}>
-                                                            操作人: {getOperatorDisplayName(log)}
-                                                        </div>
-                                                    )}
-                                                    <div style={{ color: '#999', fontSize: '12px' }}>
-                                                        {log.operationTime && new Date(log.operationTime * 1000).toLocaleString('zh-CN')}
-                                                    </div>
-
-                                                </div>
-                                            ),
-                                        }))}
+                                                ),
+                                            };
+                                        })}
                                     />
                                 </>
                             )}
@@ -725,40 +456,14 @@ export const ProcessDetailDrawer = ({
             {processDetail && (
                 <StatusUpdateModal
                     visible={statusModalVisible}
-                    onCancel={() => setStatusModalVisible(false)}
-                    onSuccess={handleStatusUpdateSuccess}
+                    onCancel={() => {
+                        setStatusModalVisible(false);
+                    }}
+                    onSuccess={handleOperationSuccess}
                     currentStatus={processDetail.currentStatus}
                     eventId={processDetail.eventId}
-                    onUpdateStatus={handleUpdateStatus}
-                />
-            )}
-
-            {/* 完成步骤模态框 */}
-            {selectedStep && processDetail && (
-                <CompleteStepModal
-                    visible={completeStepModalVisible}
-                    onCancel={() => {
-                        setCompleteStepModalVisible(false);
-                        setSelectedStep(null);
-                    }}
-                    onSuccess={handleCompleteStepSuccess}
-                    stepName={selectedStep.stepName}
-                    eventId={processDetail.eventId}
-                    onCompleteStep={handleCompleteStep}
-                />
-            )}
-
-            {/* 添加步骤模态框 */}
-            {processDetail && (
-                <AddStepModal
-                    visible={addStepModalVisible}
-                    onCancel={() => {
-                        setAddStepModalVisible(false);
-                    }}
-                    onSuccess={handleAddStepSuccess}
-                    eventId={processDetail.eventId}
                     userList={userList}
-                    onAddStep={handleAddStep}
+                    onUpdateStatus={handleUpdateStatus}
                 />
             )}
         </>
@@ -895,5 +600,301 @@ export const createTableColumns = (faultCenterList, userList, handleViewDetail) 
         },
     },
 ];
+
+// ==================== 统计图表组件 ====================
+
+/**
+ * 状态映射配置 - 用于将后端状态值转换为中文显示
+ */
+const STATUS_MAP = {
+    detected: { text: '已检测', color: '#1890ff' },        // 蓝色
+    analyzing: { text: '分析中', color: '#13c2c2' },       // 青色
+    correlated: { text: '关联分析', color: '#faad14' },   // 橙色
+    processing: { text: '处理中', color: '#fa8c16' },     // 橙红色
+    validated: { text: '验证中', color: '#2db7f5' },       // 天蓝色（避免与已完成重复）
+    completed: { text: '已完成', color: '#52c41a' },       // 绿色
+};
+
+/**
+ * 流程统计图表组件
+ * @param {Object} props - 组件属性
+ * @param {Object} props.statistics - 统计数据对象
+ * @param {number} props.statistics.totalCount - 总处理流程数
+ * @param {number} props.statistics.completedCount - 已完成流程数
+ * @param {number} props.statistics.avgDuration - 平均处理时长（秒）
+ * @param {Array} props.statistics.statusDistribution - 状态分布数组，每个元素包含 current_status 和 count
+ * @param {boolean} props.loading - 加载状态
+ */
+export const ProcessStatisticsChart = ({ statistics, loading }) => {
+    if (loading) {
+        return (
+            <Card>
+                <Spin spinning={loading} />
+            </Card>
+        );
+    }
+
+    if (!statistics) {
+        return (
+            <Card>
+                <Empty description="暂无统计数据" />
+            </Card>
+        );
+    }
+
+    // 获取所有状态的数据，确保所有状态都显示（即使数量为0）
+    const getAllStatusData = () => {
+        // 创建状态计数的映射
+        const statusCountMap = {};
+        (statistics.statusDistribution || []).forEach(item => {
+            statusCountMap[item.current_status] = item.count || 0;
+        });
+
+        // 确保所有状态都包含在数据中
+        return Object.keys(STATUS_MAP).map(statusKey => {
+            const statusInfo = STATUS_MAP[statusKey];
+            return {
+                name: statusInfo.text,
+                value: statusCountMap[statusKey] || 0,
+                count: statusCountMap[statusKey] || 0,
+                status: statusKey,
+                fill: statusInfo.color,
+            };
+        });
+    };
+
+    // 处理状态分布数据，转换为图表需要的格式（包含所有状态）
+    const allStatusData = getAllStatusData();
+    const pieChartData = allStatusData.map(item => ({
+        name: item.name,
+        value: item.value,
+        status: item.status,
+    }));
+
+    // 处理柱状图数据（状态分布，包含所有状态）
+    const barChartData = allStatusData.map(item => ({
+        name: item.name,
+        count: item.count,
+        status: item.status,
+        fill: item.fill,
+    }));
+
+    // 计算完成率
+    const completionRate = statistics.totalCount > 0 
+        ? ((statistics.completedCount / statistics.totalCount) * 100).toFixed(1)
+        : 0;
+
+    return (
+        <div style={{ marginBottom: 24 }}>
+            {/* 统计卡片 */}
+            <Row gutter={16} style={{ marginBottom: 16 }}>
+                <Col span={6}>
+                    <Card>
+                        <Statistic
+                            title="总处理流程数"
+                            value={statistics.totalCount || 0}
+                            valueStyle={{ color: '#1890ff' }}
+                        />
+                    </Card>
+                </Col>
+                <Col span={6}>
+                    <Card>
+                        <Statistic
+                            title="已完成流程数"
+                            value={statistics.completedCount || 0}
+                            valueStyle={{ color: '#52c41a' }}
+                        />
+                    </Card>
+                </Col>
+                <Col span={6}>
+                    <Card>
+                        <Statistic
+                            title="完成率"
+                            value={completionRate}
+                            suffix="%"
+                            valueStyle={{ color: '#1890ff' }}
+                        />
+                    </Card>
+                </Col>
+                <Col span={6}>
+                    <Card>
+                        <Statistic
+                            title="平均处理时长"
+                            value={formatDuration(Math.round(statistics.avgDuration || 0))}
+                            valueStyle={{ color: '#fa8c16' }}
+                        />
+                    </Card>
+                </Col>
+            </Row>
+
+            {/* 图表区域 */}
+            <Row gutter={16}>
+                {/* 状态分布饼图 */}
+                <Col span={12}>
+                    <Card title="状态分布（环形图）" style={{ height: 400 }}>
+                        {pieChartData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={320}>
+                                <PieChart>
+                                    <Pie
+                                        data={pieChartData}
+                                        cx="50%"
+                                        cy="50%"
+                                        labelLine={{
+                                            strokeWidth: 1,
+                                            stroke: '#999',
+                                            strokeDasharray: '0',
+                                            strokeOpacity: 0.6,
+                                        }}
+                                        label={({ name, value, percent, cx, cy, midAngle, innerRadius, outerRadius }) => {
+                                            // 只显示有数据的标签
+                                            if (value === 0) return null;
+                                            
+                                            // 计算标签位置（在扇区外部，使用引导线）
+                                            const RADIAN = Math.PI / 180;
+                                            // 标签位置在扇区外部，距离外圈一定距离
+                                            const radius = outerRadius + 25;
+                                            const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                                            const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                                            
+                                            // 如果扇区太小（小于3%），不显示标签避免重叠
+                                            if (percent < 0.03) return null;
+                                            
+                                            // 判断标签在左侧还是右侧
+                                            const isRight = x > cx;
+                                            
+                                            return (
+                                                <g>
+                                                    {/* 状态名称 */}
+                                                    <text
+                                                        x={x}
+                                                        y={y - 8}
+                                                        fill="#333"
+                                                        textAnchor={isRight ? 'start' : 'end'}
+                                                        dominantBaseline="central"
+                                                        fontSize={12}
+                                                        fontWeight="500"
+                                                    >
+                                                        {name}
+                                                    </text>
+                                                    {/* 百分比 */}
+                                                    <text
+                                                        x={x}
+                                                        y={y + 8}
+                                                        fill="#666"
+                                                        textAnchor={isRight ? 'start' : 'end'}
+                                                        dominantBaseline="central"
+                                                        fontSize={11}
+                                                        fontWeight="400"
+                                                    >
+                                                        {`${(percent * 100).toFixed(1)}%`}
+                                                    </text>
+                                                </g>
+                                            );
+                                        }}
+                                        outerRadius={100}
+                                        innerRadius={40}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                        paddingAngle={2}
+                                    >
+                                        {pieChartData.map((entry, index) => {
+                                            const statusInfo = STATUS_MAP[entry.status] || { color: '#8c8c8c' };
+                                            return (
+                                                <Cell key={`cell-${index}`} fill={statusInfo.color} />
+                                            );
+                                        })}
+                                    </Pie>
+                                    <Tooltip
+                                        formatter={(value, name, props) => {
+                                            const total = pieChartData.reduce((sum, item) => sum + item.value, 0);
+                                            const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                            return [`${value} (${percent}%)`, name];
+                                        }}
+                                        contentStyle={{
+                                            backgroundColor: '#fff',
+                                            border: '1px solid #e8e8e8',
+                                            borderRadius: '4px',
+                                            padding: '8px 12px',
+                                        }}
+                                        labelStyle={{
+                                            fontWeight: 'bold',
+                                            marginBottom: '4px',
+                                        }}
+                                    />
+                                    <Legend 
+                                        verticalAlign="bottom" 
+                                        height={60}
+                                        iconType="circle"
+                                        wrapperStyle={{
+                                            paddingTop: '16px',
+                                        }}
+                                        formatter={(value, entry) => {
+                                            const data = pieChartData.find(item => item.name === value);
+                                            const total = pieChartData.reduce((sum, item) => sum + item.value, 0);
+                                            const percent = total > 0 && data ? ((data.value / total) * 100).toFixed(1) : 0;
+                                            return `${value}: ${data?.value || 0} (${percent}%)`;
+                                        }}
+                                    />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <Empty description="暂无状态分布数据" />
+                        )}
+                    </Card>
+                </Col>
+
+                {/* 状态分布柱状图 */}
+                <Col span={12}>
+                    <Card title="状态分布（柱状图）" style={{ height: 400 }}>
+                        {barChartData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={320}>
+                                <BarChart data={barChartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis 
+                                        dataKey="name" 
+                                        tick={{ fontSize: 12 }}
+                                        angle={-45}
+                                        textAnchor="end"
+                                        height={80}
+                                    />
+                                    <YAxis 
+                                        tick={{ fontSize: 12 }}
+                                        label={{ value: '数量', angle: -90, position: 'insideLeft' }}
+                                    />
+                                    <Tooltip
+                                        formatter={(value, name, props) => {
+                                            const total = barChartData.reduce((sum, item) => sum + item.count, 0);
+                                            const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                            return [`${value} (${percent}%)`, '数量'];
+                                        }}
+                                        contentStyle={{
+                                            backgroundColor: '#fff',
+                                            border: '1px solid #e8e8e8',
+                                            borderRadius: '4px',
+                                        }}
+                                    />
+                                    <Bar 
+                                        dataKey="count" 
+                                        radius={[4, 4, 0, 0]}
+                                        label={{ 
+                                            position: 'top',
+                                            formatter: (value) => value > 0 ? value : ''
+                                        }}
+                                    >
+                                        {barChartData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <Empty description="暂无状态分布数据" />
+                        )}
+                    </Card>
+                </Col>
+            </Row>
+        </div>
+    );
+};
 
 

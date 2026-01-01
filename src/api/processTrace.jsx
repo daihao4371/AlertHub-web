@@ -46,10 +46,12 @@ export async function getProcessTraceList(params) {
 }
 
 /**
- * 更新处理状态
+ * 更新处理状态（支持分配处理人）
  * @param {Object} params - 请求参数
  * @param {string} params.eventId - 告警事件ID（必填）
  * @param {string} params.status - 新状态（必填，可选值：detected/analyzing/correlated/processing/validated/completed）
+ * @param {string} params.assignedUser - 分配处理人（可选，不填默认为当前操作人）
+ * @param {string} params.description - 操作描述（可选，描述本次状态更新的内容）
  * @returns {Promise} 返回更新结果
  */
 export async function updateProcessStatus(params) {
@@ -63,17 +65,32 @@ export async function updateProcessStatus(params) {
 }
 
 /**
- * 添加处理步骤
+ * 添加处理步骤（兼容性函数，推荐使用updateProcessStatus）
+ * @deprecated 请使用 updateProcessStatus 替代，功能更完整
  * @param {Object} params - 请求参数
  * @param {string} params.eventId - 告警事件ID（必填）
  * @param {string} params.stepName - 步骤名称（必填）
  * @param {string} params.description - 步骤描述（必填）
- * @param {string} params.assignedUser - 分配处理人（可选，默认为当前用户）
+ * @param {string} params.assignedUser - 分配处理人（可选）
  * @returns {Promise} 返回添加结果
  */
 export async function addProcessStep(params) {
+    // 兼容性实现：使用updateProcessStatus来实现添加步骤功能
+    // 获取当前状态然后使用同样状态更新，只添加步骤
+    console.warn('addProcessStep 已废弃，请使用 updateProcessStatus 替代');
+    
     try {
-        const response = await http('post', '/api/w8t/process-trace/step', params);
+        // 先获取当前状态
+        const traceResponse = await getProcessTrace({ fingerprint: params.eventId });
+        const currentStatus = traceResponse?.data?.currentStatus || 'processing';
+        
+        // 使用新的updateProcessStatus接口
+        const response = await updateProcessStatus({
+            eventId: params.eventId,
+            status: currentStatus, // 保持当前状态不变
+            assignedUser: params.assignedUser,
+            description: params.stepName + ": " + params.description // 将步骤名称合并到描述中
+        });
         return response;
     } catch (error) {
         HandleApiError(error);
@@ -81,23 +98,6 @@ export async function addProcessStep(params) {
     }
 }
 
-/**
- * 完成处理步骤
- * @param {Object} params - 请求参数
- * @param {string} params.eventId - 告警事件ID（必填）
- * @param {string} params.stepName - 步骤名称（必填）
- * @param {string} params.notes - 备注信息（可选）
- * @returns {Promise} 返回完成结果
- */
-export async function completeProcessStep(params) {
-    try {
-        const response = await http('put', '/api/w8t/process-trace/step/complete', params);
-        return response;
-    } catch (error) {
-        HandleApiError(error);
-        return error;
-    }
-}
 
 /**
  * 更新AI分析结果

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { message } from 'antd';
-import { getProcessTraceList, getProcessTrace, getOperationLogs, updateProcessStatus, completeProcessStep, addProcessStep } from '../../../api/processTrace';
+import { getProcessTraceList, getProcessTrace, getOperationLogs, updateProcessStatus, getProcessStatistics } from '../../../api/processTrace';
 import { FaultCenterList } from '../../../api/faultCenter';
 import { getUserList } from '../../../api/user';
 
@@ -204,20 +204,38 @@ export const useProcessStatus = () => {
     /**
      * 更新处理状态
      * @param {string} eventId - 告警事件ID
-     * @param {string} status - 新状态
-     * @returns {Promise<boolean>} 是否更新成功
+     * @param {Object} values - 表单值
+     * @param {string} currentStatus - 当前状态
+     * @returns {Promise<boolean>} 是否操作成功
      */
-    const handleUpdateStatus = async (eventId, status) => {
-        if (!eventId || !status) {
+    const handleUpdateStatus = async (eventId, values, currentStatus = '') => {
+        if (!eventId) {
             message.error('参数不完整');
             return false;
         }
 
         try {
-            const response = await updateProcessStatus({
-                eventId,
-                status,
-            });
+            const { status } = values;
+            if (!status) {
+                message.error('请选择新状态');
+                return false;
+            }
+            if (status === currentStatus) {
+                message.warning('新状态与当前状态相同');
+                return false;
+            }
+
+            const params = { eventId, status };
+            
+            // 支持可选的描述和分配处理人
+            if (values.description) {
+                params.description = values.description;
+            }
+            if (values.assignedUser) {
+                params.assignedUser = values.assignedUser;
+            }
+
+            const response = await updateProcessStatus(params);
 
             if (response && response.code === 200) {
                 message.success('状态更新成功');
@@ -239,86 +257,6 @@ export const useProcessStatus = () => {
 };
 
 /**
- * 处理步骤管理 Hook
- */
-export const useProcessStep = () => {
-    /**
-     * 完成处理步骤
-     * @param {string} eventId - 告警事件ID
-     * @param {string} stepName - 步骤名称
-     * @param {string} notes - 备注信息
-     * @returns {Promise<boolean>} 是否完成成功
-     */
-    const handleCompleteStep = async (eventId, stepName, notes = '') => {
-        if (!eventId || !stepName) {
-            message.error('参数不完整');
-            return false;
-        }
-
-        try {
-            const response = await completeProcessStep({
-                eventId,
-                stepName,
-                notes,
-            });
-
-            if (response && response.code === 200) {
-                message.success('步骤完成成功');
-                return true;
-            } else {
-                message.error(response?.msg || '步骤完成失败');
-                return false;
-            }
-        } catch (error) {
-            console.error('完成处理步骤失败:', error);
-            message.error('完成处理步骤失败');
-            return false;
-        }
-    };
-
-    /**
-     * 添加处理步骤
-     * @param {string} eventId - 告警事件ID
-     * @param {string} stepName - 步骤名称
-     * @param {string} description - 步骤描述
-     * @param {string} assignedUser - 分配处理人
-     * @returns {Promise<boolean>} 是否添加成功
-     */
-    const handleAddStep = async (eventId, stepName, description, assignedUser = '') => {
-        if (!eventId || !stepName || !description) {
-            message.error('参数不完整');
-            return false;
-        }
-
-        try {
-            const response = await addProcessStep({
-                eventId,
-                stepName,
-                description,
-                assignedUser,
-            });
-
-            if (response && response.code === 200) {
-                message.success('步骤添加成功');
-                return true;
-            } else {
-                message.error(response?.msg || '步骤添加失败');
-                return false;
-            }
-        } catch (error) {
-            console.error('添加处理步骤失败:', error);
-            message.error('添加处理步骤失败');
-            return false;
-        }
-    };
-
-    return {
-        handleCompleteStep,
-        handleAddStep,
-    };
-};
-
-/**
  * 窗口高度监听 Hook
  */
 export const useWindowHeight = () => {
@@ -335,5 +273,51 @@ export const useWindowHeight = () => {
     }, []);
 
     return height;
+};
+
+/**
+ * 流程统计数据管理 Hook
+ */
+export const useProcessStatistics = () => {
+    const [statistics, setStatistics] = useState(null);
+    const [loading, setLoading] = useState(false);
+
+    /**
+     * 加载统计数据
+     * @param {number} startTime - 开始时间戳（可选）
+     * @param {number} endTime - 结束时间戳（可选）
+     */
+    const loadStatistics = useCallback(async (startTime, endTime) => {
+        setLoading(true);
+        try {
+            const params = {};
+            if (startTime) {
+                params.startTime = startTime;
+            }
+            if (endTime) {
+                params.endTime = endTime;
+            }
+
+            const response = await getProcessStatistics(params);
+
+            if (response && response.code === 200 && response.data) {
+                setStatistics(response.data);
+            } else {
+                setStatistics(null);
+            }
+        } catch (error) {
+            console.error('加载统计数据失败:', error);
+            message.error('加载统计数据失败');
+            setStatistics(null);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    return {
+        statistics,
+        loading,
+        loadStatistics,
+    };
 };
 

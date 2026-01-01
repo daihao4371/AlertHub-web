@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Empty } from 'antd';
 import { HandleShowTotal } from '../../../utils/lib';
-import { useProcessData, useProcessDetail, useWindowHeight } from './hooks';
-import { createTableColumns, SearchBar, ProcessDetailDrawer } from './components';
+import { useProcessData, useProcessDetail, useWindowHeight, useProcessStatistics } from './hooks';
+import { createTableColumns, SearchBar, ProcessDetailDrawer, ProcessStatisticsChart } from './components';
 
 /**
  * 处理记录页面
@@ -40,6 +40,13 @@ export const IntelligentProcess = () => {
     // 窗口高度 Hook
     const height = useWindowHeight();
 
+    // 统计数据管理 Hook
+    const {
+        statistics,
+        loading: statisticsLoading,
+        loadStatistics,
+    } = useProcessStatistics();
+
     // 处理分页变化
     const handleTableChange = (newPagination) => {
         loadProcessList(newPagination.current, newPagination.pageSize, selectedFaultCenter, searchQuery);
@@ -62,6 +69,8 @@ export const IntelligentProcess = () => {
     // 处理刷新
     const handleRefresh = () => {
         loadProcessList(pagination.current, pagination.pageSize, selectedFaultCenter, searchQuery);
+        // 同时刷新统计数据
+        loadStatistics();
     };
 
     // 初始化加载
@@ -69,6 +78,8 @@ export const IntelligentProcess = () => {
         loadFaultCenterList();
         loadUserList();
         loadProcessList(1, 10, '', '');
+        // 加载统计数据（默认30天）
+        loadStatistics();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -77,6 +88,12 @@ export const IntelligentProcess = () => {
 
     return (
         <div style={{ textAlign: 'left', padding: '24px' }}>
+            {/* 统计图表区域 */}
+            <ProcessStatisticsChart 
+                statistics={statistics} 
+                loading={statisticsLoading} 
+            />
+
             {/* 搜索和筛选区域 */}
             <SearchBar
                 searchQuery={searchQuery}
@@ -128,6 +145,8 @@ export const IntelligentProcess = () => {
                 faultCenterList={faultCenterList}
                 userList={userList}
                 onRefresh={refreshDetail}
+                onStatisticsRefresh={loadStatistics}
+                onListRefresh={handleRefresh}
             />
         </div>
     );
