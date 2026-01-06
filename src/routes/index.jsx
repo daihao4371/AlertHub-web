@@ -42,15 +42,6 @@ import {ExporterMonitorConfig} from "../pages/exporterMonitor/config";
 import {MetricsExplorer} from "../pages/metricsExplorer";
 import {IntelligentBasic} from "../pages/intelligent/basic";
 import {IntelligentProcess} from "../pages/intelligent/process";
-import {IntelligentRelated} from "../pages/intelligent/related";
-import {IntelligentAnalysis} from "../pages/intelligent/analysis";
-import {IntelligentContext} from "../pages/intelligent/context";
-import {IntelligentConfig} from "../pages/intelligent/config";
-import {IntelligentCorrelation} from "../pages/intelligent/correlation";
-import {IntelligentLearning} from "../pages/intelligent/learning";
-import {IntelligentTraining} from "../pages/intelligent/training";
-import {IntelligentIntegration} from "../pages/intelligent/integration";
-import {IntelligentMonitoring} from "../pages/intelligent/monitoring";
 
 // eslint-disable-next-line import/no-anonymous-default-export
 export default [
@@ -235,42 +226,6 @@ export default [
     {
         path: '/intelligent/process',
         element: <ComponentsContent name="处理记录" c={<IntelligentProcess />} />
-    },
-    {
-        path: '/intelligent/related',
-        element: <ComponentsContent name="关联告警" c={<IntelligentRelated />} />
-    },
-    {
-        path: '/intelligent/analysis',
-        element: <ComponentsContent name="智能分析" c={<IntelligentAnalysis />} />
-    },
-    {
-        path: '/intelligent/context',
-        element: <ComponentsContent name="上下文感知" c={<IntelligentContext />} />
-    },
-    {
-        path: '/intelligent/config',
-        element: <ComponentsContent name="AI配置" c={<IntelligentConfig />} />
-    },
-    {
-        path: '/intelligent/correlation',
-        element: <ComponentsContent name="关联分析" c={<IntelligentCorrelation />} />
-    },
-    {
-        path: '/intelligent/learning',
-        element: <ComponentsContent name="持续学习" c={<IntelligentLearning />} />
-    },
-    {
-        path: '/intelligent/training',
-        element: <ComponentsContent name="模型训练" c={<IntelligentTraining />} />
-    },
-    {
-        path: '/intelligent/integration',
-        element: <ComponentsContent name="系统集成" c={<IntelligentIntegration />} />
-    },
-    {
-        path: '/intelligent/monitoring',
-        element: <ComponentsContent name="监控指标" c={<IntelligentMonitoring />} />
     },
     {
         path: '/*',

@@ -53,19 +53,10 @@ const adminMenuItems = [
     {
         key: '5',
         icon: <BulbOutlined />,
-        label: '智能告警系统',
+        label: '告警记录',
         children: [
             { key: '5-1', path: '/intelligent/basic', label: '基本信息' },
             { key: '5-2', path: '/intelligent/process', label: '处理记录' },
-            { key: '5-3', path: '/intelligent/related', label: '关联告警' },
-            { key: '5-4', path: '/intelligent/analysis', label: '智能分析' },
-            { key: '5-5', path: '/intelligent/config', label: 'AI配置' },
-            { key: '5-6', path: '/intelligent/correlation', label: '关联分析' },
-            { key: '5-7', path: '/intelligent/learning', label: '持续学习' },
-            { key: '5-8', path: '/intelligent/training', label: '模型训练' },
-            { key: '5-9', path: '/intelligent/integration', label: '系统集成' },
-            { key: '5-10', path: '/intelligent/monitoring', label: '监控指标' },
-            { key: '5-11', path: '/intelligent/context', label: '上下文感知' },
         ]
     },
     
@@ -162,19 +153,10 @@ const userMenuItems = [
     {
         key: '5',
         icon: <BulbOutlined />,
-        label: '智能告警系统',
+        label: '告警记录',
         children: [
             { key: '5-1', path: '/intelligent/basic', label: '基本信息' },
             { key: '5-2', path: '/intelligent/process', label: '处理记录' },
-            { key: '5-3', path: '/intelligent/related', label: '关联告警' },
-            { key: '5-4', path: '/intelligent/analysis', label: '智能分析' },
-            { key: '5-5', path: '/intelligent/config', label: 'AI配置' },
-            { key: '5-6', path: '/intelligent/correlation', label: '关联分析' },
-            { key: '5-7', path: '/intelligent/learning', label: '持续学习' },
-            { key: '5-8', path: '/intelligent/training', label: '模型训练' },
-            { key: '5-9', path: '/intelligent/integration', label: '系统集成' },
-            { key: '5-10', path: '/intelligent/monitoring', label: '监控指标' },
-            { key: '5-11', path: '/intelligent/context', label: '上下文感知' },
         ]
     },
     

@@ -9,6 +9,7 @@ lerna-debug.log*
 
 # 推送脚本（仅本地使用）
 push-frontend.sh
+final-complete-preview.html
 
 node_modules
 dist

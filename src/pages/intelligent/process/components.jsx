@@ -447,8 +447,8 @@ export const ProcessDetailDrawer = ({
 
                                             return {
                                                 color: 'blue',
-                                                children: (
-                                                    <div>
+                                            children: (
+                                                <div>
                                                         {/* 时间戳 */}
                                                         <div style={{ 
                                                             color: '#666', 
@@ -457,7 +457,7 @@ export const ProcessDetailDrawer = ({
                                                             marginBottom: '8px',
                                                         }}>
                                                             {formatTime(log.operationTime)}
-                                                        </div>
+                                                    </div>
                                                         {/* 操作描述 */}
                                                         <div style={{ 
                                                             marginBottom: operatorName && operatorName !== '-' ? '4px' : '0',
@@ -478,10 +478,10 @@ export const ProcessDetailDrawer = ({
                                                                 marginTop: '4px',
                                                             }}>
                                                                 {operatorName}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ),
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ),
                                             };
                                         })}
                                     />
