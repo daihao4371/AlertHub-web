@@ -195,6 +195,26 @@ export default function (method, url, param) {
                         reject(error);
                     });
                 break;
+            case 'put':
+                put(url, param)
+                    .then(function (response) {
+                        resolve(response);
+                    })
+                    .catch(function (error) {
+                        console.error('PUT request failed.', error);
+                        reject(error);
+                    });
+                break;
+            case 'patch':
+                patch(url, param)
+                    .then(function (response) {
+                        resolve(response);
+                    })
+                    .catch(function (error) {
+                        console.error('PATCH request failed.', error);
+                        reject(error);
+                    });
+                break;
             default:
                 console.warn(`Unsupported HTTP method: ${method}, falling back to POST`);
                 post(url, param)

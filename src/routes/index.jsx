@@ -40,6 +40,8 @@ import {FaultCenterDetail} from "../pages/faultCenter/detail";
 import {ExporterMonitor} from "../pages/exporterMonitor";
 import {ExporterMonitorConfig} from "../pages/exporterMonitor/config";
 import {MetricsExplorer} from "../pages/metricsExplorer";
+import {IntelligentBasic} from "../pages/intelligent/basic";
+import {IntelligentProcess} from "../pages/intelligent/process";
 
 // eslint-disable-next-line import/no-anonymous-default-export
 export default [
@@ -216,6 +218,14 @@ export default [
     {
         path: '/metricsExplorer',
         element: <ComponentsContent name="指标浏览器" c={<MetricsExplorer />} />
+    },
+    {
+        path: '/intelligent/basic',
+        element: <ComponentsContent name="基本信息" c={<IntelligentBasic />} />
+    },
+    {
+        path: '/intelligent/process',
+        element: <ComponentsContent name="处理记录" c={<IntelligentProcess />} />
     },
     {
         path: '/*',
