@@ -8,6 +8,7 @@ import DingDingImg from "./img/dingding.svg";
 import WeChatImg from "./img/qywechat.svg"
 import SlackImg from "./img/slack.svg"
 import CustomHook from "./img/customhook.svg"
+import CmdbImg from "./img/cmdb.png"
 import SmsImg from "./img/message.png"
 import {MinusCircleOutlined, PlusOutlined} from "@ant-design/icons";
 import {getNoticeTmplList} from "../../api/noticeTmpl";
@@ -80,6 +81,7 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
         { imgSrc: WeChatImg, text: '企业微信', value: 'WeChat' },
         { imgSrc: SlackImg, text: 'Slack', value: 'Slack' },
         { imgSrc: CustomHook, text: '自定义Hook', value: 'CustomHook' },
+        { imgSrc: CmdbImg, text: 'CMDB', value: 'CMDB' },
         { imgSrc: SmsImg, text: '短信', value: 'SMS' },
     ]
 
