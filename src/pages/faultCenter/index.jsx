@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react"
-import { Button, Input, Card, Row, Col, Dropdown, Menu, Modal, Empty, Typography } from "antd"
+import { Button, Input, Card, Row, Col, Dropdown, Modal, Empty, Typography } from "antd"
 import { useNavigate } from "react-router-dom"
 import { FaultCenterDelete, FaultCenterList } from "../../api/faultCenter"
 import { MoreOutlined, DeleteOutlined, ExclamationCircleOutlined, PlusOutlined } from "@ant-design/icons"
 import { CreateFaultCenter } from "./create"
 
-const { confirm } = Modal
 const { Title } = Typography
 
 export const FaultCenter = () => {
@@ -14,6 +13,11 @@ export const FaultCenter = () => {
     const [hoveredCard, setHoveredCard] = useState(null)
     const navigate = useNavigate()
     const [visible, setVisible] = useState(false)
+    // 用于控制每个卡片的 Dropdown 打开状态
+    const [openDropdowns, setOpenDropdowns] = useState({})
+    // 用于控制删除确认 Modal 的显示
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false)
+    const [recordToDelete, setRecordToDelete] = useState(null)
 
     useEffect(() => {
         handleList()
@@ -52,33 +56,65 @@ export const FaultCenter = () => {
         navigate(`/faultCenter/detail/${id}`)
     }
 
-    // 显示删除确认弹窗
+    // 显示删除确认弹窗（使用 Modal 组件方式）
     const showDeleteConfirm = (record) => {
-        confirm({
-            title: "确认删除",
-            icon: <ExclamationCircleOutlined />,
-            content: `确定删除故障中心 ${record.name} 吗？`,
-            okText: "确定",
-            okType: "danger",
-            cancelText: "取消",
-            onOk() {
-                handleDelete(record)
-            },
-        })
+        setRecordToDelete(record)
+        setDeleteModalVisible(true)
     }
 
-    // 三个点的下拉菜单
-    const getMenuItems = (record) => [
-        {
-            key: "delete",
-            icon: <DeleteOutlined />,
-            label: "删除",
-            onClick: (info) => {
-                info.domEvent.stopPropagation() // 阻止事件冒泡
-                showDeleteConfirm(record) // 显示删除确认弹窗
+    // 确认删除
+    const handleConfirmDelete = async () => {
+        if (recordToDelete) {
+            setDeleteModalVisible(false)
+            await handleDelete(recordToDelete)
+            setRecordToDelete(null)
+        }
+    }
+
+    // 取消删除
+    const handleCancelDelete = () => {
+        setDeleteModalVisible(false)
+        setRecordToDelete(null)
+    }
+
+    // 创建菜单配置（使用闭包捕获 record）
+    const createMenuConfig = (record) => {
+        const handleMenuClick = (info) => {
+            // 先关闭 Dropdown 菜单
+            setOpenDropdowns(prev => ({
+                ...prev,
+                [record.id]: false
+            }))
+            
+            // 阻止事件冒泡，防止触发卡片的点击事件
+            if (info.domEvent) {
+                info.domEvent.stopPropagation()
+                // 不调用 preventDefault()，避免影响 Modal 的显示
+            }
+            
+            // 根据菜单项的 key 执行相应操作
+            if (info.key === "delete") {
+                // 使用 setTimeout 确保 Dropdown 关闭后再显示弹窗
+                setTimeout(() => {
+                    showDeleteConfirm(record)
+                }, 100)
+            }
+        }
+
+        const menuItems = [
+            {
+                key: "delete",
+                icon: <DeleteOutlined />,
+                label: "删除",
+                danger: true, // 标记为危险操作，显示红色
             },
-        },
-    ]
+        ]
+
+        return {
+            items: menuItems,
+            onClick: handleMenuClick,
+        }
+    }
 
     // 定义样式常量
     const styles = {
@@ -160,6 +196,27 @@ export const FaultCenter = () => {
 
             <CreateFaultCenter visible={visible} onClose={handleModalClose} handleList={handleList} type="create" />
 
+            {/* 删除确认 Modal */}
+            <Modal
+                title="确认删除"
+                open={deleteModalVisible}
+                onOk={handleConfirmDelete}
+                onCancel={handleCancelDelete}
+                okText="确定"
+                cancelText="取消"
+                okType="danger"
+                centered
+                maskClosable={false}
+                zIndex={9999}
+            >
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <ExclamationCircleOutlined style={{ fontSize: "24px", color: "#ff4d4f" }} />
+                    <span>
+                        {recordToDelete && `确定删除故障中心 ${recordToDelete.name} 吗？`}
+                    </span>
+                </div>
+            </Modal>
+
             {/* 可滚动的内容区域 */}
             <div style={styles.scrollContainer}>
                 {/* 空状态展示 */}
@@ -200,7 +257,21 @@ export const FaultCenter = () => {
                                     {/* 标题部分 */}
                                     <div style={styles.cardTitle}>
                                         <span>{item.name}</span>
-                                        <Dropdown menu={{ items: getMenuItems(item) }} trigger={["click"]} dropdownRender={(menu) => <div style={{ zIndex: 9999 }}>{menu}</div>}>
+                                        <Dropdown 
+                                            menu={createMenuConfig(item)}
+                                            trigger={["click"]}
+                                            open={openDropdowns[item.id] || false}
+                                            onOpenChange={(open) => {
+                                                setOpenDropdowns(prev => ({
+                                                    ...prev,
+                                                    [item.id]: open
+                                                }))
+                                            }}
+                                            getPopupContainer={(triggerNode) => {
+                                                // 确保返回有效的 DOM 元素
+                                                return triggerNode?.parentElement || document.body
+                                            }}
+                                        >
                                             <MoreOutlined
                                                 onClick={(e) => {
                                                     e.stopPropagation()
