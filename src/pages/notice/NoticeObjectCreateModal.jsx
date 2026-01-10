@@ -1,4 +1,4 @@
-import {Modal, Form, Input, Button, Select, Card, Drawer, Divider, App} from 'antd'
+import {Form, Input, Button, Select, Card, Drawer, App, Checkbox, Collapse} from 'antd'
 import React, { useState, useEffect } from 'react'
 import { createNotice, updateNotice } from '../../api/notice'
 import { getDutyManagerList } from '../../api/duty'
@@ -61,6 +61,17 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
         signName: ''
     })
     const [phoneNumbers, setPhoneNumbers] = useState([])
+    // 钉钉个人通知配置状态
+    const [enablePersonalNotification, setEnablePersonalNotification] = useState(false)
+    const [enterpriseApiConfig, setEnterpriseApiConfig] = useState({
+        apiUrl: '',
+        clientId: 'loonflow',
+        clientSecret: '9gJcXAqsgIAmLr2WM8qjNZJB51WjurXq',
+        secretKey: '8f1023be40da11eb88522047478c9d00',
+        businessCode: 'devops01',
+        robotCode: 'ding19cw5bqeksvq9prc',
+        receiverType: 5 // 固定为5=钉钉用户ID
+    })
 
     const PRIORITY_OPTIONS = [
         { label: 'P0 紧急', value: 'P0' },
@@ -111,6 +122,18 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
         handleDutyManageList()
         handleGetNoticeTmpl()
 
+        // 重置状态
+        setEnablePersonalNotification(false)
+        setEnterpriseApiConfig({
+            apiUrl: '',
+            clientId: 'loonflow',
+            clientSecret: '9gJcXAqsgIAmLr2WM8qjNZJB51WjurXq',
+            secretKey: '8f1023be40da11eb88522047478c9d00',
+            businessCode: 'devops01',
+            robotCode: 'ding19cw5bqeksvq9prc',
+            receiverType: 5
+        })
+
         if (selectedRow) {
             form.setFieldsValue({
                 uuid: selectedRow.uuid,
@@ -122,18 +145,18 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                 noticeTmplId: selectedRow.noticeTmplId,
                 sign: selectedRow.sign,
                 email: {
-                    subject: selectedRow.email.subject,
-                    to: selectedRow.email.to,
-                    cc: selectedRow.email.cc,
+                    subject: selectedRow.email?.subject || '',
+                    to: selectedRow.email?.to || [],
+                    cc: selectedRow.email?.cc || [],
                 },
                 routes: selectedRow.routes || []
             })
 
             const cardIndex = cards.findIndex(card => card.value === selectedRow.noticeType)
-            setSubjectValue(selectedRow.email.subject)
-            setSelectedToItems(selectedRow.email.to)
-            setSelectedCcItems(selectedRow.email.cc)
-            setSelectedNoticeCard(cardIndex)
+            setSubjectValue(selectedRow.email?.subject || '')
+            setSelectedToItems(selectedRow.email?.to || [])
+            setSelectedCcItems(selectedRow.email?.cc || [])
+            setSelectedNoticeCard(cardIndex >= 0 ? cardIndex : 0)
             setNoticeType(selectedRow.noticeType)
             setSelectNoticeTmpl(selectedRow.noticeTmplId)
             
@@ -158,6 +181,46 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                     setPhoneNumbers(selectedRow.phoneNumber)
                 }
             }
+            
+            // 如果是钉钉类型，加载企业内部API配置
+            if (selectedRow.noticeType === 'DingDing') {
+                if (selectedRow.enterpriseApiConfig) {
+                    setEnablePersonalNotification(selectedRow.enterpriseApiConfig.enablePersonalNotification || false)
+                    setEnterpriseApiConfig({
+                        apiUrl: selectedRow.enterpriseApiConfig.apiUrl || '',
+                        clientId: selectedRow.enterpriseApiConfig.clientId || 'loonflow',
+                        clientSecret: selectedRow.enterpriseApiConfig.clientSecret || '9gJcXAqsgIAmLr2WM8qjNZJB51WjurXq',
+                        secretKey: selectedRow.enterpriseApiConfig.secretKey || '8f1023be40da11eb88522047478c9d00',
+                        businessCode: selectedRow.enterpriseApiConfig.businessCode || 'devops01',
+                        robotCode: selectedRow.enterpriseApiConfig.robotCode || 'ding19cw5bqeksvq9prc',
+                        receiverType: 5
+                    })
+                } else {
+                    // 如果没有配置，重置为默认值
+                    setEnablePersonalNotification(false)
+                    setEnterpriseApiConfig({
+                        apiUrl: '',
+                        clientId: 'loonflow',
+                        clientSecret: '9gJcXAqsgIAmLr2WM8qjNZJB51WjurXq',
+                        secretKey: '8f1023be40da11eb88522047478c9d00',
+                        businessCode: 'devops01',
+                        robotCode: 'ding19cw5bqeksvq9prc',
+                        receiverType: 5
+                    })
+                }
+            }
+        } else {
+            // 创建模式，重置所有状态
+            setEnablePersonalNotification(false)
+            setEnterpriseApiConfig({
+                apiUrl: '',
+                clientId: 'loonflow',
+                clientSecret: '9gJcXAqsgIAmLr2WM8qjNZJB51WjurXq',
+                secretKey: '8f1023be40da11eb88522047478c9d00',
+                businessCode: 'devops01',
+                robotCode: 'ding19cw5bqeksvq9prc',
+                receiverType: 5
+            })
         }
     }, [selectedRow, form])
 
@@ -191,7 +254,20 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                     to: selectedToItems,
                     cc: selectedCcItems,
                 },
-                phoneNumber: noticeType === 'SMS' ? phoneNumbers : undefined
+                phoneNumber: noticeType === 'SMS' ? phoneNumbers : undefined,
+                // 钉钉个人通知配置
+                enterpriseApiConfig: noticeType === 'DingDing' ? (
+                    enablePersonalNotification ? {
+                        enablePersonalNotification: true,
+                        apiUrl: enterpriseApiConfig.apiUrl,
+                        clientId: enterpriseApiConfig.clientId,
+                        clientSecret: enterpriseApiConfig.clientSecret,
+                        secretKey: enterpriseApiConfig.secretKey,
+                        businessCode: enterpriseApiConfig.businessCode,
+                        robotCode: enterpriseApiConfig.robotCode,
+                        receiverType: 5
+                    } : null  // 明确传递null来清除配置
+                ) : undefined
             }
             await createNotice(params)
             handleList()
@@ -219,7 +295,20 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                     to: selectedToItems,
                     cc: selectedCcItems,
                 },
-                phoneNumber: noticeType === 'SMS' ? phoneNumbers : undefined
+                phoneNumber: noticeType === 'SMS' ? phoneNumbers : undefined,
+                // 钉钉个人通知配置
+                enterpriseApiConfig: noticeType === 'DingDing' ? (
+                    enablePersonalNotification ? {
+                        enablePersonalNotification: true,
+                        apiUrl: enterpriseApiConfig.apiUrl,
+                        clientId: enterpriseApiConfig.clientId,
+                        clientSecret: enterpriseApiConfig.clientSecret,
+                        secretKey: enterpriseApiConfig.secretKey,
+                        businessCode: enterpriseApiConfig.businessCode,
+                        robotCode: enterpriseApiConfig.robotCode,
+                        receiverType: 5
+                    } : null  // 明确传递null来清除配置
+                ) : undefined
             }
             await updateNotice(params)
             handleList()
@@ -245,8 +334,26 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
     }, [])
 
     const handleCardClick = (index) => {
+        // 只有在创建模式下才允许切换通知类型
+        if (type === 'update') {
+            return
+        }
+        
         setNoticeType(cards[index].value)
         setSelectedNoticeCard(index)
+        // 切换通知类型时，如果不是钉钉，重置个人通知配置
+        if (cards[index].value !== 'DingDing') {
+            setEnablePersonalNotification(false)
+            setEnterpriseApiConfig({
+                apiUrl: '',
+                clientId: 'loonflow',
+                clientSecret: '9gJcXAqsgIAmLr2WM8qjNZJB51WjurXq',
+                secretKey: '8f1023be40da11eb88522047478c9d00',
+                businessCode: 'devops01',
+                robotCode: 'ding19cw5bqeksvq9prc',
+                receiverType: 5
+            })
+        }
     }
 
     const handleGetNoticeTmpl = async () => {
@@ -330,7 +437,20 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
             ...formValues,
             noticeType: noticeType,
             hook: hookValue,
-            phoneNumber: noticeType === 'SMS' ? phoneNumbers : undefined
+            phoneNumber: noticeType === 'SMS' ? phoneNumbers : undefined,
+            // 钉钉个人通知配置
+            enterpriseApiConfig: noticeType === 'DingDing' ? (
+                enablePersonalNotification ? {
+                    enablePersonalNotification: true,
+                    apiUrl: enterpriseApiConfig.apiUrl,
+                    clientId: enterpriseApiConfig.clientId,
+                    clientSecret: enterpriseApiConfig.clientSecret,
+                    secretKey: enterpriseApiConfig.secretKey,
+                    businessCode: enterpriseApiConfig.businessCode,
+                    robotCode: enterpriseApiConfig.robotCode,
+                    receiverType: 5
+                } : null  // 明确传递null来清除配置
+            ) : undefined
         }
         try {
             // 调用API测试通知
@@ -638,18 +758,131 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                             </MyFormItem>
                         </>
                     ) : (
-                        <MyFormItem
-                            name="hook"
-                            label="默认Hook"
-                            tooltip="客户端机器人的 Hook 地址"
-                            style={{ marginRight: '10px', width: '100%' }}
-                            rules={[
-                                { required: true },
-                                { pattern: /^(http|https):\/\//, message: '输入正确的URL格式' },
-                            ]}
-                        >
-                            <Input/>
-                        </MyFormItem>
+                        <>
+                            <MyFormItem
+                                name="hook"
+                                label="默认Hook"
+                                tooltip="客户端机器人的 Hook 地址"
+                                style={{ marginRight: '10px', width: '100%' }}
+                                rules={[
+                                    { required: !enablePersonalNotification },
+                                    { pattern: /^(http|https):\/\//, message: '输入正确的URL格式' },
+                                ]}
+                            >
+                                <Input disabled={enablePersonalNotification}/>
+                            </MyFormItem>
+                            
+                            {/* 钉钉个人通知配置 */}
+                            {noticeType === 'DingDing' && (
+                                <>
+                                    <MyFormItem>
+                                        <Checkbox
+                                            checked={enablePersonalNotification}
+                                            onChange={(e) => {
+                                                setEnablePersonalNotification(e.target.checked)
+                                                if (!e.target.checked) {
+                                                    // 重置配置
+                                                    setEnterpriseApiConfig({
+                                                        apiUrl: '',
+                                                        clientId: 'loonflow',
+                                                        clientSecret: '9gJcXAqsgIAmLr2WM8qjNZJB51WjurXq',
+                                                        secretKey: '8f1023be40da11eb88522047478c9d00',
+                                                        businessCode: 'devops01',
+                                                        robotCode: 'ding19cw5bqeksvq9prc',
+                                                        receiverType: 5
+                                                    })
+                                                }
+                                            }}
+                                        >
+                                            发送给个人（使用企业内部API）
+                                        </Checkbox>
+                                    </MyFormItem>
+                                    
+                                    {enablePersonalNotification && (
+                                        <Collapse
+                                            items={[{
+                                                key: '1',
+                                                label: '企业内部API配置',
+                                                children: (
+                                                    <div>
+                                                        <MyFormItem
+                                                            label="API URL"
+                                                            rules={[{ required: true, message: '请输入完整的企业内部API URL' }]}
+                                                        >
+                                                            <Input
+                                                                value={enterpriseApiConfig.apiUrl}
+                                                                onChange={(e) => setEnterpriseApiConfig({...enterpriseApiConfig, apiUrl: e.target.value})}
+                                                                placeholder="http://open-gateway.prd.bjm6v.belle.lan/dmc-service/dmc/api/msg/enterpriseRobot/receiverSingle"
+                                                            />
+                                                        </MyFormItem>
+                                                        
+                                                        <MyFormItem
+                                                            label="ClientId"
+                                                            rules={[{ required: true, message: '请输入ClientId' }]}
+                                                        >
+                                                            <Input
+                                                                value={enterpriseApiConfig.clientId}
+                                                                onChange={(e) => setEnterpriseApiConfig({...enterpriseApiConfig, clientId: e.target.value})}
+                                                                placeholder="loonflow"
+                                                                readOnly
+                                                            />
+                                                        </MyFormItem>
+                                                        
+                                                        <MyFormItem
+                                                            label="ClientSecret"
+                                                            rules={[{ required: true, message: '请输入ClientSecret' }]}
+                                                        >
+                                                            <Input.Password
+                                                                value={enterpriseApiConfig.clientSecret}
+                                                                onChange={(e) => setEnterpriseApiConfig({...enterpriseApiConfig, clientSecret: e.target.value})}
+                                                                placeholder="请输入ClientSecret"
+                                                                readOnly
+                                                            />
+                                                        </MyFormItem>
+                                                        
+                                                        <MyFormItem
+                                                            label="SecretKey"
+                                                            rules={[{ required: true, message: '请输入SecretKey' }]}
+                                                        >
+                                                            <Input.Password
+                                                                value={enterpriseApiConfig.secretKey}
+                                                                onChange={(e) => setEnterpriseApiConfig({...enterpriseApiConfig, secretKey: e.target.value})}
+                                                                placeholder="请输入SecretKey"
+                                                                readOnly
+                                                            />
+                                                        </MyFormItem>
+                                                        
+                                                        <MyFormItem
+                                                            label="BusinessCode"
+                                                            rules={[{ required: true, message: '请输入BusinessCode' }]}
+                                                        >
+                                                            <Input
+                                                                value={enterpriseApiConfig.businessCode}
+                                                                onChange={(e) => setEnterpriseApiConfig({...enterpriseApiConfig, businessCode: e.target.value})}
+                                                                placeholder="devops01"
+                                                                readOnly
+                                                            />
+                                                        </MyFormItem>
+                                                        
+                                                        <MyFormItem
+                                                            label="RobotCode"
+                                                            rules={[{ required: true, message: '请输入RobotCode' }]}
+                                                        >
+                                                            <Input
+                                                                value={enterpriseApiConfig.robotCode}
+                                                                onChange={(e) => setEnterpriseApiConfig({...enterpriseApiConfig, robotCode: e.target.value})}
+                                                                placeholder="请输入钉钉机器人Code"
+                                                                readOnly
+                                                            />
+                                                        </MyFormItem>
+                                                    </div>
+                                                )
+                                            }]}
+                                        />
+                                    )}
+                                </>
+                            )}
+                        </>
                     )}
                 </div>
 
@@ -758,14 +991,35 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                                                             />
                                                         </Form.Item>
                                                     ) : selectedNoticeCard !== 1 ? (
-                                                        <Form.Item
-                                                            {...restField}
-                                                            name={[name, "hook"]}
-                                                            label="Hook"
-                                                            rules={[{required: true, pattern: /^(http|https):\/\//}]}
-                                                        >
-                                                            <Input placeholder="http(s)://xxx.xxx"/>
-                                                        </Form.Item>
+                                                        <>
+                                                            <Form.Item
+                                                                {...restField}
+                                                                name={[name, "hook"]}
+                                                                label="Hook"
+                                                                rules={[
+                                                                    {required: !enablePersonalNotification},
+                                                                    {pattern: /^(http|https):\/\//, message: '输入正确的URL格式'}
+                                                                ]}
+                                                            >
+                                                                <Input 
+                                                                    placeholder="http(s)://xxx.xxx"
+                                                                    disabled={noticeType === 'DingDing' && enablePersonalNotification}
+                                                                />
+                                                            </Form.Item>
+                                                            {/* 路由策略中的钉钉个人通知配置（使用默认配置） */}
+                                                            {noticeType === 'DingDing' && enablePersonalNotification && (
+                                                                <div style={{ 
+                                                                    padding: '8px', 
+                                                                    background: '#e6f7ff', 
+                                                                    borderRadius: '4px',
+                                                                    marginTop: '8px',
+                                                                    fontSize: '12px',
+                                                                    color: '#1890ff'
+                                                                }}>
+                                                                    此路由策略将使用默认的企业内部API配置
+                                                                </div>
+                                                            )}
+                                                        </>
                                                     ) : (
                                                         <>
                                                             <Form.Item
