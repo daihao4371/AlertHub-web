@@ -487,7 +487,7 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
 
     return (
         <Drawer
-            title="创建通知对象"
+            title={type === 'create' ? '创建通知对象' : '编辑通知对象'}
             open={visible}
             onClose={onClose}
             width={1200}
@@ -824,7 +824,6 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                                                                 value={enterpriseApiConfig.clientId}
                                                                 onChange={(e) => setEnterpriseApiConfig({...enterpriseApiConfig, clientId: e.target.value})}
                                                                 placeholder="loonflow"
-                                                                readOnly
                                                             />
                                                         </MyFormItem>
                                                         
@@ -836,7 +835,6 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                                                                 value={enterpriseApiConfig.clientSecret}
                                                                 onChange={(e) => setEnterpriseApiConfig({...enterpriseApiConfig, clientSecret: e.target.value})}
                                                                 placeholder="请输入ClientSecret"
-                                                                readOnly
                                                             />
                                                         </MyFormItem>
                                                         
@@ -848,7 +846,6 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                                                                 value={enterpriseApiConfig.secretKey}
                                                                 onChange={(e) => setEnterpriseApiConfig({...enterpriseApiConfig, secretKey: e.target.value})}
                                                                 placeholder="请输入SecretKey"
-                                                                readOnly
                                                             />
                                                         </MyFormItem>
                                                         
@@ -860,7 +857,6 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                                                                 value={enterpriseApiConfig.businessCode}
                                                                 onChange={(e) => setEnterpriseApiConfig({...enterpriseApiConfig, businessCode: e.target.value})}
                                                                 placeholder="devops01"
-                                                                readOnly
                                                             />
                                                         </MyFormItem>
                                                         
@@ -872,7 +868,6 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                                                                 value={enterpriseApiConfig.robotCode}
                                                                 onChange={(e) => setEnterpriseApiConfig({...enterpriseApiConfig, robotCode: e.target.value})}
                                                                 placeholder="请输入钉钉机器人Code"
-                                                                readOnly
                                                             />
                                                         </MyFormItem>
                                                     </div>
