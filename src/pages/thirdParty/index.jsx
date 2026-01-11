@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Tabs, Table, Tag, Space, Input, Select, Button, message, Popconfirm } from 'antd';
+import { Tabs, Table, Tag, Space, Input, Select, Button, Popconfirm } from 'antd';
 import { getWebhookList, deleteWebhook } from '../../api/thirdPartyWebhook';
 import { getThirdPartyAlertList } from '../../api/thirdPartyAlert';
 import { HandleShowTotal } from '../../utils/lib';
@@ -130,7 +130,6 @@ const WebhookList = () => {
     });
     const [searchParams, setSearchParams] = useState({
         query: '',
-        source: '',
         status: '',
     });
     const [modalVisible, setModalVisible] = useState(false);
@@ -152,12 +151,6 @@ const WebhookList = () => {
             dataIndex: 'description',
             key: 'description',
             width: 200,
-        },
-        {
-            title: '来源系统',
-            dataIndex: 'source',
-            key: 'source',
-            width: 150,
         },
         {
             title: 'Webhook URL',
@@ -351,7 +344,7 @@ const WebhookList = () => {
     useEffect(() => {
         handleList();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pagination.current, pagination.pageSize, searchParams]);
+    }, [pagination.current, pagination.pageSize, searchParams.query, searchParams.status]);
 
     const handleTableChange = (newPagination) => {
         setPagination(newPagination);
@@ -370,27 +363,13 @@ const WebhookList = () => {
                     }}
                 />
                 <Select
-                    placeholder="来源系统"
-                    allowClear
-                    style={{ width: 150 }}
-                    onChange={(value) => {
-                        setSearchParams({ ...searchParams, source: value || '' });
-                        setPagination({ ...pagination, current: 1 });
-                    }}
-                >
-                    <Option value="prometheus">Prometheus</Option>
-                    <Option value="grafana">Grafana</Option>
-                    <Option value="zabbix">Zabbix</Option>
-                    <Option value="other">其他</Option>
-                </Select>
-                <Select
                     placeholder="状态"
                     allowClear
                     style={{ width: 120 }}
+                    value={searchParams.status}
                     onChange={(value) => {
                         setSearchParams({ ...searchParams, status: value || '' });
-                        setPagination({ ...pagination, current: 1 });
-                        setTimeout(handleList, 100);
+                        setPagination(prev => ({ ...prev, current: 1 }));
                     }}
                 >
                     <Option value="active">启用</Option>
@@ -571,7 +550,7 @@ const ThirdPartyAlertList = () => {
     useEffect(() => {
         handleList();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pagination.current, pagination.pageSize, searchParams]);
+    }, [pagination.current, pagination.pageSize, searchParams.processStatus, searchParams.status, searchParams.webhookId]);
 
     const handleTableChange = (newPagination) => {
         setPagination(newPagination);
@@ -584,10 +563,10 @@ const ThirdPartyAlertList = () => {
                     placeholder="处理状态"
                     allowClear
                     style={{ width: 150 }}
+                    value={searchParams.processStatus}
                     onChange={(value) => {
                         setSearchParams({ ...searchParams, processStatus: value || '' });
-                        setPagination({ ...pagination, current: 1 });
-                        setTimeout(handleList, 100);
+                        setPagination(prev => ({ ...prev, current: 1 }));
                     }}
                 >
                     <Option value="success">成功</Option>
@@ -598,10 +577,10 @@ const ThirdPartyAlertList = () => {
                     placeholder="告警状态"
                     allowClear
                     style={{ width: 120 }}
+                    value={searchParams.status}
                     onChange={(value) => {
                         setSearchParams({ ...searchParams, status: value || '' });
-                        setPagination({ ...pagination, current: 1 });
-                        setTimeout(handleList, 100);
+                        setPagination(prev => ({ ...prev, current: 1 }));
                     }}
                 >
                     <Option value="firing">触发中</Option>
