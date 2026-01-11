@@ -139,7 +139,6 @@ export const WebhookModal = ({ visible, onClose, selectedRow, type, handleList }
                 form={form}
                 layout="vertical"
                 initialValues={{
-                    source: 'Zabbix',
                     enableLog: true,
                     status: 'active',
                 }}
