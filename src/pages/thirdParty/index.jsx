@@ -584,6 +584,7 @@ const ThirdPartyAlertList = () => {
                     placeholder="处理状态"
                     allowClear
                     style={{ width: 150 }}
+                    value={searchParams.processStatus}
                     onChange={(value) => {
                         setSearchParams({ ...searchParams, processStatus: value || '' });
                         setPagination({ ...pagination, current: 1 });
@@ -598,6 +599,7 @@ const ThirdPartyAlertList = () => {
                     placeholder="告警状态"
                     allowClear
                     style={{ width: 120 }}
+                    value={searchParams.status}
                     onChange={(value) => {
                         setSearchParams({ ...searchParams, status: value || '' });
                         setPagination({ ...pagination, current: 1 });
