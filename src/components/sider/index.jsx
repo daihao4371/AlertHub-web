@@ -15,7 +15,8 @@ import {
     TeamOutlined,
     DownOutlined,
     LogoutOutlined,
-    BulbOutlined
+    BulbOutlined,
+    CloudOutlined
 } from '@ant-design/icons';
 import {Link, useNavigate} from 'react-router-dom';
 import {Menu, Layout, Typography, Dropdown, message, Spin, theme, Popover, Avatar} from 'antd';
@@ -95,10 +96,13 @@ const adminMenuItems = [
         ]
     },
     
-    // 9. 值班管理 - 运营管理
+    // 9. 第三方告警 - 第三方系统告警集成
+    { key: '14', path: '/thirdPartyAlert', icon: <CloudOutlined />, label: '第三方告警' },
+    
+    // 10. 值班管理 - 运营管理
     { key: '9', path: '/dutyManage', icon: <CalendarOutlined />, label: '值班管理' },
     
-    // 10. 系统管理 - 系统配置（管理员专用）
+    // 11. 系统管理 - 系统配置（管理员专用）
     {
         key: '10',
         icon: <UserOutlined />,
@@ -195,8 +199,11 @@ const userMenuItems = [
         ]
     },
     
-    // 9. 值班管理 - 运营管理
-    { key: '9', path: '/dutyManage', icon: <CalendarOutlined />, label: '值班管理' }
+    // 10. 值班管理 - 运营管理
+    { key: '9', path: '/dutyManage', icon: <CalendarOutlined />, label: '值班管理' },
+    
+    // 11. 第三方告警 - 第三方系统告警集成
+    { key: '14', path: '/thirdPartyAlert', icon: <CloudOutlined />, label: '第三方告警' }
 ];
 
 export const ComponentSider = () => {

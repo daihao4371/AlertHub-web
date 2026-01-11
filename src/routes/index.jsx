@@ -42,6 +42,7 @@ import {ExporterMonitorConfig} from "../pages/exporterMonitor/config";
 import {MetricsExplorer} from "../pages/metricsExplorer";
 import {IntelligentBasic} from "../pages/intelligent/basic";
 import {IntelligentProcess} from "../pages/intelligent/process";
+import {ThirdPartyAlert} from "../pages/thirdParty";
 
 // eslint-disable-next-line import/no-anonymous-default-export
 export default [
@@ -226,6 +227,10 @@ export default [
     {
         path: '/intelligent/process',
         element: <ComponentsContent name="处理记录" c={<IntelligentProcess />} />
+    },
+    {
+        path: '/thirdPartyAlert',
+        element: <ComponentsContent name="第三方告警" c={<ThirdPartyAlert />} />
     },
     {
         path: '/*',
