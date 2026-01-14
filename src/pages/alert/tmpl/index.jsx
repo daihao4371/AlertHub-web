@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
-import {Button, Input, Table, message, Modal, Select, Form, Dropdown, Tooltip, Space} from "antd"
+import {Button, Input, message, Modal, Select, Form, Dropdown, Tooltip, Space} from "antd"
 import RuleTemplateCreateModal from "./RuleTemplateCreateModal"
 import { useParams, useNavigate } from "react-router-dom"
 import { deleteRuleTmpl, getRuleTmplList, createRuleTmpl } from "../../../api/ruleTmpl"
@@ -229,10 +229,8 @@ export const RuleTemplate = () => {
         }
 
         const deletePromises = selectedRowKeys.map((key) => {
-            const record = list.find((item) => {
-                // 使用组合键作为唯一标识
-                return `${item.ruleGroupName}-${item.ruleName}` === key
-            })
+            // 使用 id 作为唯一标识，与 rowKey 保持一致
+            const record = list.find((item) => item.id === key)
 
             if (record) {
                 return deleteRuleTmpl({
@@ -243,9 +241,15 @@ export const RuleTemplate = () => {
             return Promise.resolve()
         })
 
-        await Promise.all(deletePromises)
-        setSelectedRowKeys([])
-        handleList(pagination.index, pagination.size) // 刷新列表
+        try {
+            await Promise.all(deletePromises)
+            setSelectedRowKeys([])
+            handleList(pagination.index, pagination.size) // 刷新列表
+            message.success(`成功删除 ${selectedRowKeys.length} 个模板`)
+        } catch (error) {
+            message.error("批量删除失败")
+            console.error("批量删除错误:", error)
+        }
     }
 
     // 批量导出
@@ -256,9 +260,9 @@ export const RuleTemplate = () => {
         }
 
         // 找出所有选中的模板
+        // 使用 id 作为唯一标识，与 rowKey 保持一致
         const selectedTemplates = list.filter((item) => {
-            // 使用组合键作为唯一标识
-            return selectedRowKeys.includes(`${item.ruleGroupName}-${item.ruleName}`)
+            return selectedRowKeys.includes(item.id)
         })
 
         // 导出为JSON文件
@@ -326,6 +330,7 @@ export const RuleTemplate = () => {
 
                 if (exists) {
                     message.warning(`模版 ${template.ruleName} 已存在,跳过导入`)
+                    return Promise.resolve() // 返回已解决的 Promise，避免 Promise.all 出错
                 } else {
                     // 如果不存在，则创建新的
                     return createRuleTmpl(template)
@@ -498,6 +503,7 @@ export const RuleTemplate = () => {
                 }}
                 scrollY={height - 280}
                 rowKey={record => record.id}
+                rowSelection={rowSelection}
                 showTotal={HandleShowTotal}
             />
         </>
