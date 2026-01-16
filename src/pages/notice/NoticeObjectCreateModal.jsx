@@ -1,5 +1,5 @@
 import {Form, Input, Button, Select, Card, Drawer, App, Checkbox, Collapse} from 'antd'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { createNotice, updateNotice } from '../../api/notice'
 import { getDutyManagerList } from '../../api/duty'
 import FeiShuImg from "./img/feishu.svg";
@@ -59,6 +59,12 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
         templateId: '',
         templateCode: '',
         signName: ''
+    })
+    // 内部短信网关配置状态
+    const [internalSmsConfig, setInternalSmsConfig] = useState({
+        gatewayUrl: '',
+        priority: '20',
+        timeoutSeconds: 5
     })
     const [phoneNumbers, setPhoneNumbers] = useState([])
     // 钉钉个人通知配置状态
@@ -120,7 +126,7 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
     useEffect(() => {
         handleSearchUser()
         handleDutyManageList()
-        handleGetNoticeTmpl()
+        // 注意：handleGetNoticeTmpl 会在 noticeType 设置后由另一个 useEffect 自动调用
 
         // 重置状态
         setEnablePersonalNotification(false)
@@ -133,6 +139,22 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
             robotCode: 'ding19cw5bqeksvq9prc',
             receiverType: 5
         })
+        // 重置短信配置
+        setSmsConfig({
+            provider: 'tencent',
+            accessKeyId: '',
+            accessKeySecret: '',
+            sdkAppId: '',
+            templateId: '',
+            templateCode: '',
+            signName: ''
+        })
+        setInternalSmsConfig({
+            gatewayUrl: '',
+            priority: '20',
+            timeoutSeconds: 5
+        })
+        setPhoneNumbers([])
 
         if (selectedRow) {
             form.setFieldsValue({
@@ -157,24 +179,58 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
             setSelectedToItems(selectedRow.email?.to || [])
             setSelectedCcItems(selectedRow.email?.cc || [])
             setSelectedNoticeCard(cardIndex >= 0 ? cardIndex : 0)
-            setNoticeType(selectedRow.noticeType)
+            const noticeTypeValue = selectedRow.noticeType
+            setNoticeType(noticeTypeValue)
             setSelectNoticeTmpl(selectedRow.noticeTmplId)
+            // 设置通知类型后立即获取模板（使用新的noticeType值）
+            if (noticeTypeValue) {
+                // 使用setTimeout确保在状态更新后调用
+                setTimeout(() => {
+                    fetchNoticeTemplates(noticeTypeValue)
+                }, 0)
+            }
             
-            // 如果是短信类型，解析hook字段中的配置
+            // 如果是短信类型，解析配置
             if (selectedRow.noticeType === 'SMS') {
-                try {
-                    const hookConfig = selectedRow.hook ? JSON.parse(selectedRow.hook) : {}
-                    setSmsConfig({
-                        provider: hookConfig.provider || 'tencent',
-                        accessKeyId: hookConfig.accessKeyId || '',
-                        accessKeySecret: hookConfig.accessKeySecret || '',
-                        sdkAppId: hookConfig.sdkAppId || '',
-                        templateId: hookConfig.templateId || '',
-                        templateCode: hookConfig.templateCode || '',
-                        signName: hookConfig.signName || ''
+                // 判断是内部网关还是第三方服务商
+                if (selectedRow.internalSmsConfig) {
+                    // 内部网关配置
+                    setInternalSmsConfig({
+                        gatewayUrl: selectedRow.internalSmsConfig.gatewayUrl || '',
+                        priority: selectedRow.internalSmsConfig.priority || '20',
+                        timeoutSeconds: selectedRow.internalSmsConfig.timeoutSeconds || 5
                     })
-                } catch (e) {
-                    console.error('解析短信配置失败:', e)
+                    setSmsConfig({
+                        provider: 'internal',
+                        accessKeyId: '',
+                        accessKeySecret: '',
+                        sdkAppId: '',
+                        templateId: '',
+                        templateCode: '',
+                        signName: ''
+                    })
+                } else {
+                    // 第三方服务商配置（腾讯云/阿里云）
+                    try {
+                        const hookConfig = selectedRow.hook ? JSON.parse(selectedRow.hook) : {}
+                        setSmsConfig({
+                            provider: hookConfig.provider || 'tencent',
+                            accessKeyId: hookConfig.accessKeyId || '',
+                            accessKeySecret: hookConfig.accessKeySecret || '',
+                            sdkAppId: hookConfig.sdkAppId || '',
+                            templateId: hookConfig.templateId || '',
+                            templateCode: hookConfig.templateCode || '',
+                            signName: hookConfig.signName || ''
+                        })
+                    } catch (e) {
+                        console.error('解析短信配置失败:', e)
+                    }
+                    // 重置内部网关配置
+                    setInternalSmsConfig({
+                        gatewayUrl: '',
+                        priority: '20',
+                        timeoutSeconds: 5
+                    })
                 }
                 // 设置手机号
                 if (selectedRow.phoneNumber && Array.isArray(selectedRow.phoneNumber)) {
@@ -221,6 +277,22 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                 robotCode: 'ding19cw5bqeksvq9prc',
                 receiverType: 5
             })
+            // 重置短信配置
+            setSmsConfig({
+                provider: 'tencent',
+                accessKeyId: '',
+                accessKeySecret: '',
+                sdkAppId: '',
+                templateId: '',
+                templateCode: '',
+                signName: ''
+            })
+            setInternalSmsConfig({
+                gatewayUrl: '',
+                priority: '20',
+                timeoutSeconds: 5
+            })
+            setPhoneNumbers([])
         }
     }, [selectedRow, form])
 
@@ -239,10 +311,28 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
 
     const handleCreate = async (data) => {
         try {
-            let hookValue = data.hook
-            // 如果是短信类型，将配置序列化为JSON存储到hook字段
+            let hookValue = data.hook || ''
+            let internalSmsConfigValue = null
+            
+            // 如果是短信类型，根据服务商类型决定存储位置
             if (noticeType === 'SMS') {
-                hookValue = JSON.stringify(smsConfig)
+                if (smsConfig.provider === 'internal') {
+                    // 内部网关：存储到 internalSmsConfig 字段
+                    // 确保必填字段不为空
+                    if (!internalSmsConfig.gatewayUrl || !internalSmsConfig.priority) {
+                        throw new Error('内部短信网关配置不完整，请填写网关地址和优先级')
+                    }
+                    internalSmsConfigValue = {
+                        gatewayUrl: internalSmsConfig.gatewayUrl,
+                        priority: internalSmsConfig.priority,
+                        timeoutSeconds: internalSmsConfig.timeoutSeconds || 5
+                    }
+                    hookValue = '' // 内部网关不需要hook字段
+                } else {
+                    // 第三方服务商：存储到hook字段
+                    hookValue = JSON.stringify(smsConfig)
+                    internalSmsConfigValue = null // 明确传递null来清除配置
+                }
             }
             
             const params = {
@@ -255,6 +345,8 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                     cc: selectedCcItems,
                 },
                 phoneNumber: noticeType === 'SMS' ? phoneNumbers : undefined,
+                // 内部短信网关配置：只有SMS类型才传递，非SMS类型不传递此字段
+                ...(noticeType === 'SMS' && { internalSmsConfig: internalSmsConfigValue }),
                 // 钉钉个人通知配置
                 enterpriseApiConfig: noticeType === 'DingDing' ? (
                     enablePersonalNotification ? {
@@ -269,6 +361,7 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                     } : null  // 明确传递null来清除配置
                 ) : undefined
             }
+            
             await createNotice(params)
             handleList()
         } catch (error) {
@@ -278,10 +371,28 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
 
     const handleUpdate = async (data) => {
         try {
-            let hookValue = data.hook
-            // 如果是短信类型，将配置序列化为JSON存储到hook字段
+            let hookValue = data.hook || ''
+            let internalSmsConfigValue = null
+            
+            // 如果是短信类型，根据服务商类型决定存储位置
             if (noticeType === 'SMS') {
-                hookValue = JSON.stringify(smsConfig)
+                if (smsConfig.provider === 'internal') {
+                    // 内部网关：存储到 internalSmsConfig 字段
+                    // 确保必填字段不为空
+                    if (!internalSmsConfig.gatewayUrl || !internalSmsConfig.priority) {
+                        throw new Error('内部短信网关配置不完整，请填写网关地址和优先级')
+                    }
+                    internalSmsConfigValue = {
+                        gatewayUrl: internalSmsConfig.gatewayUrl,
+                        priority: internalSmsConfig.priority,
+                        timeoutSeconds: internalSmsConfig.timeoutSeconds || 5
+                    }
+                    hookValue = '' // 内部网关不需要hook字段
+                } else {
+                    // 第三方服务商：存储到hook字段
+                    hookValue = JSON.stringify(smsConfig)
+                    internalSmsConfigValue = null // 明确传递null来清除配置
+                }
             }
             
             const params = {
@@ -296,6 +407,8 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                     cc: selectedCcItems,
                 },
                 phoneNumber: noticeType === 'SMS' ? phoneNumbers : undefined,
+                // 内部短信网关配置：只有SMS类型才传递，非SMS类型不传递此字段
+                ...(noticeType === 'SMS' && { internalSmsConfig: internalSmsConfigValue }),
                 // 钉钉个人通知配置
                 enterpriseApiConfig: noticeType === 'DingDing' ? (
                     enablePersonalNotification ? {
@@ -310,6 +423,7 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                     } : null  // 明确传递null来清除配置
                 ) : undefined
             }
+            
             await updateNotice(params)
             handleList()
         } catch (error) {
@@ -326,39 +440,13 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
         onClose()
     }
 
-    useEffect(() => {
-        if (selectedNoticeCard === null) {
-            setSelectedNoticeCard(0)
-            setNoticeType("FeiShu")
-        }
-    }, [])
-
-    const handleCardClick = (index) => {
-        // 只有在创建模式下才允许切换通知类型
-        if (type === 'update') {
+    // 获取通知模板的通用函数（接受noticeType参数，避免闭包问题）
+    const fetchNoticeTemplates = useCallback(async (type) => {
+        if (!type) {
             return
         }
-        
-        setNoticeType(cards[index].value)
-        setSelectedNoticeCard(index)
-        // 切换通知类型时，如果不是钉钉，重置个人通知配置
-        if (cards[index].value !== 'DingDing') {
-            setEnablePersonalNotification(false)
-            setEnterpriseApiConfig({
-                apiUrl: '',
-                clientId: 'loonflow',
-                clientSecret: '9gJcXAqsgIAmLr2WM8qjNZJB51WjurXq',
-                secretKey: '8f1023be40da11eb88522047478c9d00',
-                businessCode: 'devops01',
-                robotCode: 'ding19cw5bqeksvq9prc',
-                receiverType: 5
-            })
-        }
-    }
-
-    const handleGetNoticeTmpl = async () => {
         try {
-            const params = { noticeType: noticeType }
+            const params = { noticeType: type }
             const res = await getNoticeTmplList(params)
             
             // 修复：检查权限错误
@@ -384,6 +472,53 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
             console.error('获取通知模版列表失败:', error)
             message.error('获取通知模版列表失败')
             setNoticeTmplItems([])
+        }
+    }, [message])
+
+    // 获取通知模板的函数（使用当前的noticeType）
+    const handleGetNoticeTmpl = useCallback(async () => {
+        await fetchNoticeTemplates(noticeType)
+    }, [noticeType, fetchNoticeTemplates])
+
+    useEffect(() => {
+        if (selectedNoticeCard === null) {
+            setSelectedNoticeCard(0)
+            setNoticeType("FeiShu")
+        }
+    }, [])
+
+    // 当通知类型改变时，重新获取通知模板
+    useEffect(() => {
+        if (noticeType) {
+            handleGetNoticeTmpl()
+        }
+    }, [noticeType, handleGetNoticeTmpl])
+
+    const handleCardClick = (index) => {
+        // 只有在创建模式下才允许切换通知类型
+        if (type === 'update') {
+            return
+        }
+        
+        const newNoticeType = cards[index].value
+        setNoticeType(newNoticeType)
+        setSelectedNoticeCard(index)
+        // 切换通知类型后立即获取模板（使用新的noticeType值）
+        if (newNoticeType) {
+            fetchNoticeTemplates(newNoticeType)
+        }
+        // 切换通知类型时，如果不是钉钉，重置个人通知配置
+        if (newNoticeType !== 'DingDing') {
+            setEnablePersonalNotification(false)
+            setEnterpriseApiConfig({
+                apiUrl: '',
+                clientId: 'loonflow',
+                clientSecret: '9gJcXAqsgIAmLr2WM8qjNZJB51WjurXq',
+                secretKey: '8f1023be40da11eb88522047478c9d00',
+                businessCode: 'devops01',
+                robotCode: 'ding19cw5bqeksvq9prc',
+                receiverType: 5
+            })
         }
     }
 
@@ -428,9 +563,23 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
         setTestLoading(true)
         const formValues = form.getFieldsValue()
         let hookValue = formValues.hook
-        // 如果是短信类型，将配置序列化为JSON存储到hook字段
+        let internalSmsConfigValue = undefined
+        
+        // 如果是短信类型，根据服务商类型决定存储位置
         if (noticeType === 'SMS') {
-            hookValue = JSON.stringify(smsConfig)
+            if (smsConfig.provider === 'internal') {
+                // 内部网关：存储到 internalSmsConfig 字段
+                internalSmsConfigValue = {
+                    gatewayUrl: internalSmsConfig.gatewayUrl,
+                    priority: internalSmsConfig.priority,
+                    timeoutSeconds: internalSmsConfig.timeoutSeconds
+                }
+                hookValue = '' // 内部网关不需要hook字段
+            } else {
+                // 第三方服务商：存储到hook字段
+                hookValue = JSON.stringify(smsConfig)
+                internalSmsConfigValue = null // 明确传递null来清除配置
+            }
         }
         
         const params = {
@@ -438,6 +587,8 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
             noticeType: noticeType,
             hook: hookValue,
             phoneNumber: noticeType === 'SMS' ? phoneNumbers : undefined,
+            // 内部短信网关配置
+            internalSmsConfig: noticeType === 'SMS' ? internalSmsConfigValue : undefined,
             // 钉钉个人通知配置
             enterpriseApiConfig: noticeType === 'DingDing' ? (
                 enablePersonalNotification ? {
@@ -651,81 +802,152 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
                             >
                                 <Select
                                     value={smsConfig.provider}
-                                    onChange={(value) => setSmsConfig({...smsConfig, provider: value})}
+                                    onChange={(value) => {
+                                        // 切换服务商时，如果是内部网关，重置第三方配置；如果是第三方，重置内部网关配置
+                                        if (value === 'internal') {
+                                            setSmsConfig({
+                                                provider: 'internal',
+                                                accessKeyId: '',
+                                                accessKeySecret: '',
+                                                sdkAppId: '',
+                                                templateId: '',
+                                                templateCode: '',
+                                                signName: ''
+                                            })
+                                        } else {
+                                            setSmsConfig({
+                                                provider: value,
+                                                accessKeyId: '',
+                                                accessKeySecret: '',
+                                                sdkAppId: '',
+                                                templateId: '',
+                                                templateCode: '',
+                                                signName: ''
+                                            })
+                                            setInternalSmsConfig({
+                                                gatewayUrl: '',
+                                                priority: '20',
+                                                timeoutSeconds: 5
+                                            })
+                                        }
+                                    }}
                                     style={{ width: '100%' }}
                                 >
                                     <Option value="tencent">腾讯云</Option>
                                     <Option value="aliyun">阿里云</Option>
+                                    <Option value="internal">内部短信网关</Option>
                                 </Select>
                             </MyFormItem>
 
-                            <MyFormItem
-                                label="AccessKeyId"
-                                rules={[{ required: true, message: '请输入AccessKeyId' }]}
-                            >
-                                <Input
-                                    value={smsConfig.accessKeyId}
-                                    onChange={(e) => setSmsConfig({...smsConfig, accessKeyId: e.target.value})}
-                                    placeholder="请输入访问密钥ID"
-                                />
-                            </MyFormItem>
-
-                            <MyFormItem
-                                label="AccessKeySecret"
-                                rules={[{ required: true, message: '请输入AccessKeySecret' }]}
-                            >
-                                <Input.Password
-                                    value={smsConfig.accessKeySecret}
-                                    onChange={(e) => setSmsConfig({...smsConfig, accessKeySecret: e.target.value})}
-                                    placeholder="请输入访问密钥Secret"
-                                />
-                            </MyFormItem>
-
-                            <MyFormItem
-                                label="短信签名"
-                                rules={[{ required: true, message: '请输入短信签名' }]}
-                            >
-                                <Input
-                                    value={smsConfig.signName}
-                                    onChange={(e) => setSmsConfig({...smsConfig, signName: e.target.value})}
-                                    placeholder="请输入短信签名"
-                                />
-                            </MyFormItem>
-
-                            {smsConfig.provider === 'tencent' ? (
+                            {/* 内部网关配置 */}
+                            {smsConfig.provider === 'internal' ? (
                                 <>
                                     <MyFormItem
-                                        label="SdkAppId"
-                                        rules={[{ required: true, message: '请输入SdkAppId' }]}
+                                        label="网关地址"
+                                        rules={[{ required: true, message: '请输入网关地址' }]}
                                     >
                                         <Input
-                                            value={smsConfig.sdkAppId}
-                                            onChange={(e) => setSmsConfig({...smsConfig, sdkAppId: e.target.value})}
-                                            placeholder="请输入腾讯云应用ID"
+                                            value={internalSmsConfig.gatewayUrl}
+                                            onChange={(e) => setInternalSmsConfig({...internalSmsConfig, gatewayUrl: e.target.value})}
+                                            placeholder="http://smsinner.01.prd.bjm6v.belle.lan/o2o-ms/sendSms"
                                         />
                                     </MyFormItem>
+
                                     <MyFormItem
-                                        label="TemplateId"
-                                        rules={[{ required: true, message: '请输入TemplateId' }]}
+                                        label="优先级"
+                                        rules={[{ required: true, message: '请输入优先级' }]}
                                     >
                                         <Input
-                                            value={smsConfig.templateId}
-                                            onChange={(e) => setSmsConfig({...smsConfig, templateId: e.target.value})}
-                                            placeholder="请输入腾讯云模板ID"
+                                            value={internalSmsConfig.priority}
+                                            onChange={(e) => setInternalSmsConfig({...internalSmsConfig, priority: e.target.value})}
+                                            placeholder="例如：20"
+                                        />
+                                    </MyFormItem>
+
+                                    <MyFormItem
+                                        label="超时时间（秒）"
+                                    >
+                                        <Input
+                                            type="number"
+                                            value={internalSmsConfig.timeoutSeconds}
+                                            onChange={(e) => setInternalSmsConfig({...internalSmsConfig, timeoutSeconds: parseInt(e.target.value) || 5})}
+                                            placeholder="默认：5"
                                         />
                                     </MyFormItem>
                                 </>
                             ) : (
-                                <MyFormItem
-                                    label="TemplateCode"
-                                    rules={[{ required: true, message: '请输入TemplateCode' }]}
-                                >
-                                    <Input
-                                        value={smsConfig.templateCode}
-                                        onChange={(e) => setSmsConfig({...smsConfig, templateCode: e.target.value})}
-                                        placeholder="请输入阿里云模板代码"
-                                    />
-                                </MyFormItem>
+                                <>
+                                    {/* 第三方服务商配置 */}
+
+                                    <MyFormItem
+                                        label="AccessKeyId"
+                                        rules={[{ required: true, message: '请输入AccessKeyId' }]}
+                                    >
+                                        <Input
+                                            value={smsConfig.accessKeyId}
+                                            onChange={(e) => setSmsConfig({...smsConfig, accessKeyId: e.target.value})}
+                                            placeholder="请输入访问密钥ID"
+                                        />
+                                    </MyFormItem>
+
+                                    <MyFormItem
+                                        label="AccessKeySecret"
+                                        rules={[{ required: true, message: '请输入AccessKeySecret' }]}
+                                    >
+                                        <Input.Password
+                                            value={smsConfig.accessKeySecret}
+                                            onChange={(e) => setSmsConfig({...smsConfig, accessKeySecret: e.target.value})}
+                                            placeholder="请输入访问密钥Secret"
+                                        />
+                                    </MyFormItem>
+
+                                    <MyFormItem
+                                        label="短信签名"
+                                        rules={[{ required: true, message: '请输入短信签名' }]}
+                                    >
+                                        <Input
+                                            value={smsConfig.signName}
+                                            onChange={(e) => setSmsConfig({...smsConfig, signName: e.target.value})}
+                                            placeholder="请输入短信签名"
+                                        />
+                                    </MyFormItem>
+
+                                    {smsConfig.provider === 'tencent' ? (
+                                        <>
+                                            <MyFormItem
+                                                label="SdkAppId"
+                                                rules={[{ required: true, message: '请输入SdkAppId' }]}
+                                            >
+                                                <Input
+                                                    value={smsConfig.sdkAppId}
+                                                    onChange={(e) => setSmsConfig({...smsConfig, sdkAppId: e.target.value})}
+                                                    placeholder="请输入腾讯云应用ID"
+                                                />
+                                            </MyFormItem>
+                                            <MyFormItem
+                                                label="TemplateId"
+                                                rules={[{ required: true, message: '请输入TemplateId' }]}
+                                            >
+                                                <Input
+                                                    value={smsConfig.templateId}
+                                                    onChange={(e) => setSmsConfig({...smsConfig, templateId: e.target.value})}
+                                                    placeholder="请输入腾讯云模板ID"
+                                                />
+                                            </MyFormItem>
+                                        </>
+                                    ) : (
+                                        <MyFormItem
+                                            label="TemplateCode"
+                                            rules={[{ required: true, message: '请输入TemplateCode' }]}
+                                        >
+                                            <Input
+                                                value={smsConfig.templateCode}
+                                                onChange={(e) => setSmsConfig({...smsConfig, templateCode: e.target.value})}
+                                                placeholder="请输入阿里云模板代码"
+                                            />
+                                        </MyFormItem>
+                                    )}
+                                </>
                             )}
 
                             <MyFormItem
