@@ -5,7 +5,6 @@ import { ReactComponent as WeChatIcon } from "./img/qywechat.svg"
 import { ReactComponent as CustomHookIcon } from "./img/customhook.svg"
 import { ReactComponent as SlackIcon } from "./img/slack.svg"
 import SmsIconImg from "./img/message.png"
-import CmdbIconImg from "./img/cmdb.png"
 
 
 const NOTIFICATION_TYPES = {
@@ -33,11 +32,6 @@ const NOTIFICATION_TYPES = {
         icon: CustomHookIcon,
         label: "自定义Hook",
         isSvg: true,
-    },
-    CMDB: {
-        icon: CmdbIconImg,
-        label: "CMDB",
-        isSvg: false,
     },
     Slack: {
         icon: SlackIcon,
