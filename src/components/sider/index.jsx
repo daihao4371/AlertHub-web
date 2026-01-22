@@ -16,7 +16,8 @@ import {
     DownOutlined,
     LogoutOutlined,
     BulbOutlined,
-    CloudOutlined
+    CloudOutlined,
+    ClusterOutlined
 } from '@ant-design/icons';
 import {Link, useNavigate} from 'react-router-dom';
 import {Menu, Layout, Typography, Dropdown, message, Spin, theme, Popover, Avatar} from 'antd';
@@ -99,7 +100,10 @@ const adminMenuItems = [
     // 9. 第三方告警 - 第三方系统告警集成
     { key: '14', path: '/thirdPartyAlert', icon: <CloudOutlined />, label: '第三方告警' },
     
-    // 10. 值班管理 - 运营管理
+    // 10. Consul 服务发现 - 服务发现管理
+    { key: '15', path: '/consul', icon: <ClusterOutlined />, label: 'Consul服务发现' },
+    
+    // 11. 值班管理 - 运营管理
     { key: '9', path: '/dutyManage', icon: <CalendarOutlined />, label: '值班管理' },
     
     // 11. 系统管理 - 系统配置（管理员专用）
@@ -203,7 +207,10 @@ const userMenuItems = [
     { key: '9', path: '/dutyManage', icon: <CalendarOutlined />, label: '值班管理' },
     
     // 11. 第三方告警 - 第三方系统告警集成
-    { key: '14', path: '/thirdPartyAlert', icon: <CloudOutlined />, label: '第三方告警' }
+    { key: '14', path: '/thirdPartyAlert', icon: <CloudOutlined />, label: '第三方告警' },
+    
+    // 12. Consul 服务发现 - 服务发现管理
+    { key: '15', path: '/consul', icon: <ClusterOutlined />, label: 'Consul服务发现' }
 ];
 
 export const ComponentSider = () => {

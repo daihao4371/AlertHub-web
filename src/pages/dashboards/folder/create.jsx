@@ -15,6 +15,40 @@ const MyFormItem = ({ name, ...props }) => {
     return <Form.Item name={concatName} {...props} />
 }
 
+// Grafana 配置文本常量（用于复制和显示）
+const GRAFANA_CONFIG_TEXT = `[security]
+allow_embedding = true
+cookie_samesite = none
+cookie_secure = false
+
+[auth.proxy]
+enabled = true
+enable_login_token = true
+header_name = X-WEBAUTH-USER
+header_property = username
+auto_sign_up = true
+
+[auth.anonymous]
+enabled = true
+org_name = Main Org.
+org_role = Viewer
+
+[auth.basic]
+enabled = true
+
+[auth]
+disable_login_form = false
+
+[users]
+viewers_can_edit = false
+default_theme = dark`;
+
+// Token 获取命令文本常量（用于复制和显示）
+const TOKEN_COMMAND_TEXT = `curl -s -u <username>:<password> -X POST \\
+  -H "Content-Type: application/json" \\
+  -d '{"name":"token-'$(date +%s)'"}' \\
+  "http://<grafana-host>:<port>/api/serviceaccounts/2/tokens"`;
+
 const CreateFolderModal = ({ visible, onClose, selectedRow, type, handleList }) => {
     const [form] = Form.useForm()
     const [theme,setTheme] = useState('light')
@@ -23,6 +57,8 @@ const CreateFolderModal = ({ visible, onClose, selectedRow, type, handleList }) 
     const [grafanaVersion, setGrafanaVersion] = useState('v10')
     // 禁止输入空格
     const [spaceValue, setSpaceValue] = useState('')
+    // 追踪哪个复制按钮被点击了（'config' 或 'command'）
+    const [copiedButton, setCopiedButton] = useState(null);
 
     const handleInputChange = (e) => {
         // 移除输入值中的空格
@@ -106,14 +142,60 @@ const CreateFolderModal = ({ visible, onClose, selectedRow, type, handleList }) 
         setConfigHelpExpanded(!configHelpExpanded);
     };
 
-    // 复制到剪贴板功能
-    const copyToClipboard = (text, type) => {
-        navigator.clipboard.writeText(text).then(() => {
-            message.success(`${type}已复制到剪贴板`);
-        }).catch(err => {
-            message.error('复制失败，请手动复制');
+    // 复制 Grafana 配置
+    const handleCopyConfig = async () => {
+        // 使用与第三方告警接入相同的复制逻辑
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(GRAFANA_CONFIG_TEXT);
+            } else {
+                // 降级方案：使用传统的 textarea + execCommand 方式
+                const textArea = document.createElement('textarea');
+                textArea.value = GRAFANA_CONFIG_TEXT;
+                textArea.style.position = 'fixed';
+                textArea.style.top = '0';
+                textArea.style.left = '0';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+            }
+            // 设置已复制状态
+            setCopiedButton('config');
+            setTimeout(() => setCopiedButton(null), 2000);
+        } catch (err) {
             console.error('复制失败:', err);
-        });
+        }
+    };
+
+    // 复制 Token 获取命令
+    const handleCopyCommand = async () => {
+        // 使用与第三方告警接入相同的复制逻辑
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(TOKEN_COMMAND_TEXT);
+            } else {
+                // 降级方案：使用传统的 textarea + execCommand 方式
+                const textArea = document.createElement('textarea');
+                textArea.value = TOKEN_COMMAND_TEXT;
+                textArea.style.position = 'fixed';
+                textArea.style.top = '0';
+                textArea.style.left = '0';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+            }
+            // 设置已复制状态
+            setCopiedButton('command');
+            setTimeout(() => setCopiedButton(null), 2000);
+        } catch (err) {
+            console.error('复制失败:', err);
+        }
     };
 
     const radioOptions = [
@@ -233,69 +315,23 @@ const CreateFolderModal = ({ visible, onClose, selectedRow, type, handleList }) 
                                         margin: '8px 0',
                                         paddingRight: 40
                                     }}>
-{`[security]
-allow_embedding = true
-cookie_samesite = none
-cookie_secure = false
-
-[auth.proxy]
-enabled = true
-enable_login_token = true
-header_name = X-WEBAUTH-USER
-header_property = username
-auto_sign_up = true
-
-[auth.anonymous]
-enabled = true
-org_name = Main Org.
-org_role = Viewer
-
-[auth.basic]
-enabled = true
-
-[auth]
-disable_login_form = false
-
-[users]
-viewers_can_edit = false
-default_theme = dark`}
+{GRAFANA_CONFIG_TEXT}
                                     </pre>
                                     <Button
                                         size="small"
                                         icon={<CopyOutlined />}
-                                        onClick={() => copyToClipboard(`[security]
-allow_embedding = true
-cookie_samesite = none
-cookie_secure = false
-
-[auth.proxy]
-enabled = true
-enable_login_token = true
-header_name = X-WEBAUTH-USER
-header_property = username
-auto_sign_up = true
-
-[auth.anonymous]
-enabled = true
-org_name = Main Org.
-org_role = Viewer
-
-[auth.basic]
-enabled = true
-
-[auth]
-disable_login_form = false
-
-[users]
-viewers_can_edit = false
-default_theme = dark`, 'Grafana 配置')}
+                                        onClick={handleCopyConfig}
                                         style={{
                                             position: 'absolute',
                                             top: 12,
-                                            right: 12
+                                            right: 12,
+                                            color: copiedButton === 'config' ? '#52c41a' : '#666',
+                                            backgroundColor: copiedButton === 'config' ? '#f6ffed' : '#fff',
+                                            borderColor: copiedButton === 'config' ? '#52c41a' : '#d9d9d9',
+                                            transition: 'all 0.3s',
                                         }}
                                     >
-                                        复制
+                                        {copiedButton === 'config' ? '✓ 已复制' : '复制'}
                                     </Button>
                                 </div>
                                 <div style={{fontSize: 12, color: '#666', marginTop: 8}}>
@@ -324,25 +360,23 @@ default_theme = dark`, 'Grafana 配置')}
                                         margin: '8px 0',
                                         paddingRight: 40
                                     }}>
-{`curl -s -u <username>:<password> -X POST \\
-  -H "Content-Type: application/json" \\
-  -d '{"name":"token-'$(date +%s)'"}' \\
-  "http://<grafana-host>:<port>/api/serviceaccounts/2/tokens"`}
+{TOKEN_COMMAND_TEXT}
                                     </pre>
                                     <Button
                                         size="small"
                                         icon={<CopyOutlined />}
-                                        onClick={() => copyToClipboard(`curl -s -u <username>:<password> -X POST \\
-  -H "Content-Type: application/json" \\
-  -d '{"name":"token-'$(date +%s)'"}' \\
-  "http://<grafana-host>:<port>/api/serviceaccounts/2/tokens"`, 'Token 获取命令')}
+                                        onClick={handleCopyCommand}
                                         style={{
                                             position: 'absolute',
                                             top: 12,
-                                            right: 12
+                                            right: 12,
+                                            color: copiedButton === 'command' ? '#52c41a' : '#666',
+                                            backgroundColor: copiedButton === 'command' ? '#f6ffed' : '#fff',
+                                            borderColor: copiedButton === 'command' ? '#52c41a' : '#d9d9d9',
+                                            transition: 'all 0.3s',
                                         }}
                                     >
-                                        复制
+                                        {copiedButton === 'command' ? '✓ 已复制' : '复制'}
                                     </Button>
                                 </div>
                                 <div style={{fontSize: 12, color: '#666', marginTop: 8}}>
