@@ -4,12 +4,20 @@ import React, { useState, useEffect } from "react"
 import {
     MinusCircleOutlined,
     PlusOutlined,
-    DatabaseOutlined,
-    CloudOutlined,
-    ApartmentOutlined,
 } from "@ant-design/icons"
 import VSCodeEditor from "../../utils/VSCodeEditor";
-const { TextArea } = Input
+// 导入数据源 logo
+import { ReactComponent as PrometheusImg } from "../alert/rule/img/Prometheus.svg"
+import { ReactComponent as AlicloudImg } from "../alert/rule/img/alicloud.svg"
+import { ReactComponent as JaegerImg } from "../alert/rule/img/jaeger.svg"
+import { ReactComponent as AwsImg } from "../alert/rule/img/AWSlogo.svg"
+import { ReactComponent as LokiImg } from "../alert/rule/img/L.svg"
+import { ReactComponent as VMImg } from "../alert/rule/img/victoriametrics.svg"
+import { ReactComponent as K8sImg } from "../alert/rule/img/Kubernetes.svg"
+import { ReactComponent as ESImg } from "../alert/rule/img/ElasticSearch.svg"
+import { ReactComponent as VLogImg } from "../alert/rule/img/victorialogs.svg"
+import { ReactComponent as CkImg } from "../alert/rule/img/clickhouse.svg"
+import ConsulImg from "../alert/rule/img/consul.png"
 const { Title, Text } = Typography
 const MyFormItemContext = React.createContext([])
 
@@ -34,62 +42,68 @@ const datasourceTypes = [
     {
         value: "Prometheus",
         label: "Prometheus",
-        icon: <DatabaseOutlined />,
+        icon: <PrometheusImg style={{height: "32px", width: "32px"}}/>,
         description: "Prometheus 监控系统和时间序列数据库",
     },
     {
         value: "AliCloudSLS",
         label: "阿里云SLS",
-        icon: <CloudOutlined />,
+        icon: <AlicloudImg style={{height: "32px", width: "32px"}}/>,
         description: "阿里云日志服务",
     },
     {
         value: "Jaeger",
         label: "Jaeger",
-        icon: <ApartmentOutlined />,
+        icon: <JaegerImg style={{height: "32px", width: "32px"}}/>,
         description: "分布式追踪系统",
     },
     {
         value: "Loki",
         label: "Loki",
-        icon: <DatabaseOutlined />,
+        icon: <LokiImg style={{height: "32px", width: "32px"}}/>,
         description: "日志聚合系统",
     },
     {
         value: "CloudWatch",
         label: "CloudWatch",
-        icon: <CloudOutlined />,
+        icon: <AwsImg style={{height: "32px", width: "32px"}}/>,
         description: "AWS 监控和可观测性服务",
     },
     {
         value: "VictoriaMetrics",
         label: "VictoriaMetrics",
-        icon: <DatabaseOutlined />,
+        icon: <VMImg style={{height: "32px", width: "32px"}}/>,
         description: "高性能时间序列数据库",
     },
     {
         value: "Kubernetes",
         label: "Kubernetes",
-        icon: <ApartmentOutlined />,
+        icon: <K8sImg style={{height: "32px", width: "32px"}}/>,
         description: "容器编排平台",
     },
     {
         value: "ElasticSearch",
         label: "ElasticSearch",
-        icon: <DatabaseOutlined />,
+        icon: <ESImg style={{height: "32px", width: "32px"}}/>,
         description: "分布式搜索和分析引擎",
     },
     {
         value: "VictoriaLogs",
         label: "VictoriaLogs",
-        icon: <DatabaseOutlined />,
+        icon: <VLogImg style={{height: "32px", width: "32px"}}/>,
         description: "轻量级日志分析系统",
     },
     {
         value: "ClickHouse",
         label: "ClickHouse",
-        icon: <DatabaseOutlined />,
+        icon: <CkImg style={{height: "32px", width: "32px"}}/>,
         description: "高性能列式存储数据库",
+    },
+    {
+        value: "consul",
+        label: "Consul",
+        icon: <img src={ConsulImg} alt="Consul" style={{height: "32px", width: "32px"}}/>,
+        description: "Consul 服务发现",
     },
 ]
 
@@ -144,6 +158,15 @@ export const CreateDatasourceModal = ({ visible, onClose, selectedRow, type, han
                 description: selectedRow.description,
                 kubeConfig: selectedRow.kubeConfig,
                 elasticSearch: selectedRow.elasticSearch,
+                consulConfig: selectedRow.consulConfig ? {
+                    // 如果后端返回的是 address 字段，映射到前端的 host 字段
+                    host: selectedRow.consulConfig.address || 
+                          (selectedRow.consulConfig.host && selectedRow.consulConfig.port 
+                            ? `http://${selectedRow.consulConfig.host}:${selectedRow.consulConfig.port}` 
+                            : selectedRow.consulConfig.host || ''),
+                    token: selectedRow.consulConfig.token || '',
+                    syncInterval: selectedRow.consulConfig.syncInterval || 60,
+                } : undefined,
                 enabled: selectedRow.enabled
             })
 
@@ -183,22 +206,45 @@ export const CreateDatasourceModal = ({ visible, onClose, selectedRow, type, han
             return acc
         }, {})
 
+        // 根据数据源类型构建参数
         const params = {
             ...values,
             labels: formattedLabels,
-            clickhouseConfig: {
+            enabled: enabled,
+        }
+
+        // 根据类型添加对应的配置
+        if (values.type === "ClickHouse") {
+            params.clickhouseConfig = {
                 addr: values?.clickhouseConfig?.addr || '',
                 timeout: Number(values?.clickhouseConfig?.timeout || 10),
-            },
-            http: {
+            }
+        }
+
+        // HTTP 配置：Prometheus, Loki, VictoriaLogs, VictoriaMetrics, Jaeger, ElasticSearch 需要
+        const httpRequiredTypes = ["Prometheus", "Loki", "VictoriaLogs", "VictoriaMetrics", "Jaeger", "ElasticSearch"]
+        if (httpRequiredTypes.includes(values.type)) {
+            params.http = {
                 url: values?.http?.url || '',
                 timeout: Number(values?.http?.timeout || 10),
-            },
-            write: {
+            }
+        }
+
+        // Write 配置：仅 Prometheus 和 VictoriaMetrics 需要
+        if (values.type === "Prometheus" || values.type === "VictoriaMetrics") {
+            params.write = {
                 enabled: writeState === "On",
                 url: values?.write?.url || '',
-            },
-            enabled: enabled,
+            }
+        }
+
+        // Consul 配置
+        if (values.type === "consul" && values?.consulConfig && values.consulConfig.host) {
+            params.consulConfig = {
+                address: values.consulConfig.host.trim(),
+                token: values.consulConfig.token || '',
+                syncInterval: values.consulConfig.syncInterval ? Number(values.consulConfig.syncInterval) : 60,
+            }
         }
 
         if (type === "create") {
@@ -241,20 +287,46 @@ export const CreateDatasourceModal = ({ visible, onClose, selectedRow, type, han
                 return acc
             }, {})
 
+            // 根据数据源类型构建参数
             const params = {
                 ...values,
                 labels: formattedLabels,
-                clickhouseConfig: {
+            }
+
+            // 根据类型添加对应的配置
+            if (values.type === "ClickHouse") {
+                params.clickhouseConfig = {
                     addr: values?.clickhouseConfig?.addr || '',
                     timeout: Number(values?.clickhouseConfig?.timeout || 10),
-                },
-                http: {
+                }
+            }
+
+            // HTTP 配置：Prometheus, Loki, VictoriaLogs, VictoriaMetrics, Jaeger, ElasticSearch 需要
+            const httpRequiredTypes = ["Prometheus", "Loki", "VictoriaLogs", "VictoriaMetrics", "Jaeger", "ElasticSearch"]
+            if (httpRequiredTypes.includes(values.type)) {
+                params.http = {
                     url: values?.http?.url || '',
                     timeout: Number(values?.http?.timeout || 10),
-                },
+                }
+            }
+
+            // Consul 配置
+            if (values.type === "consul") {
+                console.log("Consul 类型检测到，表单值:", values)
+                console.log("consulConfig 值:", values?.consulConfig)
+                if (values?.consulConfig && values.consulConfig.host) {
+                    params.consulConfig = {
+                        address: values.consulConfig.host.trim(),
+                        token: values.consulConfig.token || '',
+                        syncInterval: values.consulConfig.syncInterval ? Number(values.consulConfig.syncInterval) : 60,
+                    }
+                    console.log("构建的 consulConfig:", params.consulConfig)
+                } else {
+                    console.warn("Consul 配置缺失或 host 为空")
+                }
             }
             
-            console.log("开始连接测试，参数:", params)
+            console.log("开始连接测试，完整参数:", JSON.stringify(params, null, 2))
             
             // 调用API测试连接
             const result = await DatasourcePing(params)
@@ -328,16 +400,14 @@ export const CreateDatasourceModal = ({ visible, onClose, selectedRow, type, han
                                 <div style={{ display: "flex", alignItems: "center" }}>
                                     <div
                                         style={{
-                                            fontSize: "24px",
                                             marginRight: "12px",
-                                            width: "40px",
-                                            height: "40px",
+                                            width: "48px",
+                                            height: "48px",
                                             display: "flex",
                                             alignItems: "center",
                                             justifyContent: "center",
                                             background: "#f0f5ff",
                                             borderRadius: "8px",
-                                            color: "#1890ff",
                                         }}
                                     >
                                         {dsType.icon}
@@ -447,7 +517,7 @@ export const CreateDatasourceModal = ({ visible, onClose, selectedRow, type, han
                     selectedType === "ClickHouse"
                 ) && (
                     <>
-                        {(selectedType === "ClickHouse") && (
+                        {selectedType === "ClickHouse" ? (
                             <MyFormItemGroup prefix={["clickhouseConfig"]}>
                                 <Divider orientation="left">Server</Divider>
                                 <MyFormItem
@@ -474,7 +544,7 @@ export const CreateDatasourceModal = ({ visible, onClose, selectedRow, type, han
                                     <Input type={"number"} style={{ width: "100%" }} addonAfter={<span>秒</span>} placeholder="10" min={1} />
                                 </MyFormItem>
                             </MyFormItemGroup>
-                        ) || (
+                        ) : (
                             <MyFormItemGroup prefix={["http"]}>
                                 <Divider orientation="left">HTTP</Divider>
                                 <MyFormItem
@@ -684,6 +754,64 @@ export const CreateDatasourceModal = ({ visible, onClose, selectedRow, type, han
                         >
                             <VSCodeEditor height={"500px"} language={"Yaml"}/>
                         </MyFormItem>
+                    </div>
+                )}
+
+                {selectedType === "consul" && (
+                    <div>
+                        <Divider orientation="left">Consul 配置</Divider>
+                        <MyFormItemGroup prefix={["consulConfig"]}>
+                            <MyFormItem
+                                name="host"
+                                label="Consul 地址"
+                                rules={[
+                                    {
+                                        required: true,
+                                        message: '请输入 Consul 地址',
+                                    },
+                                    {
+                                        pattern: /^(http|https):\/\/.+/,
+                                        message: '请输入完整的 URL 格式，例如: http://10.10.218.45:8500',
+                                    },
+                                ]}
+                            >
+                                <Input placeholder="例如: http://10.10.218.45:8500" />
+                            </MyFormItem>
+
+                            <MyFormItem
+                                name="token"
+                                label="Consul Token"
+                                tooltip="如果 Consul 启用了 ACL，需要提供 Token"
+                            >
+                                <Input.Password placeholder="可选，留空则不使用 Token" />
+                            </MyFormItem>
+
+                            <MyFormItem
+                                name="syncInterval"
+                                label="同步间隔（秒）"
+                                rules={[
+                                    {
+                                        pattern: /^\d+$/,
+                                        message: '同步间隔必须为数字',
+                                    },
+                                    {
+                                        validator: (_, value) => {
+                                            if (!value) {
+                                                return Promise.resolve(); // 可选字段，允许为空
+                                            }
+                                            const numValue = Number(value);
+                                            if (isNaN(numValue) || numValue < 10 || numValue > 3600) {
+                                                return Promise.reject(new Error('同步间隔必须在 10-3600 秒之间'));
+                                            }
+                                            return Promise.resolve();
+                                        },
+                                    },
+                                ]}
+                                tooltip="同步间隔范围：10-3600 秒，默认 60 秒"
+                            >
+                                <Input type="number" placeholder="默认: 60" min={10} max={3600} />
+                            </MyFormItem>
+                        </MyFormItemGroup>
                     </div>
                 )}
 
