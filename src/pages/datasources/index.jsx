@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {Button, Input, Table, Tag, Popconfirm, Tooltip, Space, message} from 'antd';
+import {Button, Input, Table, Tag, Popconfirm, Tooltip, Space} from 'antd';
 import { CreateDatasourceModal } from './DatasourceCreateModal';
 import { deleteDatasource, getDatasourceList } from '../../api/datasource';
 import { ReactComponent as PrometheusImg } from "../alert/rule/img/Prometheus.svg"
@@ -12,6 +12,7 @@ import { ReactComponent as K8sImg } from "../alert/rule/img/Kubernetes.svg"
 import { ReactComponent as ESImg } from "../alert/rule/img/ElasticSearch.svg"
 import { ReactComponent as VLogImg } from "../alert/rule/img/victorialogs.svg"
 import { ReactComponent as CkImg } from "../alert/rule/img/clickhouse.svg"
+import ConsulImg from "../alert/rule/img/consul.png"
 import './index.css'
 import {CopyOutlined, DeleteOutlined, EditOutlined, PlusOutlined} from "@ant-design/icons";
 import { copyToClipboard } from "../../utils/copyToClipboard";
@@ -90,6 +91,9 @@ export const Datasources = () => {
                         )}
                         {text === "ClickHouse" && (
                             <CkImg style={{height: "25px", width: "25px"}}/>
+                        )}
+                        {text === "consul" && (
+                            <img src={ConsulImg} alt="Consul" style={{height: "25px", width: "25px"}}/>
                         )}
                         <div style={{marginLeft: "5px", marginTop: '3px', fontSize: '12px'}}>{text}</div>
                     </div>

@@ -1,0 +1,32 @@
+/* Consul状态标签基础样式（与 Exporter 监控页面保持一致） */
+.exporter-status-tag {
+    border: none;
+    font-weight: 500;
+    padding: 2px 12px;
+    font-size: 12px;
+    color: #fff;
+}
+
+/* UP/PASSING状态 - 绿色渐变 */
+.exporter-status-tag-up {
+    background: linear-gradient(135deg, #73d13d 0%, #52c41a 100%);
+    box-shadow: 0 2px 8px rgba(82, 196, 26, 0.3);
+}
+
+/* DOWN/CRITICAL状态 - 红色渐变 */
+.exporter-status-tag-down {
+    background: linear-gradient(135deg, #ff7875 0%, #ff4d4f 100%);
+    box-shadow: 0 2px 8px rgba(255, 77, 79, 0.3);
+}
+
+/* WARNING状态 - 橙色渐变 */
+.exporter-status-tag-warning {
+    background: linear-gradient(135deg, #ffc53d 0%, #faad14 100%);
+    box-shadow: 0 2px 8px rgba(250, 173, 20, 0.3);
+}
+
+/* UNKNOWN/OFFLINE/NO CHECKS状态 - 灰色渐变 */
+.exporter-status-tag-unknown {
+    background: linear-gradient(135deg, #bfbfbf 0%, #8c8c8c 100%);
+    box-shadow: 0 2px 8px rgba(140, 140, 140, 0.3);
+}
