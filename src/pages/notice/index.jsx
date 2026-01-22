@@ -2,13 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {Button, Table, Popconfirm, message, Input, Tag, Space, Tooltip} from 'antd';
 import { CreateNoticeObjectModal } from './NoticeObjectCreateModal';
 import { deleteNotice, getNoticeList } from '../../api/notice';
-import { ReactComponent as FeiShuIcon } from './img/feishu.svg'
-import { ReactComponent as DingdingIcon } from './img/dingding.svg'
-import { ReactComponent as EmailIcon } from './img/Email.svg'
-import { ReactComponent as WeChatIcon } from './img/qywechat.svg'
-import { ReactComponent as CustomHookIcon } from './img/customhook.svg'
-import { ReactComponent as SlackIcon } from './img/slack.svg'
-import SmsIconImg from './img/message.png'
+import { NotificationTypeIcon } from './notification-type-icon';
 import {getDutyManagerList} from "../../api/duty";
 import {CopyOutlined, DeleteOutlined, EditOutlined, PlusOutlined} from "@ant-design/icons";
 import { copyToClipboard } from "../../utils/copyToClipboard";
@@ -59,57 +53,7 @@ export const NoticeObjects = () => {
             key: 'noticeType',
             width: 'auto',
             render: (text, record) => {
-                if (record.noticeType === 'FeiShu') {
-                    return (
-                       <div style={{display: 'flex'}}>
-                           <FeiShuIcon style={{height: '25px', width: '25px'}}/>
-                           <div style={{marginLeft: "5px",marginTop: '5px', fontSize:'12px' }}>飞书</div>
-                       </div>
-                    )
-                } else if (record.noticeType === 'DingDing') {
-                    return (
-                        <div style={{display: 'flex'}}>
-                            <DingdingIcon style={{height: '25px', width: '25px'}}/>
-                            <div style={{marginLeft: "5px",marginTop: '5px', fontSize:'12px' }}>钉钉</div>
-                        </div>
-                    )
-                } else if (record.noticeType === 'Email') {
-                    return (
-                        <div style={{display: 'flex'}}>
-                            <EmailIcon style={{height: '25px', width: '25px'}}/>
-                            <div style={{marginLeft: "5px",marginTop: '5px', fontSize:'12px' }}>邮件</div>
-                        </div>
-                    )
-                } else if (record.noticeType === 'WeChat') {
-                    return (
-                        <div style={{display: 'flex'}}>
-                            <WeChatIcon style={{height: '25px', width: '25px'}}/>
-                            <div style={{marginLeft: "5px",marginTop: '5px', fontSize:'12px' }}>企业微信</div>
-                        </div>
-                    )
-                } else if (record.noticeType === 'CustomHook') {
-                    return (
-                        <div style={{display: 'flex'}}>
-                            <CustomHookIcon style={{height: '25px', width: '25px'}}/>
-                            <div style={{marginLeft: "5px",marginTop: '5px', fontSize:'12px' }}>自定义Hook</div>
-                        </div>
-                    )
-                } else if (record.noticeType === 'Slack') {
-                    return (
-                        <div style={{display: 'flex'}}>
-                            <SlackIcon style={{height: '25px', width: '25px'}}/>
-                            <div style={{marginLeft: "5px",marginTop: '5px', fontSize:'12px' }}>Slack</div>
-                        </div>
-                    )
-                } else if (record.noticeType === 'SMS') {
-                    return (
-                        <div style={{display: 'flex'}}>
-                            <img src={SmsIconImg} alt="短信" style={{height: '25px', width: '25px'}}/>
-                            <div style={{marginLeft: "5px",marginTop: '5px', fontSize:'12px' }}>短信</div>
-                        </div>
-                    )
-                }
-                return '-'
+                return <NotificationTypeIcon type={record.noticeType} />
             },
         },
         {

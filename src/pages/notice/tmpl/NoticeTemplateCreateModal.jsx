@@ -1,4 +1,4 @@
-import {Modal, Form, Input, Button, Card, Tooltip, Checkbox, Drawer, Alert, Switch, Descriptions, Collapse} from 'antd'
+import {Form, Input, Button, Card, Tooltip, Checkbox, Drawer, Alert, Switch, Descriptions, Collapse} from 'antd'
 import VSCodeEditor from "../../../utils/VSCodeEditor";
 import React, { useEffect, useState } from 'react'
 import { createNoticeTmpl, updateNoticeTmpl } from '../../../api/noticeTmpl'
@@ -8,6 +8,7 @@ import EmailImg from "../img/Email.svg";
 import DingDingImg from "../img/dingding.svg";
 import WeChatImg from "../img/qywechat.svg"
 import SlackImg from "../img/slack.svg"
+import SmsImg from "../img/message.png"
 import {QuestionCircleOutlined, InfoCircleOutlined} from "@ant-design/icons";
 
 const MyFormItemContext = React.createContext([])
@@ -100,6 +101,8 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
                     t = 3
                 } else if (selectedRow.noticeType === "Slack"){
                     t = 4
+                } else if (selectedRow.noticeType === "SMS"){
+                    t = 5
                 }
 
                 setIsChecked(selectedRow.enableFeiShuJsonCard || false)
@@ -180,6 +183,10 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
         {
             imgSrc: SlackImg,
             text: 'Slack'
+        },
+        {
+            imgSrc: SmsImg,
+            text: '短信'
         }
     ];
 
@@ -194,6 +201,8 @@ const NoticeTemplateCreateModal = ({ visible, onClose, selectedRow, type, handle
            t = "WeChat"
         } else if (index === 4){
            t = "Slack"
+        } else if (index === 5){
+           t = "SMS"
         }
 
         setNotifyType(t)
