@@ -9,6 +9,7 @@ import { AppContextProvider } from './context/RuleContext';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
 import ErrorBoundary from './components/ErrorBoundary';
+import { ToastProvider } from './components/Toast';
 
 // 全局配置 dayjs 使用中文 locale
 dayjs.locale('zh-cn');
@@ -26,6 +27,7 @@ export default function App() {
                             <title>{title}</title>
                         </Helmet>
                         {element}
+                        <ToastProvider />
                     </AntdApp>
                 </ConfigProvider>
             </AppContextProvider>

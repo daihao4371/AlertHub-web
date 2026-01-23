@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Radio, message, Typography, Collapse, Card, Descriptions } from 'antd';
+import { Form, Input, Radio, Typography, Collapse, Card, Descriptions } from 'antd';
 import { getSystemSetting, saveSystemSetting } from "../../api/settings";
 import { MyFormItemGroup, MyFormItem, radioOptions, helpTextStyle } from "./utils";
 import { FormActions } from "./FormActions";
+import { showToast } from "../../components/Toast";
 
 export const QuickActionSettings = () => {
     const [form] = Form.useForm();
@@ -28,7 +29,7 @@ export const QuickActionSettings = () => {
             setEnableQuickAction(quickActionConfig.enabled);
         } catch (error) {
             console.error("Failed to load quick action settings:", error);
-            message.error('加载快捷操作配置失败，请重试');
+            showToast.error('加载快捷操作配置失败，请重试');
         } finally {
             setLoading(false);
         }
@@ -51,14 +52,11 @@ export const QuickActionSettings = () => {
             };
 
             await saveSystemSetting(processedValues);
-            message.success({
-                content: '快捷操作配置保存成功，且立即生效！',
-                duration: 3,
-            });
+            showToast.success('快捷操作配置保存成功，且立即生效！', { autoClose: 3000 });
             loadSettings();
         } catch (error) {
             console.error("Failed to save quick action settings:", error);
-            message.error('保存快捷操作配置失败，请检查输入并重试');
+            showToast.error('保存快捷操作配置失败，请检查输入并重试');
         } finally {
             setLoading(false);
         }
@@ -68,7 +66,7 @@ export const QuickActionSettings = () => {
     const handleCancel = () => {
         form.resetFields();
         loadSettings();
-        message.info('已取消修改');
+        showToast.info('已取消修改');
     };
 
     // 快捷操作启用状态处理
