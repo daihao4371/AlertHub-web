@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Segmented, Select, message, Typography } from 'antd';
+import { Form, Input, Segmented, Select, Typography } from 'antd';
 import { getSystemSetting, saveSystemSetting } from "../../api/settings";
 import { getRoleList } from "../../api/role";
 import { MyFormItemGroup, MyFormItem, helpTextStyle } from "./utils";
 import { FormActions } from "./FormActions";
+import { showToast } from "../../components/Toast";
 
 // Cron表达式验证函数
 const validateCronExpression = (_, value) => {
@@ -109,7 +110,7 @@ export const AuthSettings = () => {
             setAlignValue(authTypeMapping[res.data.authType] || "系统认证");
         } catch (error) {
             console.error("Failed to load auth settings:", error);
-            message.error('加载认证配置失败，请重试');
+            showToast.error('加载认证配置失败，请重试');
         } finally {
             setLoading(false);
         }
@@ -131,14 +132,11 @@ export const AuthSettings = () => {
             };
 
             await saveSystemSetting(processedValues);
-            message.success({
-                content: '认证配置保存成功，且立即生效！',
-                duration: 3,
-            });
+            showToast.success('认证配置保存成功，且立即生效！', { autoClose: 3000 });
             loadSettings();
         } catch (error) {
             console.error("Failed to save auth settings:", error);
-            message.error('保存认证配置失败，请检查输入并重试');
+            showToast.error('保存认证配置失败，请检查输入并重试');
         } finally {
             setLoading(false);
         }
@@ -148,7 +146,7 @@ export const AuthSettings = () => {
     const handleCancel = () => {
         form.resetFields();
         loadSettings();
-        message.info('已取消修改');
+        showToast.info('已取消修改');
     };
 
     const handleRoleList = async () => {
@@ -161,7 +159,7 @@ export const AuthSettings = () => {
             setRoleList(newData);
         } catch (error) {
             console.error("Failed to load role list:", error);
-            message.error('加载角色列表失败');
+            showToast.error('加载角色列表失败');
         }
     };
 

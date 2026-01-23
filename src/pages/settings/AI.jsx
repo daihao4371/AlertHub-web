@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Radio, message, Typography } from 'antd';
+import { Form, Input, Radio, Typography } from 'antd';
 import TextArea from "antd/es/input/TextArea";
 import { getSystemSetting, saveSystemSetting } from "../../api/settings";
 import { MyFormItemGroup, MyFormItem, radioOptions } from "./utils";
 import { FormActions } from "./FormActions";
+import { showToast } from "../../components/Toast";
 
 export const AISettings = () => {
     const [form] = Form.useForm();
@@ -58,7 +59,7 @@ export const AISettings = () => {
             setEnableAi(aiConfig.enable);
         } catch (error) {
             console.error("Failed to load AI settings:", error);
-            message.error('加载AI配置失败，请重试');
+            showToast.error('加载AI配置失败，请重试');
         } finally {
             setLoading(false);
         }
@@ -82,14 +83,11 @@ export const AISettings = () => {
             };
 
             await saveSystemSetting(processedValues);
-            message.success({
-                content: 'AI配置保存成功，且立即生效！',
-                duration: 3,
-            });
+            showToast.success('AI配置保存成功，且立即生效！', { autoClose: 3000 });
             loadSettings();
         } catch (error) {
             console.error("Failed to save AI settings:", error);
-            message.error('保存AI配置失败，请检查输入并重试');
+            showToast.error('保存AI配置失败，请检查输入并重试');
         } finally {
             setLoading(false);
         }
@@ -99,7 +97,7 @@ export const AISettings = () => {
     const handleCancel = () => {
         form.resetFields();
         loadSettings();
-        message.info('已取消修改');
+        showToast.info('已取消修改');
     };
 
     // AI启用状态处理

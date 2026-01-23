@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, message, Typography } from 'antd';
+import { Form, Input, Typography } from 'antd';
 import { getSystemSetting, saveSystemSetting } from "../../api/settings";
 import { MyFormItemGroup, MyFormItem, helpTextStyle } from "./utils";
 import { FormActions } from "./FormActions";
+import { showToast } from "../../components/Toast";
 
 export const EmailSettings = () => {
     const [form] = Form.useForm();
@@ -26,7 +27,7 @@ export const EmailSettings = () => {
             form.setFieldsValue({ emailConfig });
         } catch (error) {
             console.error("Failed to load email settings:", error);
-            message.error('加载邮箱配置失败，请重试');
+            showToast.error('加载邮箱配置失败，请重试');
         } finally {
             setLoading(false);
         }
@@ -49,14 +50,11 @@ export const EmailSettings = () => {
             };
 
             await saveSystemSetting(processedValues);
-            message.success({
-                content: '邮箱配置保存成功，且立即生效！',
-                duration: 3,
-            });
+            showToast.success('邮箱配置保存成功，且立即生效！', { autoClose: 3000 });
             loadSettings();
         } catch (error) {
             console.error("Failed to save email settings:", error);
-            message.error('保存邮箱配置失败，请检查输入并重试');
+            showToast.error('保存邮箱配置失败，请检查输入并重试');
         } finally {
             setLoading(false);
         }
@@ -66,7 +64,7 @@ export const EmailSettings = () => {
     const handleCancel = () => {
         form.resetFields();
         loadSettings();
-        message.info('已取消修改');
+        showToast.info('已取消修改');
     };
 
     return (
