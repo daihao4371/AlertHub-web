@@ -1,3 +1,17 @@
+/* Tailwind CSS 基础导入 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 导入 KaTeX 样式以支持数学公式 */
+@import "katex/dist/katex.min.css";
+
+/* 注意：Streamdown v2.1.0 使用 Tailwind CSS 内联类，无需单独导入 CSS
+ * Tailwind 会通过 tailwind.config.js 中的 content 配置自动扫描并编译这些类
+ * 如果遇到样式问题，请确保 tailwind.config.js 中已配置:
+ * content: ["./node_modules/streamdown/dist/*.js"]
+ */
+
 :root{
     height: 100vh;
     width: 100%;
@@ -6,7 +20,7 @@
     height: 100vh;
     width: 100%;
   }
-  
+
   body {
     margin: 0;
     padding: 0;
