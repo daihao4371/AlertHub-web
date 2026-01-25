@@ -17,9 +17,8 @@ import {
     Dropdown,
     message,
     Empty,
-    Menu, Radio, Checkbox, Tooltip, Typography,
+    Tooltip, Typography,
     List,
-    Form,
     Card, Avatar, Popconfirm,
 } from "antd"
 import {
@@ -30,9 +29,8 @@ import {
     ProcessAlertEvent
 } from "../../api/event"
 import TextArea from "antd/es/input/TextArea"
-import { ReqAiAnalyze } from "../../api/ai"
-import MarkdownRenderer from "../../utils/MarkdownRenderer"
-import { AlertTriangle, Clock } from "lucide-react"
+import AIAnalysisChat from "../../components/AIAnalysisChat"
+import { Clock } from "lucide-react"
 import {
     DownOutlined,
     ReloadOutlined,
@@ -66,7 +64,7 @@ import { ReactComponent as CkImg } from "../alert/rule/img/clickhouse.svg"
 import { noticeRecordList } from "../../api/notice"
 import { NotificationTypeIcon } from "../notice/notification-type-icon"
 
-const { Title, Text } = Typography
+const { Text } = Typography
 
 export const AlertCurrentEvent = (props) => {
     const { id } = props
@@ -87,7 +85,7 @@ export const AlertCurrentEvent = (props) => {
     const [loading, setLoading] = useState(true)
     const [aiAnalyze, setAiAnalyze] = useState(false)
     const [aiAnalyzeContent, setAiAnalyzeContent] = useState({})
-    const [analyzeLoading, setAnalyzeLoading] = useState(false)
+    const [streamKey, setStreamKey] = useState(0) // 打开新分析时强制重新挂载 AIAnalysisChat
     const [selectedRowKeys, setSelectedRowKeys] = useState([])
     const [batchProcessing, setBatchProcessing] = useState(false)
     // 添加一个状态来跟踪是否正在进行过滤操作
@@ -459,8 +457,7 @@ export const AlertCurrentEvent = (props) => {
                     }] : []),
                     {
                         key: 'ai',
-                        label: analyzeLoading ? "Ai 分析中" : "Ai 分析",
-                        disabled: analyzeLoading,
+                        label: "Ai 分析",
                         onClick: () => openAiAnalyze(record),
                     },
                 ];
@@ -504,6 +501,7 @@ export const AlertCurrentEvent = (props) => {
             // 正常分页或初始加载
             handleCurrentEventList(currentPagination.pageIndex, currentPagination.pageSize)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchQuery, id, isFiltering, currentPagination.pageIndex, currentPagination.pageSize, sortOrder])
 
     const handleSilenceModalOpen = (record) => {
@@ -628,10 +626,6 @@ export const AlertCurrentEvent = (props) => {
 
     const openAiAnalyze = async (record) => {
         setAiAnalyze(true)
-        setAnalyzeLoading(true)
-
-        // 创建 FormData 对象
-        const formData = new FormData()
 
         let content = ""
         if (record.datasource_type === "AliCloudSLS"
@@ -656,15 +650,7 @@ export const AlertCurrentEvent = (props) => {
             labels: record.labels
         }
 
-        // 添加表单字段
-        formData.append("rule_name", record.rule_name)
-        formData.append("rule_id", record.rule_id)
-        formData.append("content", content)
-        formData.append("search_ql", record.searchQL)
-        formData.append("deep", "false")
-        formData.append("alert_info", JSON.stringify(alertInfo))
-
-
+        // 准备参数，供 AIAnalysisChat 组件使用
         const params = {
             ruleId: record.rule_id,
             ruleName: record.rule_name,
@@ -672,72 +658,12 @@ export const AlertCurrentEvent = (props) => {
             searchQL: record.searchQL,
             fingerprint: record.fingerprint,
             annotations: content,
-            alertInfo: alertInfo  // 添加告警信息到参数中
+            alertInfo: alertInfo,
         }
         setAiAnalyzeContent(params)
-
-        try {
-            const res = await ReqAiAnalyze(formData)
-            setAiAnalyzeContent({
-                ...params,
-                content: res.data,
-            })
-        } catch (error) {
-            message.error("AI分析请求失败: " + error.message)
-            setAiAnalyzeContent({
-                ...params,
-                content: "分析失败，请稍后重试。",
-            })
-        } finally {
-            setAnalyzeLoading(false)
-        }
+        setStreamKey(prev => prev + 1) // 重新挂载 AIAnalysisChat 以重启流式传输
     }
 
-    const AiDeepAnalyze = async (params) => {
-        let content = ""
-        if (params.datasource_type === "AliCloudSLS"
-            || params.datasource_type === "Loki"
-            || params.datasource_type === "ElasticSearch"
-            || params.datasource_type === "VictoriaLogs"){
-            content = JSON.stringify(params.log, null, 2)
-        } else {
-            content = params.annotations
-        }
-
-        const formData = new FormData()
-        formData.append("rule_name", params.ruleName)
-        formData.append("rule_id", params.ruleId)
-        formData.append("content", content)
-        formData.append("search_ql", params.searchQL)
-        formData.append("deep", "true")
-        formData.append("alert_info", JSON.stringify(params.alertInfo))
-
-        setAiAnalyzeContent({
-            ...params,
-            content: "",
-        })
-
-        setAnalyzeLoading(true)
-        try {
-            const res = await ReqAiAnalyze(formData)
-            setAiAnalyzeContent({
-                ...params,
-                content: res.data,
-            })
-        } catch (error) {
-            message.error("深度分析请求失败: " + error.message)
-            setAiAnalyzeContent({
-                ...params,
-                content: "深度分析失败，请稍后重试。",
-            })
-        } finally {
-            setAnalyzeLoading(false)
-        }
-    }
-
-    const handleAiDeepAnalyze = () => {
-        AiDeepAnalyze(aiAnalyzeContent)
-    }
 
     const [percent, setPercent] = useState(-50)
     const timerRef = useRef(null)
@@ -1101,14 +1027,6 @@ export const AlertCurrentEvent = (props) => {
                 title={
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span>AI 分析</span>
-                        <Button
-                            type="primary"
-                            onClick={handleAiDeepAnalyze}
-                            disabled={analyzeLoading}
-                            style={{ background: "#000", color: 'white' }}
-                        >
-                            深度分析
-                        </Button>
                     </div>
                 }
                 placement="right"
@@ -1122,107 +1040,98 @@ export const AlertCurrentEvent = (props) => {
                     },
                 }}
             >
-                <div style={{ 
-                    backgroundColor: '#fff', 
-                    borderRadius: '8px',
-                    minHeight: '400px'
-                }}>
-                    {/* 告警基本信息展示 */}
+                {aiAnalyzeContent.ruleName && (
                     <div style={{ 
-                        marginBottom: '16px', 
-                        display: 'flex', 
-                        alignItems: 'center',
-                        gap: '12px',
-                        justifyContent: 'flex-end'
+                        backgroundColor: '#fff', 
+                        borderRadius: '8px',
+                        minHeight: '400px'
                     }}>
-                        <div>
-                            <div style={{ fontWeight: '500', color: '#000' }}>用户</div>
-                        </div>
+                        {/* 用户消息区域 */}
                         <div style={{ 
-                            width: '32px', 
-                            height: '32px', 
-                            borderRadius: '50%', 
-                            backgroundColor: '#ff4d4f', 
+                            marginBottom: '16px', 
                             display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center',
-                            color: 'white',
-                            fontWeight: 'bold'
+                            alignItems: 'center',
+                            gap: '12px',
+                            justifyContent: 'flex-end'
                         }}>
-                            U
+                            <div>
+                                <div style={{ fontWeight: '500', color: '#000' }}>用户</div>
+                            </div>
+                            <Avatar
+                                size={32}
+                                style={{
+                                    backgroundColor: '#ff4d4f',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                }}
+                            >
+                                U
+                            </Avatar>
                         </div>
-                    </div>
-                    <div style={{ 
-                        marginRight: '44px',
-                        marginBottom: '20px',
-                        display: 'flex',
-                        justifyContent: 'flex-end'
-                    }}>
                         <div style={{ 
-                            backgroundColor: '#f9f9f9', 
-                            padding: '15px', 
-                            borderRadius: '8px',
-                            maxWidth: '80%'
+                            marginRight: '44px',
+                            marginBottom: '20px',
+                            display: 'flex',
+                            justifyContent: 'flex-end'
                         }}>
                             <div style={{ 
-                                display: 'grid', 
-                                gridTemplateColumns: 'repeat(1, 1fr)', 
-                                fontSize: '14px'
+                                backgroundColor: '#f9f9f9', 
+                                padding: '15px', 
+                                borderRadius: '8px',
+                                maxWidth: '80%'
                             }}>
-                                <span>你好 AI 助手，请根据你的理解帮我分析这条告警。</span>
-                                <br/>
-                                <div>
-                                    <span style={{ fontWeight: '500' }}>告警指纹：</span>
-                                    <span>{aiAnalyzeContent.fingerprint}</span>
-                                </div>
-                                <div>
-                                    <span style={{ fontWeight: '500' }}>规则名称：</span>
-                                    <span>{aiAnalyzeContent.ruleName}（{aiAnalyzeContent.ruleId}）</span>
-                                </div>
-                                <div>
-                                    <span style={{ fontWeight: '500' }}>查询条件：</span>
-                                    <span>{aiAnalyzeContent.searchQL}</span>
-                                </div>
-                                <div>
-                                    <span style={{ fontWeight: '500' }}>事件详情：</span>
-                                    <span>{aiAnalyzeContent.annotations}</span>
+                                <div style={{ 
+                                    display: 'grid', 
+                                    gridTemplateColumns: 'repeat(1, 1fr)', 
+                                    fontSize: '14px'
+                                }}>
+                                    <span>你好 AI 助手，请根据你的理解帮我分析这条告警。</span>
+                                    <br/>
+                                    <div>
+                                        <span style={{ fontWeight: '500' }}>告警指纹：</span>
+                                        <span>{aiAnalyzeContent.fingerprint}</span>
+                                    </div>
+                                    <div>
+                                        <span style={{ fontWeight: '500' }}>规则名称：</span>
+                                        <span>{aiAnalyzeContent.ruleName}（{aiAnalyzeContent.ruleId}）</span>
+                                    </div>
+                                    <div>
+                                        <span style={{ fontWeight: '500' }}>查询条件：</span>
+                                        <span>{aiAnalyzeContent.searchQL}</span>
+                                    </div>
+                                    <div>
+                                        <span style={{ fontWeight: '500' }}>事件详情：</span>
+                                        <span>{aiAnalyzeContent.annotations}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* AI助手对话区域 */}
-                    <div style={{ 
-                        marginBottom: '16px', 
-                        display: 'flex', 
-                        alignItems: 'center',
-                        gap: '12px'
-                    }}>
-                        <div style={{ 
-                            width: '32px', 
-                            height: '32px', 
-                            borderRadius: '50%', 
-                            backgroundColor: '#1890ff', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center',
-                            color: 'white',
-                            fontWeight: 'bold'
-                        }}>
-                            AI
-                        </div>
-                        <div>
-                            <div style={{ fontWeight: '500', color: '#000' }}>AI 助手</div>
-                        </div>
+                        {/* 使用 AIAnalysisChat 组件 */}
+                        <AIAnalysisChat
+                            key={streamKey} // 使用 key 来强制重新渲染
+                            params={{
+                                ruleName: aiAnalyzeContent.ruleName,
+                                ruleId: aiAnalyzeContent.ruleId,
+                                content: aiAnalyzeContent.annotations,
+                                searchQL: aiAnalyzeContent.searchQL,
+                                datasourceType: aiAnalyzeContent.datasourceType,
+                                fingerprint: aiAnalyzeContent.fingerprint,
+                                deep: "false"
+                            }}
+                            autoStart={true}
+                            onComplete={(finalContent) => {
+                                // AI 分析完成
+                                console.log('[AI-Chat] Analysis complete:', finalContent.substring(0, 100) + '...');
+                            }}
+                            onError={(error) => {
+                                console.error('[AI-Chat] Analysis error:', error);
+                                message.error("AI分析请求失败: " + error.message)
+                            }}
+                        />
                     </div>
-                    <div style={{ marginLeft: '44px' }}>
-                        {analyzeLoading ? (
-                            <MarkdownRenderer data={"正在分析中..."} />
-                        ) : (
-                            <MarkdownRenderer data={aiAnalyzeContent.content} />
-                        )}
-                    </div>
-                </div>
+                )}
             </Drawer>
 
             <div style={{ marginBottom: "16px" }}>
@@ -1485,7 +1394,7 @@ export const AlertCurrentEvent = (props) => {
                                     label: '事件详情',
                                     children: (
                                         <div>
-                                            { (selectedEvent.datasource_type === "AliCloudSLS"
+                                            { ((selectedEvent.datasource_type === "AliCloudSLS"
                                                 || selectedEvent.datasource_type === "Loki"
                                                 || selectedEvent.datasource_type === "ElasticSearch"
                                                 || selectedEvent.datasource_type === "VictoriaLogs"
@@ -1511,7 +1420,7 @@ export const AlertCurrentEvent = (props) => {
                                                     }}
                                                     readOnly
                                                 />
-                                            ) || (
+                                            )) || (
                                                 <TextArea
                                                     value={selectedEvent.annotations}
                                                     style={{
@@ -1521,23 +1430,23 @@ export const AlertCurrentEvent = (props) => {
                                                     }}
                                                     readOnly
                                                 />
-                                            ) }
+                                            )}
                                         </div>
                                     ),
                                 },
                                 {
                                     label: '通知记录',
                                     children: (
-                                        <a 
+                                        <Button 
+                                            type="link"
                                             onClick={() => openNoticeDrawer(selectedEvent.eventId)}
                                             style={{ 
-                                                color: '#1890ff', 
-                                                textDecoration: 'none',
-                                                cursor: 'pointer'
+                                                padding: 0,
+                                                height: 'auto'
                                             }}
                                         >
                                             查看记录
-                                        </a>
+                                        </Button>
                                     ),
                                 },
                             ]}

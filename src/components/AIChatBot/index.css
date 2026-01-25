@@ -1,0 +1,239 @@
+/* AI ChatBot Styles using @ant-design/x */
+@import '../../styles/common.css';
+
+/* ============================================
+   FloatButton Customization
+   ============================================ */
+.ant-float-btn {
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+.ant-float-btn:hover {
+    background-color: transparent !important;
+}
+
+.ant-float-btn-icon {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 !important;
+    cursor: grab;
+}
+
+.ant-float-btn-icon:active {
+    cursor: grabbing;
+}
+
+.ant-float-btn-icon img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    pointer-events: none;
+}
+
+/* ============================================
+   Main Container
+   ============================================ */
+.ai-chatbot-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: #fff;
+}
+
+/* ============================================
+   Messages Area
+   ============================================ */
+.ai-chatbot-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    background-color: #f5f5f5;
+}
+
+.ai-chatbot-bubble-list {
+    width: 100%;
+}
+
+/* ============================================
+   Bubble Customization
+   ============================================ */
+.ai-chatbot-user-bubble {
+    background-color: #1890ff !important;
+    color: #fff !important;
+    border-radius: 12px 12px 0 12px !important;
+    padding: 10px 14px !important;
+    max-width: 80% !important;
+}
+
+.ai-chatbot-ai-bubble {
+    background-color: #fff !important;
+    border-radius: 8px !important;
+    padding: 12px !important;
+    max-width: 100% !important;
+}
+
+/* Override default Bubble styles */
+.ai-chatbot-bubble-list .ant-bubble {
+    margin-bottom: 16px;
+}
+
+/* Ensure proper text wrapping without breaking XMarkdown
+ * Note: XMarkdown handles its own whitespace formatting
+ */
+.ai-chatbot-bubble-list .ant-bubble-content {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* User messages need pre-wrap for manual line breaks */
+.ai-chatbot-user-bubble {
+    white-space: pre-wrap;
+}
+
+/* Ensure XMarkdown content displays correctly within bubbles */
+.ai-chatbot-ai-bubble .x-markdown {
+    white-space: normal;  /* XMarkdown handles its own whitespace */
+}
+
+/* XMarkdown paragraph spacing for better readability */
+.ai-chatbot-ai-bubble .x-markdown p {
+    margin-bottom: 12px;
+}
+
+.ai-chatbot-ai-bubble .x-markdown p:last-child {
+    margin-bottom: 0;
+}
+
+/* Code block styling within bubbles */
+.ai-chatbot-ai-bubble .x-markdown pre {
+    background-color: #f6f8fa;
+    border-radius: 6px;
+    padding: 12px;
+    margin: 12px 0;
+    overflow-x: auto;
+}
+
+.ai-chatbot-ai-bubble .x-markdown pre code {
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+/* Inline code styling */
+.ai-chatbot-ai-bubble .x-markdown code:not(pre code) {
+    background-color: rgba(175, 184, 193, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+/* List styling */
+.ai-chatbot-ai-bubble .x-markdown ul,
+.ai-chatbot-ai-bubble .x-markdown ol {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.ai-chatbot-ai-bubble .x-markdown li {
+    margin: 4px 0;
+}
+
+/* ============================================
+   Error Display
+   ============================================ */
+.ai-chatbot-error {
+    padding: 12px 16px;
+    background-color: #fff2f0;
+    border: 1px solid #ffccc7;
+    border-radius: 8px;
+    margin: 12px 0;
+}
+
+/* ============================================
+   Input Area
+   ============================================ */
+.ai-chatbot-input-area {
+    border-top: 1px solid #f0f0f0;
+    background-color: #fff;
+    padding: 12px 16px;
+}
+
+.ai-chatbot-clear-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+}
+
+.ai-chatbot-clear-btn {
+    color: #666;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.ai-chatbot-clear-btn:hover {
+    color: #1890ff;
+    background-color: rgba(24, 144, 255, 0.1);
+}
+
+/* ============================================
+   Drawer Resize Handle
+   ============================================ */
+.ai-chatbot-resize-handle {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 4px;
+    height: 100%;
+    background-color: transparent;
+    cursor: ew-resize;
+    z-index: 1000;
+    transition: background-color 0.2s;
+    user-select: none;
+}
+
+.ai-chatbot-resize-handle:hover {
+    background-color: rgba(24, 144, 255, 0.3);
+}
+
+.ai-chatbot-resize-handle:active {
+    background-color: rgba(24, 144, 255, 0.6);
+}
+
+/* ============================================
+   Drawer Customization
+   ============================================ */
+.ant-drawer-content-wrapper {
+    transition: width 0.2s ease !important;
+}
+
+.ant-drawer-body {
+    position: relative !important;
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+@media (max-width: 768px) {
+    .ai-chatbot-user-bubble {
+        max-width: 90% !important;
+    }
+
+    .ai-chatbot-messages {
+        padding: 12px;
+    }
+
+    .ai-chatbot-input-area {
+        padding: 8px 12px;
+    }
+}
