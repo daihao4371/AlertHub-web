@@ -1,0 +1,187 @@
+/* AI Analysis Chat Component Styles using @ant-design/x */
+@import '../../styles/common.css';
+
+/* ============================================
+   Main Container
+   ============================================ */
+.ai-analysis-chat {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.ai-analysis-chat-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    background-color: #fafafa;
+}
+
+.ai-analysis-chat-content {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.ai-analysis-chat-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #f0f0f0;
+    background-color: #fafafa;
+}
+
+/* ============================================
+   Loading & Error States
+   ============================================ */
+.ai-analysis-chat-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    color: #666;
+}
+
+.ai-analysis-chat-error {
+    margin-bottom: 16px;
+}
+
+/* ============================================
+   Bubble.List Customization
+   ============================================ */
+.ai-analysis-bubble-list {
+    width: 100%;
+}
+
+.ai-analysis-bubble-list .ant-bubble {
+    width: 100%;
+    max-width: 100%;
+}
+
+.ai-analysis-bubble-content {
+    background-color: transparent !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+}
+
+/* CRITICAL: Enable proper whitespace handling for line breaks
+ * white-space: pre-wrap preserves newlines and wraps text
+ * This is essential for markdown content to display correctly
+ * See: https://github.com/ant-design/x/pull/1127
+ */
+.ai-analysis-bubble-list .ant-bubble-content {
+    white-space: pre-wrap !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Ensure XMarkdown content displays correctly within bubbles */
+.ai-analysis-bubble-content .x-markdown {
+    white-space: normal;  /* XMarkdown handles its own whitespace */
+}
+
+/* XMarkdown paragraph spacing for better readability */
+.ai-analysis-bubble-content .x-markdown p {
+    margin-bottom: 12px;
+}
+
+.ai-analysis-bubble-content .x-markdown p:last-child {
+    margin-bottom: 0;
+}
+
+/* Code block styling within bubbles */
+.ai-analysis-bubble-content .x-markdown pre {
+    background-color: #f6f8fa;
+    border-radius: 6px;
+    padding: 12px;
+    margin: 12px 0;
+    overflow-x: auto;
+}
+
+.ai-analysis-bubble-content .x-markdown pre code {
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+/* Inline code styling */
+.ai-analysis-bubble-content .x-markdown code:not(pre code) {
+    background-color: rgba(175, 184, 193, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+/* List styling */
+.ai-analysis-bubble-content .x-markdown ul,
+.ai-analysis-bubble-content .x-markdown ol {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.ai-analysis-bubble-content .x-markdown li {
+    margin: 4px 0;
+}
+
+/* ============================================
+   Action Buttons
+   ============================================ */
+.ai-analysis-chat-actions {
+    padding: 16px 24px;
+    border-top: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: flex-start;
+    gap: 8px;
+}
+
+/* ============================================
+   Follow-up Input Area
+   ============================================ */
+.ai-analysis-chat-input {
+    padding: 16px 24px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.ai-analysis-chat-input .ant-sender {
+    border: 1px solid #d9d9d9;
+    border-radius: 8px;
+}
+
+.ai-analysis-chat-input .ant-sender:hover {
+    border-color: #1890ff;
+}
+
+.ai-analysis-chat-input .ant-sender:focus-within {
+    border-color: #1890ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+@media (max-width: 768px) {
+    .ai-analysis-chat-content {
+        padding: 16px;
+    }
+
+    .ai-analysis-chat-actions {
+        padding: 12px 16px;
+    }
+
+    .ai-analysis-chat-input {
+        padding: 12px 16px;
+    }
+}
+
+/* ============================================
+   Print Styles
+   ============================================ */
+@media print {
+    .ai-analysis-chat-actions,
+    .ai-analysis-chat-input {
+        display: none;
+    }
+}

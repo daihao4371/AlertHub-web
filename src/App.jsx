@@ -10,6 +10,7 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
 import ErrorBoundary from './components/ErrorBoundary';
 import { ToastProvider } from './components/Toast';
+import AIChatBot from './components/AIChatBot';
 
 // 全局配置 dayjs 使用中文 locale
 dayjs.locale('zh-cn');
@@ -28,6 +29,7 @@ export default function App() {
                         </Helmet>
                         {element}
                         <ToastProvider />
+                        <AIChatBot />
                     </AntdApp>
                 </ConfigProvider>
             </AppContextProvider>

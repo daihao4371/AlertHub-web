@@ -2,7 +2,8 @@
 module.exports = {
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
-    "./public/index.html"
+    "./public/index.html",
+    "./node_modules/streamdown/dist/*.js"  // 必须包含 streamdown 的内容源，否则样式类会被 purge
   ],
   theme: {
     screens: {
@@ -25,7 +26,7 @@ module.exports = {
       }
     }
   },
-  darkMode: 'media', // 或者 'media'
+  darkMode: 'media',
   plugins: [],
 }
 
