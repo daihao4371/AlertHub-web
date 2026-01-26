@@ -63,12 +63,40 @@
 /* ============================================
    Bubble Customization
    ============================================ */
+
+/* User bubble container - ensure proper width expansion
+ * By default, @ant-design/x Bubble uses fit-content which can cause
+ * narrow bubbles. We override this to allow natural text flow.
+ */
+.ai-chatbot-bubble-list .ant-bubble[class*="end"] {
+    /* Ensure the bubble row takes full width for proper alignment */
+    width: 100%;
+}
+
+.ai-chatbot-bubble-list .ant-bubble[class*="end"] .ant-bubble-content-wrapper {
+    /* Limit max-width at wrapper level, allow content to expand naturally */
+    max-width: 80%;
+}
+
 .ai-chatbot-user-bubble {
     background-color: #1890ff !important;
     color: #fff !important;
     border-radius: 12px 12px 0 12px !important;
     padding: 10px 14px !important;
-    max-width: 80% !important;
+    /* Allow bubble content to expand naturally
+     * Text will only wrap when reaching the wrapper's max-width (80%)
+     */
+    display: inline-block !important;
+    width: auto !important;
+    max-width: 100% !important;
+    /* Text handling:
+     * - pre-wrap: preserve manual line breaks from user input
+     * - normal word-break: only break at natural word boundaries
+     * - This ensures text stays on one line until reaching max-width
+     */
+    white-space: pre-wrap;
+    word-break: normal;
+    overflow-wrap: break-word;
 }
 
 .ai-chatbot-ai-bubble {
@@ -89,11 +117,6 @@
 .ai-chatbot-bubble-list .ant-bubble-content {
     word-wrap: break-word;
     overflow-wrap: break-word;
-}
-
-/* User messages need pre-wrap for manual line breaks */
-.ai-chatbot-user-bubble {
-    white-space: pre-wrap;
 }
 
 /* Ensure XMarkdown content displays correctly within bubbles */
