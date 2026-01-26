@@ -1,7 +1,8 @@
 "use client"
-import { Modal, Form, Input, Button, Switch, Typography, message } from "antd" // 导入 message
+import { Modal, Form, Input, Button, Switch, Typography, message, Select } from "antd" // 导入 message
 import React, { useState, useEffect } from "react"
 import { registerUser, updateUser } from "../../../api/user" // 假设这些路径是正确的
+import { getRoleList } from "../../../api/role" // 导入获取角色列表的函数
 
 const MyFormItemContext = React.createContext([])
 function toArr(str) {
@@ -20,6 +21,8 @@ const UserCreateModal = ({ visible, onClose, selectedRow, type, handleList }) =>
     const [form] = Form.useForm()
     const [checked, setChecked] = useState(false) // 初始值设为 false
     const [spaceValue, setSpaceValue] = useState("") // 用户名输入框的值，用于处理空格
+    const [roles, setRoles] = useState([]) // 角色列表
+    const [selectedRole, setSelectedRole] = useState(null) // 选中的角色
 
     useEffect(() => {
         if (visible) {
@@ -37,18 +40,43 @@ const UserCreateModal = ({ visible, onClose, selectedRow, type, handleList }) =>
                     dutyUserId: selectedRow.dutyUserId,
                     role: selectedRow.role,
                 })
+                setSelectedRole(selectedRow.role)
             } else {
                 // 'create' 或没有 selectedRow 时，重置表单和相关状态
                 form.resetFields()
                 setChecked(false)
                 setSpaceValue("")
+                setSelectedRole(null) // 重置角色选择
                 form.setFieldsValue({
                     joinDuty: false, // 确保初始值为false
-                    role: "app", // 设置默认角色
                 })
             }
         }
     }, [visible, selectedRow, type, form]) // 依赖 visible, selectedRow, type, form
+
+    // 获取角色列表
+    const fetchRoleList = async () => {
+        try {
+            const res = await getRoleList()
+            if (res && res.data && Array.isArray(res.data)) {
+                const roleOptions = res.data.map(role => ({
+                    label: role.name,
+                    value: role.id
+                }))
+                setRoles(roleOptions)
+            }
+        } catch (error) {
+            console.error('获取角色列表失败:', error)
+            message.error('获取角色列表失败')
+        }
+    }
+
+    // 在模态框打开时获取角色列表
+    useEffect(() => {
+        if (visible) {
+            fetchRoleList()
+        }
+    }, [visible])
 
     // 用户名输入框处理，禁止输入空格
     const handleInputChange = (e) => {
@@ -83,10 +111,14 @@ const UserCreateModal = ({ visible, onClose, selectedRow, type, handleList }) =>
     // 提交表单
     const handleFormSubmit = async (values) => {
         if (type === "create") {
+            if (!selectedRole) {
+                message.error('请选择用户角色')
+                return
+            }
             const newValues = {
                 ...values,
                 joinDuty: values.joinDuty ? "true" : "false",
-                role: "app",
+                role: selectedRole,
                 dutyUserId: values.dutyUserId
             }
             await handleCreate(newValues)
@@ -96,7 +128,8 @@ const UserCreateModal = ({ visible, onClose, selectedRow, type, handleList }) =>
                 ...values,
                 joinDuty: values.joinDuty ? "true" : "false",
                 userid: selectedRow.userid,
-                dutyUserId: values.dutyUserId
+                dutyUserId: values.dutyUserId,
+                role: selectedRole
             }
             await handleUpdate(newValues)
         }
@@ -164,6 +197,20 @@ const UserCreateModal = ({ visible, onClose, selectedRow, type, handleList }) =>
                     ]}
                 >
                     <Input />
+                </MyFormItem>
+
+                <MyFormItem
+                    name="role"
+                    label="用户角色"
+                    rules={[{ required: true, message: "请选择用户角色！" }]}
+                >
+                    <Select
+                        showSearch
+                        placeholder="请选择用户角色"
+                        options={roles}
+                        value={selectedRole}
+                        onChange={setSelectedRole}
+                    />
                 </MyFormItem>
 
                 <MyFormItem name="phone" label="手机号">
