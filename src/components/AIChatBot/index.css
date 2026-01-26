@@ -1,5 +1,6 @@
 /* AI ChatBot Styles using @ant-design/x */
 @import '../../styles/common.css';
+@import '../../styles/markdown.css';
 
 /* ============================================
    FloatButton Customization
@@ -63,12 +64,40 @@
 /* ============================================
    Bubble Customization
    ============================================ */
+
+/* User bubble container - ensure proper width expansion
+ * By default, @ant-design/x Bubble uses fit-content which can cause
+ * narrow bubbles. We override this to allow natural text flow.
+ */
+.ai-chatbot-bubble-list .ant-bubble[class*="end"] {
+    /* Ensure the bubble row takes full width for proper alignment */
+    width: 100%;
+}
+
+.ai-chatbot-bubble-list .ant-bubble[class*="end"] .ant-bubble-content-wrapper {
+    /* Limit max-width at wrapper level, allow content to expand naturally */
+    max-width: 80%;
+}
+
 .ai-chatbot-user-bubble {
     background-color: #1890ff !important;
     color: #fff !important;
     border-radius: 12px 12px 0 12px !important;
     padding: 10px 14px !important;
-    max-width: 80% !important;
+    /* Allow bubble content to expand naturally
+     * Text will only wrap when reaching the wrapper's max-width (80%)
+     */
+    display: inline-block !important;
+    width: auto !important;
+    max-width: 100% !important;
+    /* Text handling:
+     * - pre-wrap: preserve manual line breaks from user input
+     * - normal word-break: only break at natural word boundaries
+     * - This ensures text stays on one line until reaching max-width
+     */
+    white-space: pre-wrap;
+    word-break: normal;
+    overflow-wrap: break-word;
 }
 
 .ai-chatbot-ai-bubble {
@@ -91,60 +120,7 @@
     overflow-wrap: break-word;
 }
 
-/* User messages need pre-wrap for manual line breaks */
-.ai-chatbot-user-bubble {
-    white-space: pre-wrap;
-}
-
-/* Ensure XMarkdown content displays correctly within bubbles */
-.ai-chatbot-ai-bubble .x-markdown {
-    white-space: normal;  /* XMarkdown handles its own whitespace */
-}
-
-/* XMarkdown paragraph spacing for better readability */
-.ai-chatbot-ai-bubble .x-markdown p {
-    margin-bottom: 12px;
-}
-
-.ai-chatbot-ai-bubble .x-markdown p:last-child {
-    margin-bottom: 0;
-}
-
-/* Code block styling within bubbles */
-.ai-chatbot-ai-bubble .x-markdown pre {
-    background-color: #f6f8fa;
-    border-radius: 6px;
-    padding: 12px;
-    margin: 12px 0;
-    overflow-x: auto;
-}
-
-.ai-chatbot-ai-bubble .x-markdown pre code {
-    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
-    font-size: 13px;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-all;
-}
-
-/* Inline code styling */
-.ai-chatbot-ai-bubble .x-markdown code:not(pre code) {
-    background-color: rgba(175, 184, 193, 0.2);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.9em;
-}
-
-/* List styling */
-.ai-chatbot-ai-bubble .x-markdown ul,
-.ai-chatbot-ai-bubble .x-markdown ol {
-    margin: 8px 0;
-    padding-left: 20px;
-}
-
-.ai-chatbot-ai-bubble .x-markdown li {
-    margin: 4px 0;
-}
+/* XMarkdown and CodeHighlighter styles are imported from markdown.css */
 
 /* ============================================
    Error Display
