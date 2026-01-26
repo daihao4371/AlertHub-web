@@ -1,13 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { FloatButton, Drawer, Avatar, Space, Typography, message } from 'antd';
 import { Bubble, Sender } from '@ant-design/x';
-import { XMarkdown } from '@ant-design/x-markdown';
-// Import both base styles and theme styles for XMarkdown
-import '@ant-design/x-markdown/es/XMarkdown/index.css';
-import '@ant-design/x-markdown/themes/light.css';
 import { useStreamLLM } from '../../hooks/useStreamLLM';
-import OpenAiLogo from '../../img/OpenAi.png';
 import { useAutoScroll } from '../../utils/common';
+import { useMarkdownRenderer } from '../../utils/markdownComponents';
+import OpenAiLogo from '../../img/OpenAi.png';
 import './index.css';
 
 const { Text } = Typography;
@@ -304,30 +301,8 @@ export const AIChatBot = () => {
         };
     }, [isResizing, resizeStartX, resizeStartWidth, drawerWidth]);
 
-    /**
-     * Markdown renderer for AI messages
-     * Uses XMarkdown with streaming support for proper rendering
-     */
-    const renderMarkdown = useCallback((content, info) => {
-        if (!content) return null;
-
-        // Check if this message is currently streaming
-        const isStreaming = info?.status === 'loading';
-
-        return (
-            <XMarkdown
-                content={content}
-                className="x-markdown x-markdown-light"
-                config={{
-                    breaks: true,  // Enable GFM line breaks
-                    gfm: true,     // Enable GitHub Flavored Markdown
-                }}
-                streaming={{
-                    hasNextChunk: isStreaming,
-                }}
-            />
-        );
-    }, []);
+    // Use shared markdown renderer hook
+    const renderMarkdown = useMarkdownRenderer();
 
     /**
      * Role configuration for Bubble.List

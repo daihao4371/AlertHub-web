@@ -1,5 +1,6 @@
 /* AI Analysis Chat Component Styles using @ant-design/x */
 @import '../../styles/common.css';
+@import '../../styles/markdown.css';
 
 /* ============================================
    Main Container
@@ -76,55 +77,7 @@
     overflow-wrap: break-word;
 }
 
-/* Ensure XMarkdown content displays correctly within bubbles */
-.ai-analysis-bubble-content .x-markdown {
-    white-space: normal;  /* XMarkdown handles its own whitespace */
-}
-
-/* XMarkdown paragraph spacing for better readability */
-.ai-analysis-bubble-content .x-markdown p {
-    margin-bottom: 12px;
-}
-
-.ai-analysis-bubble-content .x-markdown p:last-child {
-    margin-bottom: 0;
-}
-
-/* Code block styling within bubbles */
-.ai-analysis-bubble-content .x-markdown pre {
-    background-color: #f6f8fa;
-    border-radius: 6px;
-    padding: 12px;
-    margin: 12px 0;
-    overflow-x: auto;
-}
-
-.ai-analysis-bubble-content .x-markdown pre code {
-    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
-    font-size: 13px;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-all;
-}
-
-/* Inline code styling */
-.ai-analysis-bubble-content .x-markdown code:not(pre code) {
-    background-color: rgba(175, 184, 193, 0.2);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.9em;
-}
-
-/* List styling */
-.ai-analysis-bubble-content .x-markdown ul,
-.ai-analysis-bubble-content .x-markdown ol {
-    margin: 8px 0;
-    padding-left: 20px;
-}
-
-.ai-analysis-bubble-content .x-markdown li {
-    margin: 4px 0;
-}
+/* XMarkdown and CodeHighlighter styles are imported from markdown.css */
 
 /* ============================================
    Action Buttons
