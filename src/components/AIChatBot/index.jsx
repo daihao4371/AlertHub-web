@@ -15,6 +15,7 @@ const { Text } = Typography;
 /**
  * Global AI ChatBot Component
  * A floating chat window available on all pages using @ant-design/x components
+ * Only visible when user is authenticated (has valid Authorization token)
  */
 export const AIChatBot = () => {
     const [open, setOpen] = useState(false);
@@ -371,6 +372,13 @@ export const AIChatBot = () => {
             ...(msg.role === 'assistant' ? { contentRender: renderMarkdown } : {}),
         };
     });
+
+    // Authentication check: only render AI ChatBot when user is logged in
+    // This check is placed after all hooks to comply with React Hooks rules
+    const isAuthenticated = !!localStorage.getItem('Authorization');
+    if (!isAuthenticated) {
+        return null;
+    }
 
     return (
         <>
