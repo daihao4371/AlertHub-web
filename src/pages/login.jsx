@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import './global.css';
 import { checkUser, loginUser, registerUser, getOidcInfo } from '../api/user';
-import { message } from "antd";
+import { showToast } from '../components/Toast';
 import { UserManager } from 'oidc-client';
 import loginIllustration from '../img/login-illustration.png';
 
@@ -53,10 +53,11 @@ export const Login = () => {
                 localStorage.setItem('Authorization', info.token);
                 localStorage.setItem('Username', info.username);
                 localStorage.setItem('UserId', info.userId);
+                showToast.success('登录成功');
                 navigate('/');
             }
         } catch (error) {
-            message.error('用户名或密码错误');
+            showToast.error('用户名或密码错误');
         }
     };
 
@@ -75,10 +76,7 @@ export const Login = () => {
         const confirmPassword = formData.get('confirm-password');
 
         if (password !== confirmPassword) {
-            message.open({
-                type: 'error',
-                content: '两次输入的密码不一致',
-            });
+            showToast.error('两次输入的密码不一致');
             return;
         }
 
@@ -108,7 +106,7 @@ export const Login = () => {
             const res = await getOidcInfo();
             if (res) {
                 if (res.data.authType !== 2) {
-                    message.error('OIDC 未启用，请联系管理员');
+                    showToast.error('OIDC 未启用，请联系管理员');
                     return;
                 }
 

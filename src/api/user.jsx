@@ -14,16 +14,9 @@ async function getUserList(params) {
 
 
 async function loginUser(params) {
-    try {
-        const res = await http('post', `/api/system/login`, params);
-        return res;
-    } catch (error) {
-        message.open({
-            type: 'error',
-            content: '用户不存在或密码错误',
-        });
-        return error
-    }
+    // 登录接口不在此处处理错误提示，由调用方统一处理
+    const res = await http('post', `/api/system/login`, params);
+    return res;
 }
 
 async function registerUser(params) {
