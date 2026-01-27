@@ -1,13 +1,13 @@
-FROM node:20.19.4-alpine3.21 as build
+FROM node:20.19.4-alpine3.21 AS build
 
 WORKDIR /app
 
 # 先复制依赖文件，利用 Docker 缓存层（依赖不变时跳过安装）
-COPY package.json yarn.lock ./
+COPY package.json ./
 
 # 配置镜像源并安装依赖
 RUN yarn config set registry https://registry.npmmirror.com && \
-    yarn install --frozen-lockfile --network-timeout 600000
+    yarn install --network-timeout 600000
 
 # 再复制源代码（源码改动不会触发重新安装依赖）
 COPY . .
@@ -15,7 +15,7 @@ COPY . .
 # 构建项目
 RUN yarn build
 
-FROM nginx:1.18.0-alpine as release
+FROM nginx:1.18.0-alpine AS release
 
 # 直接复制构建产物到 nginx 目录
 COPY --from=build /app/build /usr/share/nginx/html
