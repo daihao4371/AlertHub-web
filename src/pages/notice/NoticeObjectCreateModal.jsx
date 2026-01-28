@@ -1,4 +1,4 @@
-import {Form, Input, Button, Select, Card, Drawer, App, Checkbox, Collapse} from 'antd'
+import {Form, Input, Button, Select, Card, Drawer, Checkbox, Collapse} from 'antd'
 import React, { useState, useEffect, useCallback } from 'react'
 import { createNotice, updateNotice } from '../../api/notice'
 import { getDutyManagerList } from '../../api/duty'
@@ -14,6 +14,7 @@ import {MinusCircleOutlined, PlusOutlined} from "@ant-design/icons";
 import {getNoticeTmplList} from "../../api/noticeTmpl";
 import {getUserList} from "../../api/user";
 import { noticeTest } from '../../api/notice';
+import { showToast } from '../../components/Toast';
 
 const MyFormItemContext = React.createContext([])
 
@@ -34,7 +35,6 @@ const MyFormItem = ({ name, ...props }) => {
 }
 
 export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, handleList }) => {
-    const { message } = App.useApp(); // 使用 Antd v5 的 useApp hook 获取 message API
     const { Option } = Select
     const [form] = Form.useForm()
     const [dutyList, setDutyList] = useState([])
@@ -448,21 +448,21 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
         try {
             const params = { noticeType: type }
             const res = await getNoticeTmplList(params)
-            
+
             // 修复：检查权限错误
             if (res.code === 403) {
-                message.warning('无权限访问通知模版列表')
+                showToast.warning('无权限访问通知模版列表')
                 setNoticeTmplItems([])
                 return
             }
-            
+
             // 修复：添加空值检查，防止访问 undefined 的 map 方法
             if (!res || !res.data || !Array.isArray(res.data)) {
                 console.warn('获取通知模版列表失败或数据格式不正确:', res)
                 setNoticeTmplItems([])
                 return
             }
-            
+
             const newData = res.data.map((item) => ({
                 label: item.name,
                 value: item.id
@@ -470,10 +470,10 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
             setNoticeTmplItems(newData)
         } catch (error) {
             console.error('获取通知模版列表失败:', error)
-            message.error('获取通知模版列表失败')
+            showToast.error('获取通知模版列表失败')
             setNoticeTmplItems([])
         }
-    }, [message])
+    }, [])
 
     // 获取通知模板的函数（使用当前的noticeType）
     const handleGetNoticeTmpl = useCallback(async () => {
@@ -549,12 +549,16 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
 
     const handleSubmit = async () => {
         setSubmitLoading(true)
-        const values = form.getFieldsValue()
         try {
             await form.validateFields()
+            const values = form.getFieldsValue()
             await handleFormSubmit(values)
         } catch (error) {
-            console.log(error)
+            // 表单验证失败
+            if (error.errorFields && error.errorFields.length > 0) {
+                showToast.error('请检查表单必填项')
+            }
+            console.error(error)
         }
         setSubmitLoading(false)
     }
@@ -606,20 +610,20 @@ export const CreateNoticeObjectModal = ({ visible, onClose, selectedRow, type, h
         try {
             // 调用API测试通知
             const result = await noticeTest(params);
-            
+
             if (result.success) {
                 // 测试成功，显示成功提示
-                message.success('通知测试发送成功！')
+                showToast.success('通知测试发送成功！')
             } else {
                 // 测试失败，显示错误提示
-                message.error(result.error || '通知测试发送失败，请检查配置')
+                showToast.error(result.error || '通知测试发送失败，请检查配置')
             }
         } catch (error) {
             // 处理表单验证错误或其他意外错误
             if (error.errorFields && error.errorFields.length > 0) {
-                message.error('表单验证失败，请检查必填项')
+                showToast.error('表单验证失败，请检查必填项')
             } else {
-                message.error('通知测试出现意外错误，请重试')
+                showToast.error('通知测试出现意外错误，请重试')
             }
             console.error('通知测试过程中出错:', error)
         } finally {
