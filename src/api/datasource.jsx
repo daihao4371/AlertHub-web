@@ -1,5 +1,5 @@
 import http from '../utils/http';
-import { message } from 'antd';
+import { showToast } from '../components/Toast';
 import {HandleApiError} from "../utils/lib";
 
 async function getDatasourceList(params) {
@@ -29,10 +29,7 @@ async function getDatasource(params) {
 async function createDatasource(params) {
     try {
         const res = await http('post', '/api/w8t/datasource/dataSourceCreate', params);
-        message.open({
-            type: 'success',
-            content: '数据源创建成功',
-        });
+        showToast.success('数据源创建成功');
         return res;
     } catch (error) {
         HandleApiError(error)
@@ -43,10 +40,7 @@ async function createDatasource(params) {
 async function updateDatasource(params) {
     try {
         const res = await http('post', '/api/w8t/datasource/dataSourceUpdate', params);
-        message.open({
-            type: 'success',
-            content: '数据源更新成功',
-        });
+        showToast.success('数据源更新成功');
         return res;
     } catch (error) {
         HandleApiError(error)
@@ -57,10 +51,7 @@ async function updateDatasource(params) {
 async function deleteDatasource(params) {
     try {
         const res = await http('post', `/api/w8t/datasource/dataSourceDelete`, params);
-        message.open({
-            type: 'success',
-            content: '数据源删除成功',
-        });
+        showToast.success('数据源删除成功');
         return res;
     } catch (error) {
         HandleApiError(error)
@@ -95,10 +86,7 @@ async function DatasourcePing(params) {
 async function ElasticSearchData(params) {
     try {
         const res = await http('post', `/api/w8t/datasource/esSearch`, params);
-        message.open({
-            type: 'success',
-            content: '查询ES内容成功',
-        });
+        showToast.success('查询ES内容成功');
         return res;
     } catch (error) {
         HandleApiError(error)

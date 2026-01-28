@@ -1,6 +1,7 @@
 import moment from 'moment';
 import {message, Tooltip} from "antd";
 import React from "react";
+import { showToast } from "../components/Toast";
 
 export const HandleShowTotal = (total, range) => `第 ${range[0]} - ${range[1]} 条 共 ${total} 条`
 
@@ -124,7 +125,7 @@ export const RenderTruncatedText = (text) => (
 
 /**
  * 统一处理 API 请求的 catch 错误。
- * 它会尝试从错误对象中提取具体的错误信息，并使用 Ant Design 的 message.error 提示用户。
+ * 它会尝试从错误对象中提取具体的错误信息，并使用 Toast 组件提示用户。
  *
  * @param {Error} error 捕获到的错误对象。
  * @param {string} [prefixMessage="错误"] 可选，在错误信息前显示的前缀消息。
@@ -132,23 +133,28 @@ export const RenderTruncatedText = (text) => (
 export const HandleApiError = (error, prefixMessage = "错误") => {
     let errorMessage = "未知错误"; // Default fallback message
 
-    // Check if it's an Axios response error and if response.data exists
+    // 检查是否是 Axios 响应错误且返回数据存在
     if (error.response && error.response.data) {
-        // --- THIS IS THE KEY CHANGE ---
-        // Only proceed to display a message if response.data.msg is exactly "failed"
-        if (error.response.data.msg === "failed") {
-            // Prefer the detailed error from 'data' if available
-            if (error.response.data.data) {
-                errorMessage = error.response.data.data;
-            } else {
-                // Fallback to the 'msg' itself if 'data' is missing but 'msg' is "failed"
-                errorMessage = error.response.data.msg;
-            }
-            // Display the error message using Ant Design's message component
-            message.error(`${prefixMessage}：${errorMessage}`);
-            return; // Exit the function after displaying the message for a "failed" case
+        // 优先尝试从 data 字段获取详细错误信息（通常是服务器返回的具体错误描述）
+        if (error.response.data.data) {
+            errorMessage = error.response.data.data;
+        } else if (error.response.data.message) {
+            // 如果 data 为空，尝试 message 字段
+            errorMessage = error.response.data.message;
+        } else if (error.response.data.msg) {
+            // 如果 message 为空，尝试 msg 字段
+            errorMessage = error.response.data.msg;
+        } else if (error.response.statusText) {
+            // 最后尝试 HTTP 状态文本
+            errorMessage = error.response.statusText;
         }
+    } else if (error.message) {
+        // 如果不是响应错误，使用错误的 message 属性
+        errorMessage = error.message;
     }
+
+    // 使用 Toast 组件显示错误信息
+    showToast.error(`${prefixMessage}：${errorMessage}`);
 };
 
 // 格式化时间显示
