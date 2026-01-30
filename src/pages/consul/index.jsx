@@ -13,7 +13,6 @@ import {
     Drawer,
     Descriptions,
     Popconfirm,
-    message,
     Alert,
     Tooltip,
     Tabs,
@@ -45,6 +44,7 @@ import {
     UpdateConsulTargetTags,
 } from '../../api/consul';
 import { OfflineLogs } from './OfflineLogs';
+import { showToast } from '../../components/Toast';
 import './index.css';
 
 const { Search } = Input;
@@ -157,11 +157,10 @@ export const Consul = () => {
                     setSummary(res.data.summary);
                 }
             } else {
-                message.error(res.msg || '获取目标列表失败');
+                showToast.error(res.msg || '获取目标列表失败');
             }
         } catch (error) {
-            console.error('获取目标列表失败:', error);
-            message.error('获取目标列表失败');
+            showToast.error('获取目标列表失败');
         } finally {
             setLoading(false);
         }
@@ -173,12 +172,14 @@ export const Consul = () => {
         try {
             const res = await SyncConsulTargets({});
             if (res.code === 200) {
-                message.success('同步成功');
-                // 同步后刷新列表
+                // 成功提示已在 API 层显示，这里只刷新列表
                 fetchTargets(currentPage, pageSize);
+            } else {
+                // API 返回非 200 状态码时显示错误信息
+                showToast.error(res.msg || res.message || '同步失败，请稍后重试');
             }
         } catch (error) {
-            console.error('同步失败:', error);
+            showToast.error('同步失败，请检查网络连接或联系管理员');
         } finally {
             setSyncLoading(false);
         }
@@ -194,11 +195,10 @@ export const Consul = () => {
             if (res.code === 200 && res.data) {
                 setDetailData(res.data);
             } else {
-                message.error('获取详情失败');
+                showToast.error('获取详情失败');
             }
         } catch (error) {
-            console.error('获取详情失败:', error);
-            message.error('获取详情失败');
+            showToast.error('获取详情失败');
         } finally {
             setDetailLoading(false);
         }
@@ -212,7 +212,7 @@ export const Consul = () => {
                 reason: '手动注销',
             });
             if (res.code === 200) {
-                message.success('目标已注销');
+                showToast.success('目标已注销');
                 // 刷新列表
                 fetchTargets(currentPage, pageSize);
             }
@@ -232,7 +232,7 @@ export const Consul = () => {
         try {
             const values = await editTagsForm.validateFields();
             if (!detailData || !detailData.id) {
-                message.error('目标信息不存在');
+                showToast.error('目标信息不存在');
                 return;
             }
 
@@ -253,7 +253,7 @@ export const Consul = () => {
             });
 
             if (res.code === 200) {
-                message.success('标签更新成功');
+                showToast.success('标签更新成功');
                 setEditTagsMode(false);
                 editTagsForm.resetFields();
                 
@@ -272,7 +272,7 @@ export const Consul = () => {
                 return;
             }
             console.error('更新标签失败:', error);
-            message.error('更新标签失败');
+            showToast.error('更新标签失败');
         } finally {
             setEditTagsLoading(false);
         }
@@ -336,7 +336,7 @@ export const Consul = () => {
             });
 
             if (res.code === 200) {
-                message.success('服务注册成功');
+                showToast.success('服务注册成功');
                 setRegisterVisible(false);
                 registerForm.resetFields();
                 // 刷新列表

@@ -1,6 +1,6 @@
 import http from '../utils/http';
-import { message } from 'antd';
 import { HandleApiError } from "../utils/lib";
+import { showToast } from '../components/Toast';
 
 // Consul 目标管理
 
@@ -50,10 +50,7 @@ async function GetConsulTargetById(params) {
 async function DeregisterConsulTarget(params) {
     try {
         const res = await http('post', `/api/w8t/consul/targets/${params.id}/deregister`, params);
-        message.open({
-            type: 'success',
-            content: '目标机器已成功注销',
-        });
+        showToast.success('目标机器已成功注销');
         return res;
     } catch (error) {
         HandleApiError(error)
@@ -70,10 +67,7 @@ async function DeregisterConsulTarget(params) {
 async function ReRegisterConsulTarget(params) {
     try {
         const res = await http('post', `/api/w8t/consul/targets/${params.id}/reregister`, params);
-        message.open({
-            type: 'success',
-            content: '目标已重新上线',
-        });
+        showToast.success('目标已重新上线');
         return res;
     } catch (error) {
         HandleApiError(error)
@@ -89,10 +83,10 @@ async function ReRegisterConsulTarget(params) {
 async function SyncConsulTargets(params) {
     try {
         const res = await http('post', '/api/w8t/consul/sync', params);
-        message.open({
-            type: 'success',
-            content: 'Consul目标同步成功',
-        });
+        // 只在成功时显示提示，失败由调用方处理
+        if (res.code === 200) {
+            showToast.success('Consul目标同步成功');
+        }
         return res;
     } catch (error) {
         HandleApiError(error)
@@ -115,10 +109,7 @@ async function SyncConsulTargets(params) {
 async function RegisterConsulTarget(params) {
     try {
         const res = await http('post', '/api/w8t/consul/targets/register', params);
-        message.open({
-            type: 'success',
-            content: '服务注册成功',
-        });
+        showToast.success('服务注册成功');
         return res;
     } catch (error) {
         HandleApiError(error)
@@ -175,10 +166,7 @@ async function GetConsulTargetsByJobAndTag(params) {
 async function UpdateConsulTargetTags(params) {
     try {
         const res = await http('post', `/api/w8t/consul/targets/${params.id}/tags`, params);
-        message.open({
-            type: 'success',
-            content: '目标标签更新成功',
-        });
+        showToast.success('目标标签更新成功');
         return res;
     } catch (error) {
         HandleApiError(error)
