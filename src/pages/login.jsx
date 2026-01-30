@@ -2,41 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
 import './global.css';
 import { checkUser, loginUser, registerUser, getOidcInfo } from '../api/user';
 import { showToast } from '../components/Toast';
 import { UserManager } from 'oidc-client';
 import loginIllustration from '../img/login-illustration.png';
 
-// 密码输入框组件，带显示/隐藏切换功能
-const PasswordInput = ({ name, id, placeholder, showPassword, onToggle }) => (
-    <div className="relative">
-        <input
-            type={showPassword ? "text" : "password"}
-            name={name}
-            id={id}
-            placeholder={placeholder}
-            className="w-full px-4 py-3 pr-12 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500 focus:ring-opacity-20 hover:border-gray-400 transition-all"
-            required
-        />
-        <button
-            type="button"
-            onClick={onToggle}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-        >
-            {showPassword ? <EyeInvisibleOutlined /> : <EyeOutlined />}
-        </button>
-    </div>
-);
-
 export const Login = () => {
     const [showOidcButtons,setShowOidcButtons] = useState(false);
     const [passwordModal, setPasswordModal] = useState(false);
     const [isModalVisible, setIsModalVisible] = useState(false);
-    const [showPassword, setShowPassword] = useState(false); // 登录密码可见性
-    const [showInitPassword, setShowInitPassword] = useState(false); // 初始化密码可见性
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false); // 确认密码可见性
     const navigate = useNavigate();
 
     // 检查是否已登录
@@ -232,11 +207,12 @@ export const Login = () => {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">密码</label>
-                                        <PasswordInput
+                                        <input
+                                            type="password"
                                             name="password"
                                             placeholder="请输入密码"
-                                            showPassword={showPassword}
-                                            onToggle={() => setShowPassword(!showPassword)}
+                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500 focus:ring-opacity-20 hover:border-gray-400 transition-all"
+                                            required
                                         />
                                     </div>
                                     <div className="flex items-center justify-between pt-1">
@@ -297,22 +273,24 @@ export const Login = () => {
                                 <label htmlFor="init-password" className="block text-sm font-medium text-gray-800 mb-2">
                                     设置密码
                                 </label>
-                                <PasswordInput
-                                    name="password"
+                                <input
+                                    type="password"
                                     id="init-password"
-                                    showPassword={showInitPassword}
-                                    onToggle={() => setShowInitPassword(!showInitPassword)}
+                                    name="password"
+                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500 focus:ring-opacity-20 hover:border-gray-400 transition-all"
+                                    required
                                 />
                             </div>
                             <div>
                                 <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-800 mb-2">
                                     确认密码
                                 </label>
-                                <PasswordInput
-                                    name="confirm-password"
+                                <input
+                                    type="password"
                                     id="confirm-password"
-                                    showPassword={showConfirmPassword}
-                                    onToggle={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    name="confirm-password"
+                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500 focus:ring-opacity-20 hover:border-gray-400 transition-all"
+                                    required
                                 />
                             </div>
                             <div className="flex justify-end space-x-3 pt-4">
