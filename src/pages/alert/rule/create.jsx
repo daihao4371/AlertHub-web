@@ -1955,7 +1955,7 @@ export const AlertRule = ({ type }) => {
                 <div style={{display: 'flex', alignItems: 'center', width: '100%'}}>
                     <MyFormItem
                         name="faultCenterId"
-                        label="事件推送给 WatchAlert 故障中心"
+                        label="事件推送给 AlertHub 故障中心"
                         rules={[{required: selectedFaultCenter === null}]}
                         style={{marginBottom: 0, flex: 1}}
                     >
