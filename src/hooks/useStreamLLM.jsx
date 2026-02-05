@@ -64,9 +64,6 @@ export const useStreamLLM = (options = {}) => {
         setError(null);
         isCancelledRef.current = false;
 
-        // 调试日志
-        console.log('[AI-Chat] Starting stream with params:', params);
-
         try {
             // 获取认证信息
             const token = localStorage.getItem('Authorization') || '';
@@ -74,8 +71,6 @@ export const useStreamLLM = (options = {}) => {
 
             // 构建请求 URL
             const url = apiUrl || `${process.env.REACT_APP_API_URL || ''}/api/w8t/ai/chat`;
-
-            console.log('[AI-Chat] API URL:', url);
 
             // 创建 AbortController 用于取消请求
             abortControllerRef.current = new AbortController();
@@ -217,13 +212,11 @@ export const useStreamLLM = (options = {}) => {
             if (onComplete) {
                 onComplete(accumulatedContent);
             }
-            console.log('[AI-Chat] Stream completed. Total length:', accumulatedContent.length);
 
         } catch (error) {
             // 如果是取消操作，不设置错误
             if (error.name === 'AbortError' || isCancelledRef.current) {
                 setIsLoading(false);
-                console.log('[AI-Chat] Request was cancelled');
                 return;
             }
 
