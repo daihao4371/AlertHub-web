@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { FloatButton, Drawer, Avatar, Space, Typography, message } from 'antd';
+import { FloatButton, Drawer, Avatar, Space, Typography, message, Select } from 'antd';
 import { Bubble, Sender } from '@ant-design/x';
 import { useStreamLLM } from '../../hooks/useStreamLLM';
 import { useAutoScroll } from '../../utils/common';
 import { useMarkdownRenderer } from '../../utils/markdownComponents';
+import { getSystemSetting } from '../../api/settings';
 import OpenAiLogo from '../../img/OpenAi.png';
 import './index.css';
 
@@ -20,6 +21,10 @@ export const AIChatBot = () => {
     const [messages, setMessages] = useState([]);
     const [currentStreamingContent, setCurrentStreamingContent] = useState('');
     const [currentStreamingId, setCurrentStreamingId] = useState(null);
+
+    // 模型选择状态
+    const [modelList, setModelList] = useState([]);
+    const [selectedModel, setSelectedModel] = useState('');
 
     // Drawer width state with localStorage persistence
     const [drawerWidth, setDrawerWidth] = useState(() => {
@@ -104,12 +109,89 @@ export const AIChatBot = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
 
+    // Load available models - 在 Drawer 打开时重新加载
+    useEffect(() => {
+        if (!open) return;
+
+        const loadModels = async () => {
+            try {
+                const res = await getSystemSetting();
+                const aiConfig = res.data?.aiConfig || {};
+                let providers = aiConfig.providers || {};
+
+                console.log('AIChatBot - 加载模型配置:', { aiConfig, providers });
+
+                // 数据兼容：如果 providers 为空或 null，尝试从旧字段构建
+                if (!providers || Object.keys(providers).length === 0) {
+                    // 检查是否存在旧的配置字段
+                    if (aiConfig.provider && aiConfig.url) {
+                        console.log('AIChatBot - 检测到旧数据格式，进行兼容处理');
+                        // 从旧字段构建临时的 providers 结构
+                        providers = {
+                            [aiConfig.provider]: {
+                                url: aiConfig.url,
+                                appKey: aiConfig.appKey,
+                                // 如果旧配置有 model 字段，将其作为该 provider 的模型列表
+                                models: aiConfig.model ? [aiConfig.model] : []
+                            }
+                        };
+                        console.log('AIChatBot - 兼容后的 providers:', providers);
+                    }
+                }
+
+                // 从所有 Provider 中收集模型
+                const allModels = [];
+                Object.values(providers).forEach(provider => {
+                    if (provider.models && Array.isArray(provider.models)) {
+                        allModels.push(...provider.models);
+                    }
+                });
+
+                console.log('AIChatBot - 收集到的模型:', allModels);
+
+                // 去重并转换为列表格式
+                const uniqueModels = [...new Set(allModels)];
+                const list = uniqueModels.map(model => ({
+                    label: model,
+                    value: model
+                }));
+
+                console.log('AIChatBot - 最终模型列表:', list);
+
+                setModelList(list);
+
+                // 默认选择第一个模型
+                if (list.length > 0 && !selectedModel) {
+                    setSelectedModel(list[0].value);
+                }
+
+                // 如果没有模型，提示用户
+                if (list.length === 0) {
+                    console.warn('AIChatBot - 未找到任何模型配置，请在设置页面配置 Provider');
+                    message.warning('未找到可用模型，请先在设置页面配置 AI Provider');
+                }
+            } catch (error) {
+                console.error('AIChatBot - 加载模型失败:', error);
+                message.error('加载模型列表失败：' + error.message);
+            }
+        };
+
+        loadModels();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open]);
+
     /**
      * Send message handler
      */
     const handleSend = useCallback(async (text) => {
         const userMessage = text?.trim() || inputValue.trim();
         if (!userMessage || isLoading) {
+            return;
+        }
+
+        // 检查是否选择了模型
+        if (!selectedModel) {
+            message.error('请先选择模型');
             return;
         }
 
@@ -136,11 +218,15 @@ export const AIChatBot = () => {
         reset();
 
         try {
+            // 构建请求参数，包含模型
+            const requestParams = {
+                content: userMessage,
+                prompt: '{{ Content }}',
+                model: selectedModel
+            };
+
             await stream(
-                {
-                    content: userMessage,
-                    prompt: '{{ Content }}',
-                },
+                requestParams,
                 undefined,
                 (finalContent) => {
                     setMessages(prev => prev.map(msg =>
@@ -163,7 +249,7 @@ export const AIChatBot = () => {
             setCurrentStreamingContent('');
             reset();
         }
-    }, [inputValue, isLoading, stream, reset]);
+    }, [inputValue, isLoading, selectedModel, stream, reset]);
 
     /**
      * Stop generation handler
@@ -385,13 +471,23 @@ export const AIChatBot = () => {
             {/* Chat Drawer */}
             <Drawer
                 title={
-                    <Space>
-                        <Avatar
-                            size={32}
-                            src={OpenAiLogo}
+                    <div style={{ width: '100%' }}>
+                        <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 8 }}>
+                            <Space>
+                                <Avatar size={32} src={OpenAiLogo} />
+                                <Text strong>AI 助手</Text>
+                            </Space>
+                        </Space>
+                        <Select
+                            value={selectedModel}
+                            onChange={setSelectedModel}
+                            style={{ width: '100%' }}
+                            size="small"
+                            placeholder="选择模型"
+                            disabled={isLoading}
+                            options={modelList}
                         />
-                        <Text strong>AI 助手</Text>
-                    </Space>
+                    </div>
                 }
                 placement="right"
                 width={drawerWidth}
