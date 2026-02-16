@@ -59,6 +59,7 @@ const adminMenuItems = [
         children: [
             { key: '5-1', path: '/intelligent/basic', label: '基本信息' },
             { key: '5-2', path: '/intelligent/process', label: '处理记录' },
+            { key: '5-3', path: '/intelligent/rca', label: '根因分析' },
         ]
     },
     
@@ -165,6 +166,7 @@ const userMenuItems = [
         children: [
             { key: '5-1', path: '/intelligent/basic', label: '基本信息' },
             { key: '5-2', path: '/intelligent/process', label: '处理记录' },
+            { key: '5-3', path: '/intelligent/rca', label: '根因分析' },
         ]
     },
     

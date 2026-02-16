@@ -44,6 +44,7 @@ import {IntelligentBasic} from "../pages/intelligent/basic";
 import {IntelligentProcess} from "../pages/intelligent/process";
 import {ThirdPartyAlert} from "../pages/thirdParty";
 import {Consul} from "../pages/consul";
+import {RCAPage} from "../pages/rca";
 
 // eslint-disable-next-line import/no-anonymous-default-export
 export default [
@@ -228,6 +229,10 @@ export default [
     {
         path: '/intelligent/process',
         element: <ComponentsContent name="处理记录" c={<IntelligentProcess />} />
+    },
+    {
+        path: '/intelligent/rca',
+        element: <ComponentsContent name="根因分析" c={<RCAPage />} />
     },
     {
         path: '/thirdPartyAlert',
