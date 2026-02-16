@@ -1,0 +1,167 @@
+/* ==================== 基础样式 ==================== */
+
+.rca-container {
+    text-align: left;
+    padding: 24px;
+}
+
+/* ==================== 聚类结果统计样式 ==================== */
+
+.rca-cluster-alert {
+    margin-top: 16px;
+    border-radius: 8px;
+    animation: slideUp 0.3s ease-out;
+}
+
+.rca-cluster-alert.success {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(82, 196, 26, 0.1) 100%);
+    border: 1px solid #10b981;
+}
+
+/* ==================== 文本工具类 ==================== */
+
+.text-xs {
+    font-size: 12px;
+}
+
+.text-sm {
+    font-size: 13px;
+}
+
+.text-gray-500 {
+    color: #6b7280;
+}
+
+.font-medium {
+    font-weight: 500;
+}
+
+.flex {
+    display: flex;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.gap-2 {
+    gap: 8px;
+}
+
+.gap-3 {
+    gap: 12px;
+}
+
+.space-y-2 > * + * {
+    margin-top: 8px;
+}
+
+.pl-4 {
+    padding-left: 16px;
+}
+
+/* ==================== 告警等级标签样式 ==================== */
+
+.severity-tag {
+    border: none;
+    font-weight: 500;
+    padding: 2px 12px;
+    font-size: 12px;
+    color: #fff;
+}
+
+.severity-tag-p0 {
+    background: linear-gradient(135deg, #ff7875 0%, #ff4d4f 100%);
+    box-shadow: 0 2px 8px rgba(255, 77, 79, 0.3);
+}
+
+.severity-tag-p1 {
+    background: linear-gradient(135deg, #ffb84d 0%, #faad14 100%);
+    box-shadow: 0 2px 8px rgba(250, 173, 20, 0.3);
+}
+
+.severity-tag-p2 {
+    background: linear-gradient(135deg, #91d5ff 0%, #69c0ff 100%);
+    box-shadow: 0 2px 8px rgba(105, 192, 255, 0.3);
+}
+
+.severity-tag-default {
+    background: linear-gradient(135deg, #b37feb 0%, #9254de 100%);
+    box-shadow: 0 2px 8px rgba(146, 84, 222, 0.3);
+}
+
+/* ==================== 聚类阶段样式 ==================== */
+
+.rca-step-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+/* ==================== 按钮样式 ==================== */
+
+.rca-button-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.rca-button-group .ant-btn {
+    min-width: 120px;
+}
+
+/* ==================== 动画 ==================== */
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 聚类结果卡片入场动画 - 仅首次出现时播放 */
+.rca-fade-in {
+    animation: slideUp 0.3s ease-out;
+}
+
+/* ==================== 卡片样式 ==================== */
+
+.rca-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 1px 6px rgba(0, 0, 0, 0.03);
+    margin-bottom: 24px;
+    padding: 24px;
+}
+
+/* ==================== 响应式设计 ==================== */
+
+@media (max-width: 768px) {
+    .rca-container {
+        padding: 16px;
+    }
+
+    .rca-button-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .rca-button-group .ant-btn {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+
+    .rca-button-group .ant-btn:last-child {
+        margin-bottom: 0;
+    }
+}
