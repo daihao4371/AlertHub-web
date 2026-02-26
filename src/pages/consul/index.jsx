@@ -77,6 +77,7 @@ export const Consul = () => {
         upCount: 0,
         downCount: 0,
         availabilityRate: 0,
+        uniqueJobs: [],
     });
     
     // 详情模态框
@@ -522,7 +523,10 @@ export const Consul = () => {
     ];
 
     // 获取唯一的 Job 列表（用于过滤）
-    const uniqueJobs = Array.from(new Set(list.map(item => item.job).filter(Boolean)));
+    // 优先使用后端返回的全量 uniqueJobs（包含所有服务名称），避免仅从当前页数据提取导致遗漏
+    const uniqueJobs = (summary.uniqueJobs && summary.uniqueJobs.length > 0)
+        ? [...summary.uniqueJobs].sort()
+        : Array.from(new Set(list.map(item => item.job).filter(Boolean))).sort();
     
     // 从列表中提取所有标签键，用于标签过滤下拉框
     // 注意：这里提取的是标签的键（key），不是值（value）
